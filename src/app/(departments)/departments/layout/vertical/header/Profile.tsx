@@ -9,12 +9,15 @@ import unlimitedbg from "/public/images/backgrounds/unlimited-bg.png"
 import { auth } from "@/auth";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
+import { userRole } from "@/lib/utils";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 const Profile =  () => {
   const {data: session} = useSession(); 
   const {data, isLoading, mutate, error} = useSWR(`/api/users/${session?.user.id}`,fetcher);
-  
+  if(isLoading) {
+    return <p>Loading....</p>
+  }
   return (
     <div className="relative group/menu ps-15">
       <Dropdown
@@ -24,7 +27,7 @@ const Profile =  () => {
         renderTrigger={() => (
           <span className=" hover:text-primary hover:bg-lightprimary rounded-full flex justify-center items-center cursor-pointer group-hover/menu:bg-lightprimary group-hover/menu:text-primary">
             <Image
-              src="/images/profile/user-1.jpg"
+              src={`/uploads/${data.user_img}`}
               alt="logo"
               height="35"
               width="35"
@@ -37,7 +40,7 @@ const Profile =  () => {
           <h3 className="text-lg font-semibold text-ld">ข้อมูลส่วนตัว</h3>
           <div className="flex items-center gap-6 pb-5 border-b dark:border-darkborder mt-5 mb-3">
             <Image
-              src="/images/profile/user-1.jpg"
+              src={`/uploads/${data.user_img}`}
               alt="logo"
               height="80"
               width="80"
@@ -45,13 +48,13 @@ const Profile =  () => {
             />
             <div>
               <h5 className="card-title text-sm  mb-0.5 font-medium">{`${data.firstname} ${data.lastname}`}</h5>
-              <span className="card-subtitle text-muted font-normal">Designer</span>
+              <span className="card-subtitle text-muted font-normal">{userRole(Number(session?.user.role))}</span>
               <p className="card-subtitle font-normal text-muted mb-0 mt-1 flex items-center">
                 <Icon
-                  icon="tabler:mail"
+                  icon="tabler:phone"
                   className="text-base me-1 relative top-0.5"
                 />
-                info@modernize.com
+                {data.phone}
               </p>
             </div>
           </div>
