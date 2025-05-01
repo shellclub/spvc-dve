@@ -41,26 +41,10 @@ const SidebarContent: MenuItem[] = [
         url: "/",
       },
       {
-        name: "จัดการ",
-        icon: 'tabler:settings',
+        name: "รายงานฝึกงาน",
+        icon: 'tabler:file-invoice',
         id: uniqueId(),
-        children: [
-          {
-            id: uniqueId(),
-            name: "จัดการข้อมูลแผนกวิชา",
-            url: "/admin/mng-department",
-          },
-          {
-            id: uniqueId(),
-            name: "จัดการข้อมูลนักศึกษา",
-            url: "/admin/students",
-          },
-          {
-            id: uniqueId(),
-            name: "จัดการผู้แลแผนกวิชา",
-            url: "/admin/teachers",
-          }
-        ],
+        url: "/reportinturn"
       },
       // {
       //   name: "eCommerce",

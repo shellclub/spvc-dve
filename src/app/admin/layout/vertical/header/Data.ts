@@ -8,14 +8,14 @@ interface ProfileType {
   url: string;
 }
 
-import acccountIcon from "/public/images/svgs/icon-account.svg";
+import acccountIcon from "../../../../../../public/images/svgs/icon-account.svg";
 
 const profileDD: ProfileType[] = [
   {
     img: acccountIcon,
-    title: "My Profile",
-    subtitle: "Account settings",
-    url: "/apps/user-profile/profile",
+    title: "แก้ไขข้อมูลส่วนตัว",
+    subtitle: "จัดการข้อมูลส่วนตัว",
+    url: "/admin/profile",
   },
 
 ];
