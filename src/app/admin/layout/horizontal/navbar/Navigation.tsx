@@ -66,13 +66,13 @@ const pathname = usePathname();
                   </p>
                   {activeDropdown === item.id && (
                     <div
-                      className={`absolute left-0 rtl:right-0 mt-2  bg-white dark:bg-dark rounded-md shadow-lg ${item.column == 4 ? 'w-screen max-w-[800px]' : 'w-52'}`}
+                      className={`absolute left-0 rtl:right-0 mt-2  bg-white dark:bg-dark rounded-md shadow-lg 'w-52'}`}
                       onMouseEnter={() => handleDropdownEnter(item.id)}
                       onMouseLeave={handleDropdownLeave}
                     >
-                      <ul className={`p-3 text-sm  gap-2  ${item.column == 4 ? 'two-cols' : 'flex flex-col'} `}>
+                      <ul className={`p-3 text-sm  gap-2 flex flex-col`}>
                         {item.children.map((child) => (
-                          <li key={child.id} className={` ${item.column == 4 ? 'mb-2' : ''} `}>
+                          <li key={child.id} >
                             <ChildComponent
                               item={child}
                               title={item.title}

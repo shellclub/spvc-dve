@@ -7,7 +7,7 @@ import Image from "next/image";
 import SimpleBar from "simplebar-react";
 import unlimitedbg from "/public/images/backgrounds/unlimited-bg.png"
 import { auth } from "@/auth";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import useSWR from "swr";
 import { userRole } from "@/lib/utils";
 
@@ -91,8 +91,7 @@ const Profile =  () => {
         <div className="pt-2 px-30">
           <Button
             color={"outlineprimary"}
-            as={Link}
-            href="/auth/auth1/login"
+            onClick={() => signOut({ redirectTo: "/signin"})}
             className="w-full rounded-md"
           >
             Logout

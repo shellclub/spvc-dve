@@ -1,10 +1,7 @@
 import { Icon } from "@iconify/react";
-import Messages from "./Messages";
 
 import Profile from "./Profile";
-import { Language } from "./Language";
 import { DarkThemeToggle, Navbar } from "flowbite-react";
-import AppLinks from "./AppLinks";
 import { CustomizerContext } from "@/app/context/CustomizerContext";
 import { useContext } from "react";
 
@@ -56,20 +53,6 @@ const MobileHeaderItems = () => {
                   </span>
                 </div>
               )}
-
-         {/* Notification Dropdown */}
-
-           {/* Messages Dropdown */}
-          <Messages  />
-
-          {/* App Link Dropwown   */}
-          <AppLinks  />
-
-        {/* Language Dropdown*/}
-        <Language  />
-
-
-        {/* Profile Dropdown */}
         <Profile  />
       </div>
     </div>

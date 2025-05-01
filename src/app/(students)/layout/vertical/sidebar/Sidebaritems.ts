@@ -41,11 +41,33 @@ const SidebarContent: MenuItem[] = [
         url: "/",
       },
       {
-        name: "รายงานการฝึกงาน",
-        icon: 'tabler:file-invoice',
+        name: "จัดการ",
+        icon: 'tabler:settings',
         id: uniqueId(),
-        url: "/reportintern",
+        children: [
+          {
+            id: uniqueId(),
+            name: "จัดการข้อมูลแผนกวิชา",
+            url: "/admin/mng-department",
+          },
+          {
+            id: uniqueId(),
+            name: "จัดการข้อมูลนักศึกษา",
+            url: "/admin/students",
+          },
+          {
+            id: uniqueId(),
+            name: "จัดการผู้แลแผนกวิชา",
+            url: "/admin/teachers",
+          }
+        ],
       },
+      // {
+      //   name: "eCommerce",
+      //   icon: 'tabler:shopping-cart',
+      //   id: uniqueId(),
+      //   url: "/dashboards/eCommerce",
+      // },
       
       // {
       //   name: "NFT",

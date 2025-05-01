@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useContext } from "react";
-import { Sidebar, Tooltip } from "flowbite-react";
+import { Sidebar, Spinner, Tooltip } from "flowbite-react";
 import SidebarContent from "./Sidebaritems";
 import NavItems from "./NavItems";
 import NavCollapse from "./NavCollapse";
@@ -11,14 +11,21 @@ import { Icon } from "@iconify/react";
 import Image from "next/image";
 import profileimg from "/public/images/profile/user-1.jpg"
 import { CustomizerContext } from "@/app/context/CustomizerContext";
+import { signOut, useSession } from "next-auth/react";
+import useSWR from "swr";
+import { userRole } from "@/lib/utils";
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 const SidebarLayout = () => {
   const {isCollapse } = useContext(CustomizerContext);
+  const { data: session } = useSession();
+  const { data, isLoading, error} = useSWR(`/api/users/${session?.user.id}`, fetcher);
+
   return (
     <>
-      <div className="xl:block hidden">
+      <div className="xl:block hidden ">
         <div className="flex ">
           <Sidebar
-            className="fixed menu-sidebar bg-white dark:bg-dark z-[6] border-r rtl:border-l border-border dark:border-darkborder"
+            className={`${isLoading ? 'animate-pulse pointer-events-none opacity-60' : ''} fixed menu-sidebar bg-white dark:bg-dark z-[6] border-r rtl:border-l border-border dark:border-darkborder`}
             aria-label="Sidebar with multi-level dropdown example"
           >
             <div className={`${isCollapse==="full-sidebar"?"px-6":"px-5"} flex items-center brand-logo overflow-hidden`}>
@@ -57,25 +64,27 @@ const SidebarLayout = () => {
               </Sidebar.Items>
             </SimpleBar>
              {/* Sidebar Profile */}
-             <div className={` my-4 ${isCollapse==="full-sidebar"?"mx-6":"mx-2"}`}>
-                 <div className={` py-4 ${isCollapse==="full-sidebar"?"px-4":"px-2"} bg-lightsecondary rounded-md overflow-hidden`}>
-                    <div className="flex justify-between items-center">
-                      <div className="flex gap-4 items-center">
-                        <Image src={profileimg} alt="profile-image" width={40} height={40} className="rounded-full" />
-                        <div>
-                          <h3 className="text-base font-semibold" >Mathew</h3>
-                           <p className="text-xs font-normal text-muted dark:text-darklink" >Designer</p>
-                        </div>
-                      </div>
-                  <Tooltip content="Logout">
-                    <div className="cursor-pointer">
-                      <Icon icon="tabler:power"  className="text-primary text-2xl" />
-                    </div>
-                  </Tooltip>
-
-                    </div>
-                 </div>
-             </div>
+                  <div className={` my-4 ${isCollapse==="full-sidebar"?"mx-6":"mx-2"}`}>
+                  <div className={` py-4 ${isCollapse==="full-sidebar"?"px-4":"px-2"} bg-lightsecondary rounded-md overflow-hidden`}>
+                {isLoading ? (<Spinner aria-label="Default status example" />) : (
+                     <div className="flex justify-between items-center">
+                       <div className="flex gap-4 items-center">
+                         <Image src={`/uploads/${data.user_img}`} alt="profile-image" width={40} height={40} className="rounded-full" />
+                         <div>
+                           <h3 className="text-base font-semibold" >{data.firstname}</h3>
+                            <p className="text-xs font-normal text-muted dark:text-darklink" >{userRole(Number(session?.user.role))}</p>
+                         </div>
+                       </div>
+                   <Tooltip content="Logout">
+                     <div className="cursor-pointer">
+                       <Icon icon="tabler:power" onClick={() => signOut({redirectTo: "/signin"})}  className="text-primary text-2xl" />
+                     </div>
+                   </Tooltip>
+ 
+                     </div>
+                )}
+                  </div>
+              </div>
           </Sidebar>
         </div>
       </div>

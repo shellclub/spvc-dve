@@ -2,14 +2,10 @@
 import "flowbite";
 import React, { useState, useEffect, useContext } from "react";
 import { DarkThemeToggle, Navbar } from "flowbite-react";
-import Search from "./Search";
 import { Icon } from "@iconify/react";
-import AppLinks from "./AppLinks";
-import Messages from "./Messages";
 import Profile from "./Profile";
 import { CustomizerContext } from "@/app/context/CustomizerContext";
 
-import { Language } from "./Language";
 import FullLogo from "../../shared/logo/FullLogo";
 import MobileHeaderItems from "./MobileHeaderItems";
 import { Drawer } from "flowbite-react";
@@ -104,7 +100,6 @@ const Header = ({ layoutType }: HeaderPropsType) => {
                 </span>
               ) : null}
 
-              <Search />
             </div>
           </Navbar.Collapse>
 
@@ -147,14 +142,9 @@ const Header = ({ layoutType }: HeaderPropsType) => {
                   </span>
                 </div>
               )}
-              {/* Language Dropdown*/}
-              <Language  />
 
-              {/* Shopping Cart */}
-              {/* <CartItems/> */}
 
-              {/* Messages Dropdown */}
-              <Messages  />
+
 
               {/* Profile Dropdown */}
               <Profile  />
