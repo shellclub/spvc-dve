@@ -44,7 +44,7 @@ const SidebarContent: MenuItem[] = [
         name: "รายงานฝึกงาน",
         icon: 'tabler:file-invoice',
         id: uniqueId(),
-        url: "/reportinturn"
+        url: "/reportintern"
       },
       // {
       //   name: "eCommerce",

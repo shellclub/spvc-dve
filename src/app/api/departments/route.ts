@@ -31,6 +31,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
     const departments = await findAllDepartments();
-    
+    if(!departments) {
+        return NextResponse.json({}, { status: 404})
+
+    }
     return NextResponse.json(departments)
 }

@@ -4,18 +4,22 @@
 import { showToast } from '@/app/components/sweetalert/sweetalert';
 import { userRole } from '@/lib/utils';
 import { Icon } from '@iconify/react/dist/iconify.js';
-import { Button, Avatar, Spinner, Modal, ModalHeader, ModalBody, Label, TextInput, FileInput } from 'flowbite-react'
+import { Button, Avatar, Spinner, Modal, ModalHeader, ModalBody, Label, TextInput, FileInput, Select } from 'flowbite-react'
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { FaPen } from 'react-icons/fa6'
 import useSWR from 'swr';
+import InternshipReportForm from '../profileJob';
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 export default function EditProfilePage() {
     const [openProfile, setOpenProfile] = useState<boolean>(false);
+    const [openStudent, setOpenStudent] = useState<boolean>(false);
+    const [openInternDay, setOpenInternDay] = useState<boolean>(false);
     const { data: session} = useSession();
     
-    const { data, isLoading, error, mutate} = useSWR(`/api/users/${session?.user.id}`, fetcher);
+    const { data, isLoading, error, mutate} = useSWR(`/api/students/${session?.user.id}`, fetcher);
+    const {data: depdata, isLoading: depLoading} = useSWR(`/api/departments`, fetcher);
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formdata = new FormData(e.currentTarget);
@@ -30,7 +34,7 @@ export default function EditProfilePage() {
         const data = await res.json();
         showToast(data.message, data.type);
     }
-    if (isLoading) {
+    if (isLoading || depLoading) {
         return (
           <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
             <Spinner 
@@ -45,6 +49,11 @@ export default function EditProfilePage() {
           </div>
         );
       }
+      const dayOrder = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+      const selectedDays = data.student.inturnship.selectedDays;
+      const sortedDays = [...selectedDays].sort(
+        (a: string, b: string) => dayOrder.indexOf(a) - dayOrder.indexOf(b)
+      );
   return (
     <div className=" bg-gray-100 p-4 sm:p-6">
       <div className="mx-auto w-full max-w-screen-2xl"> {/* เปลี่ยนจาก max-w-4xl เป็น max-w-screen-2xl */}
@@ -84,13 +93,19 @@ export default function EditProfilePage() {
                 >
                   <FaPen className="mr-2" /> แก้ไขข้อมูล
                 </Button>
-                <Modal show={openProfile} size="3xl" onClose={() => setOpenProfile(false)} popup>
+                <Modal show={openProfile || openStudent || openInternDay} size="3xl" onClose={() => { 
+                  setOpenProfile(false);  
+                  setOpenStudent(false); 
+                  setOpenInternDay(false);
+                  }} popup>
                               <ModalHeader />
                               <ModalBody>
-                              <div className="space-y-6">
+                              <div className={`space-y-6 ${openInternDay ? 'hidden' : ''}`} >
                                 <h3 className="text-xl font-medium text-gray-900 dark:text-white">จัดการข้อมูลแผนกวิชา</h3>
                                 <form onSubmit={handleSubmit}>
-                                  <div className="mb-3">
+                                  { openProfile ? (
+                                    <>
+                                       <div className="mb-3">
                                     <Label>ชื่อ</Label>
                                     <TextInput 
                                       name="firstname"
@@ -127,11 +142,61 @@ export default function EditProfilePage() {
                                         accept='image/jpeg, image/png'
                                     />
                                   </div>
+                                    </>
+                                  
+                                  ) : openStudent ? (
+                                    <>
+                                      <div className="mb-3">
+                                        <Label>รหัสนักศึกษา</Label>
+                                        <TextInput 
+                                          name="studentId"
+                                          placeholder="กรอกรหัสนักศึกษา"
+                                          id="studentId"
+                                          defaultValue={data.student.studentId}
+                                        />
+                                      </div>
+                                      <div className="mb-3">
+                                        <Label>แผนกวิชา</Label>
+                                        <Select 
+                                        id='departmentId' 
+                                        name='departmentId' 
+                                        defaultValue={data.departmentId}
+                                        >
+                                          {depdata?.map((dep: any,index: any) => (
+                                            <option key={index} value={dep.id}>{dep.depname}</option>
+                                          ))}
+                                          
+                                        </Select>
+                                      </div>
+                                      <div className="mb-3">
+                                        <Label>สาขาวิชา</Label>
+                                        <TextInput 
+                                          name="major"
+                                          placeholder="กรอกสาขาวิชา"
+                                          id="major"
+                                          defaultValue={data.student.major}
+                                        />
+                                      </div>
+                                      <div className="mb-3">
+                                        <Label>กลุ่ม</Label>
+                                        <TextInput 
+                                          name="room"
+                                          placeholder="กรอกกลุ่ม"
+                                          id="room"
+                                          defaultValue={data.student.room}
+                                        />
+                                      </div>
+                                    </>
+                                  ) : null}
+                                 
                                   <div className="w-full flex mt-6 text-end justify-end">
                                       <Button type="submit">ส่งข้อมูล</Button>
                                   </div>
                                 </form>
                               </div>
+                                {openInternDay ? (
+                                    <InternshipReportForm/>
+                                  ) : null}
                               </ModalBody>
                             </Modal>
               </div>
@@ -143,13 +208,50 @@ export default function EditProfilePage() {
 
               </div>
             </div>
+            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-800">ข้อมูลนักศึกษา</h3>
+                <Button 
+                  outline 
+                  size="sm" 
+                  className="rounded-full w-full sm:w-auto"
+                  onClick={() => setOpenStudent(true)}
+                >
+                  <FaPen className="mr-2" /> แก้ไขข้อมูล
+                </Button>
+              
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 text-sm sm:text-base">
+                <Field label="รหัสนักศึกษา" value={data.student.studentId} />
+                <Field label="แผนกวิชา" value={data.department.depname} />
+                <Field label="สาขาวิชา" value={data.student.major} />
+                <Field label="กลุ่ม" value={data.student.room} />
+                <div>
+                <Field label="วันที่ฝึกงาน" value={sortedDays.map((day: string, index: number) => (
+                          <span key={index}>
+                            {day}{index < sortedDays.length - 1 ? ', ' : ''}
+                          </span>
+                        )) as any}/>
+                <Button 
+                  outline 
+                  size="sm" 
+                  className="rounded-full w-full sm:w-auto"
+                  onClick={() => setOpenInternDay(true)}
+                >
+                  <FaPen className="mr-2" /> แก้ไขวันฝึกงาน
+                </Button>
+                </div>
+                <Field label="ปีการศึกษา" value={`${data.student.term}/${Number(data.student.academicYear) + 543}`} />
+
+              </div>
+            </div>
           </div>
       </div>
     </div>
   )
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value }: { label: string; value: string | string[] }) {
   return (
     <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
       <p className="text-sm sm:text-base font-medium text-gray-500">{label}</p>

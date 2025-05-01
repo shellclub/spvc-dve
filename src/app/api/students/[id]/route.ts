@@ -20,6 +20,29 @@ type StudentRequestBody = {
         birthday: string;
     };
   };
+export async function GET(request: NextRequest, {params}: {params: Promise<{ id: string}>}) {
+    const { id } = await params;
+    const student = await prisma.user.findUnique({
+        where: {
+            id: Number(id)
+        },
+        include: {
+            student: {
+                include: {
+                    education: true,
+                    inturnship: true,
+                    report: true
+                }
+            },
+            department: true,
+        }
+    })
+
+    if(!student) return NextResponse.json({}, { status: 404});
+    
+    return NextResponse.json(student, { status: 200});
+    
+}
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const jsonBody = await req.json() as StudentRequestBody;

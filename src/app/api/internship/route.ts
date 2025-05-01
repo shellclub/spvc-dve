@@ -18,14 +18,32 @@ export async function POST(request: NextRequest) {
     if(!students) {
         return NextResponse.json({ message: "ไม่พบข้อมูลนักศึกษา", type: "error"}, { status: 401});
     }
-
-    const internship = await prisma.inturnship.create({
-        data: {
-            studentId: students.id,
-            dayperweeks: String(dayPerWeeks),
-            selectedDays: selectedDays
+    const check = await prisma.inturnship.findUnique({
+        where: {
+            studentId: students.id
         }
     });
+    let internship;
+    if(check) {
+         internship = await prisma.inturnship.update({
+            where: {
+                studentId: students.id
+            },
+            data: {
+                dayperweeks: String(dayPerWeeks),
+                selectedDays: selectedDays
+            }
+        });
+    }else{
+         internship = await prisma.inturnship.create({
+            data: {
+                studentId: students.id,
+                dayperweeks: String(dayPerWeeks),
+                selectedDays: selectedDays
+            }
+        });
+    }
+   
 
     if(!internship) {
         return NextResponse.json({ message: "เกิดข้อผิดพลาด", type: "error"},{ status: 400});

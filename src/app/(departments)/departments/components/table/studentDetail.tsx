@@ -60,7 +60,7 @@ interface Student {
   report: Report[];
 }
 
-interface UserData {
+export interface UserData {
   id: number;
   firstname: string;
   lastname: string;
