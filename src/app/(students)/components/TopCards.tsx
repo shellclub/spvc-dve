@@ -1,5 +1,4 @@
 "use client"
-import CardBox from "../../shared/CardBox"
 
 
 // Import Swiper React components
@@ -10,9 +9,10 @@ import 'swiper/css';
 import useSWR from "swr"
 import { Spinner } from "flowbite-react"
 import { Icon } from "@iconify/react/dist/iconify.js"
+import CardBox from '@/app/components/shared/CardBox';
 const fether = (url: string) => fetch(url).then((res) => res.json());
 const TopCards = () => {
-    const { data , isLoading, error } = useSWR("/api/count", fether);
+    const { data , isLoading, error } = useSWR("/api/count/forStudent", fether);
 if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -24,36 +24,29 @@ if (isLoading) {
       const TopCardInfo = [
         {
             key:"card1",
-            title:"ผู้ใช้งานทั้งหมด",
-            desc: data.user,
-            img: "tabler:user",
+            title:"จำนวนวันฝึกงาน/สัปดาห์",
+            desc: data.countDay,
+            img: "tabler:calendar",
             bgcolor:"bg-lightwarning dark:bg-lightwarning ",
             textclr:"text-warning dark:text-warning"
         },
         {
             key:"card2",
-            title:"จำนวนนักศึกษา",
-            desc: data.student,
-            img: "tabler:book",
+            title:"จำนวนที่รายงานผล",
+            desc: data.report,
+            img: "tabler:file-description",
             bgcolor:"bg-lightprimary dark:bg-lightprimary ",
             textclr:"text-primary dark:text-primary"
         },
         {
             key:"card3",
-            title:"จำนวนแผนก",
-            desc: data.department,
-            img: "tabler:building-skyscraper",
+            title:"จำนวนสัปดาห์ที่ฝึกงาน",
+            desc: data.weekterm,
+            img: "tabler:calendar-stats",
             bgcolor:"bg-lightsuccess dark:bg-lightsuccess",
             textclr:"text-success dark:text-success"
         },
-        {
-            key:"card4",
-            title:"จำนวนครู",
-            desc: data.teacher,
-            img: "tabler:school",
-            bgcolor:"bg-lighterror dark:bg-lighterror",
-            textclr:"text-error dark:text-error"
-        },
+        
     ]
 
 
@@ -61,7 +54,7 @@ if (isLoading) {
         <>
           <div>
           <Swiper
-        slidesPerView={4}
+        slidesPerView={3}
         spaceBetween={24}
         loop={true}
         dir="ltr"
@@ -80,11 +73,11 @@ if (isLoading) {
               spaceBetween: 18,
             },
             1030: {
-              slidesPerView: 4,
+              slidesPerView: 3,
               spaceBetween: 18,
             },
             1200: {
-              slidesPerView: 4,
+              slidesPerView: 3,
               spaceBetween: 24,
             },
           }}

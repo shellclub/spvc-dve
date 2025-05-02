@@ -194,7 +194,7 @@ const ExportTable = () => {
               {table.getRowModel().rows.map((row) => (
                 <tr key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="whitespace-nowrap border border-black py-3 px-2 xxl:px-4">
+                    <td key={cell.id} className="whitespace-nowrap border border-ld border-black py-3 px-2 xxl:px-4">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

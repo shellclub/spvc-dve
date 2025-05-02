@@ -297,7 +297,7 @@ const InternReport = () => {
               {table.getRowModel().rows.map((row) => (
                 <tr key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="whitespace-nowrap border py-3 px-2 xxl:px-4">
+                    <td key={cell.id} className="whitespace-nowrap border border-ld py-3 px-2 xxl:px-4">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

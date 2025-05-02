@@ -55,12 +55,12 @@ export default function EditProfilePage() {
         (a: string, b: string) => dayOrder.indexOf(a) - dayOrder.indexOf(b)
       );
   return (
-    <div className=" bg-gray-100 p-4 sm:p-6">
+    <div className=" p-4 sm:p-6">
       <div className="mx-auto w-full max-w-screen-2xl"> {/* เปลี่ยนจาก max-w-4xl เป็น max-w-screen-2xl */}
           <div className="space-y-4 sm:space-y-6">
           
             {/* Profile Header - ปรับให้เต็มความกว้าง */}
-            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow flex flex-col lg:flex-row justify-between items-start gap-4 lg:gap-8">
+            <div className="border border-lg rounded-2xl p-4 sm:p-6 shadow flex flex-col lg:flex-row justify-between items-start gap-4 lg:gap-8">
               <div className="flex flex-col sm:flex-row items-center sm:items-start lg:items-center gap-4 w-full">
                
                  <Avatar 
@@ -82,7 +82,7 @@ export default function EditProfilePage() {
             </div>
 
             {/* Personal Info - ปรับให้เต็มความกว้าง */}
-            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow">
+            <div className="border border-lg rounded-2xl p-4 sm:p-6 shadow">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-800">ข้อมูลส่วนตัว</h3>
                 <Button 
@@ -209,7 +209,7 @@ export default function EditProfilePage() {
 
               </div>
             </div>
-            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow">
+            <div className="border border-lg rounded-2xl p-4 sm:p-6 shadow">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-800">ข้อมูลนักศึกษา</h3>
                 <Button 
@@ -254,7 +254,7 @@ export default function EditProfilePage() {
 
 function Field({ label, value }: { label: string; value: string | string[] }) {
   return (
-    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+    <div className="p-3 sm:p-4  rounded-lg">
       <p className="text-sm sm:text-base font-medium text-gray-500">{label}</p>
       <p className="mt-1 text-base sm:text-lg">{value}</p>
     </div>
