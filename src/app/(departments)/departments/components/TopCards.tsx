@@ -1,18 +1,10 @@
 "use client"
-import Image from "next/image"
-import CardBox from "../../shared/CardBox"
-import iconAccount from "/public/images/svgs/icon-account.svg"
-import iconFavorites from "/public/images/svgs/icon-user-male.svg"
-import iconOfficebag from "/public/images/svgs/icon-office-bag-2.svg"
-
-// Import Swiper React components
 import { Swiper, SwiperSlide } from 'swiper/react';
-
-// Import Swiper styles
 import 'swiper/css';
 import useSWR from "swr"
 import { Spinner } from "flowbite-react"
 import { Icon } from "@iconify/react/dist/iconify.js"
+import CardBox from "@/app/components/shared/CardBox"
 const fether = (url: string) => fetch(url).then((res) => res.json());
 const TopCards = () => {
     const { data , isLoading, error } = useSWR("/api/count", fether);

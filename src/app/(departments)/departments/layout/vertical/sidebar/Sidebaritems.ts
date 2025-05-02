@@ -35,16 +35,10 @@ const SidebarContent: MenuItem[] = [
     heading: "Home",
     children: [
       {
-        name: "Dashboard",
-        icon: 'tabler:aperture',
+        name: "Home",
+        icon: 'tabler:home',
         id: uniqueId(),
         url: "/departments",
-      },
-      {
-        name: "รายชื่อนักศึกษา",
-        icon: 'tabler:school',
-        id: uniqueId(),
-        url: "/departments/students"
       },
       // {
       //   name: "eCommerce",

@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/app/components/shadcn-ui/Default-Ui/dialog";
-import { Badge, Button, Dropdown, Select } from "flowbite-react";
+import { Badge, Button, Dropdown, Select, Spinner } from "flowbite-react";
 import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight, IconDots } from "@tabler/icons-react";
 import { Icon } from "@iconify/react";
 import TitleIconCard from "@/app/components/shared/TitleIconCard";
@@ -191,7 +191,10 @@ const StudentTable = () => {
   });
 
   if (yearLoading) {
-    return <div>Loading academic years...</div>;
+    return  <div className="flex justify-center items-center h-64">
+            <Spinner size="xl" />
+            <span className="ml-3">กำลังโหลดข้อมูล...</span>
+          </div>;
   }
 
   if (yearError) {
