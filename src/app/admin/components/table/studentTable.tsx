@@ -229,6 +229,7 @@ const StudentTable = () => {
           )}
         >
           {[
+            { icon: "tabler:eye", listtitle: "รายละเอียด", onclick: () => router.push(`/admin/students/${info.row.original.id}`) },
             { icon: "tabler:trash", listtitle: "Delete", onclick: () => handleDelete(info.row.original.id as string) },
           ].map((item, index) => (
             <Dropdown.Item key={index} onClick={item.onclick} className="flex gap-3">

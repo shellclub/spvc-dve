@@ -57,6 +57,7 @@ model Student {
   room           String
   inturnship     Inturnship?
   report         InternshipReport[]
+  gradeLevel     String?
   @@map("students")
 }
 model Inturnship{

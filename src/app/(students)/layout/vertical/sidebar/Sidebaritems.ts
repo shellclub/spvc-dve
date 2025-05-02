@@ -53,6 +53,12 @@ const SidebarContent: MenuItem[] = [
         id: uniqueId(),
         url: "/company"
       },
+      {
+        name: "Export",
+        icon: 'tabler:printer',
+        id: uniqueId(),
+        url: "/export"
+      },
       // {
       //   name: "eCommerce",
       //   icon: 'tabler:shopping-cart',

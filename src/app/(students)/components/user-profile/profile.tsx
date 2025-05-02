@@ -242,7 +242,7 @@ export default function EditProfilePage() {
                   <FaPen className="mr-2" /> แก้ไขวันฝึกงาน
                 </Button>
                 </div>
-                <Field label="ปีการศึกษา" value={`${data.student.term}/${Number(data.student.academicYear) + 543}`} />
+                <Field label="ระดับชั้น" value={`${data.student.education.name}/${data.student.gradeLevel}`} />
 
               </div>
             </div>
