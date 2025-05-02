@@ -23,7 +23,7 @@ export default function EditProfilePage() {
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formdata = new FormData(e.currentTarget);
-        const res = await fetch(`/api/users/${session?.user.id}`,{
+        const res = await fetch(openProfile ? `/api/users/${session?.user.id}` : openStudent ? `/api/students/profile` : '',{
             method: "PUT",
             body: formdata
         })
@@ -153,6 +153,7 @@ export default function EditProfilePage() {
                                           placeholder="กรอกรหัสนักศึกษา"
                                           id="studentId"
                                           defaultValue={data.student.studentId}
+                                          readOnly
                                         />
                                       </div>
                                       <div className="mb-3">

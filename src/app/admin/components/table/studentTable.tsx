@@ -229,7 +229,6 @@ const StudentTable = () => {
           )}
         >
           {[
-            { icon: "tabler:edit", listtitle: "Edit", onclick: () => router.push(`/admin/addstudent/${info.row.original.id as string}`)},
             { icon: "tabler:trash", listtitle: "Delete", onclick: () => handleDelete(info.row.original.id as string) },
           ].map((item, index) => (
             <Dropdown.Item key={index} onClick={item.onclick} className="flex gap-3">
@@ -264,9 +263,6 @@ const StudentTable = () => {
     <>
     <TitleIconCard title="ข้อมูลนักศึกษา">
       <div className=" flex justify-end items-center my-6 ">
-      <Button href="/admin/addstudent" color={`primary`} className="mx-2">เพิ่ม</Button>
-
-
       <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
       <Button color={`success`} className="mx-2">Import Excel</Button>

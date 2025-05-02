@@ -46,6 +46,13 @@ const SidebarContent: MenuItem[] = [
         id: uniqueId(),
         url: "/reportintern"
       },
+      
+      {
+        name: "รายละเอียดการฝึกงาน",
+        icon: 'tabler:user-square',
+        id: uniqueId(),
+        url: "/company"
+      },
       // {
       //   name: "eCommerce",
       //   icon: 'tabler:shopping-cart',
