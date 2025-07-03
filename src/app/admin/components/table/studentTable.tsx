@@ -25,7 +25,7 @@ import TitleIconCard from "@/app/components/shared/TitleIconCard";
 import Swal from "sweetalert2";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
 import { useRouter } from "next/navigation";
-import { maskCitizenId, userRole, userSex } from "@/lib/utils";
+import { userRole, userSex } from "@/lib/utils";
 import Image from "next/image";
 export interface PaginationTableType {
   id?:  string;

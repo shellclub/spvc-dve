@@ -30,7 +30,7 @@ yarn-error.log*
 
 # vercel
 .vercel
-
+db_spvc.sql
 # typescript
 *.tsbuildinfo
 next-env.d.ts

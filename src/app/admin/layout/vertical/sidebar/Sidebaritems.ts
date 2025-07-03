@@ -62,6 +62,12 @@ const SidebarContent: MenuItem[] = [
           }
         ],
       },
+      {
+        id: uniqueId(),
+        name: "รายชื่อนักศึกษาทั้งหมด",
+        url: "/admin/students/all",
+        icon: 'tabler:users'
+      }
       // {
       //   name: "eCommerce",
       //   icon: 'tabler:shopping-cart',

@@ -8,8 +8,6 @@ import customTheme from "@/utils/theme/custom-theme";
 import { CustomizerContextProvider } from "@/app/context/CustomizerContext";
 import '../utils/i18n';
 import NextTopLoader from 'nextjs-toploader';
-import { I18nextProvider } from "react-i18next";
-import i18n from "../utils/i18n";
 import { Providers } from "./providers";
 
 

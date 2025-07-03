@@ -9,7 +9,6 @@ import SimpleBar from "simplebar-react";
 import FullLogo from "../../shared/logo/FullLogo";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
-import profileimg from "/public/images/profile/user-1.jpg"
 import { CustomizerContext } from "@/app/context/CustomizerContext";
 import { signOut, useSession } from "next-auth/react";
 import useSWR from "swr";
