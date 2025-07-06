@@ -1,9 +1,9 @@
-import BoxedLogin from "../auth/auth2/login/page";
+import Login from "../auth/auth1/login/page";
 
 export default function signin() {
     return (
         <>
-            <BoxedLogin/>
+            <Login/>
         </>
     );
 }

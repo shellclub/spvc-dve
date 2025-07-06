@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -12,163 +12,204 @@ import {
   SortingState,
   useReactTable,
   VisibilityState,
-} from "@tanstack/react-table"
-import { ChevronDown } from "lucide-react"
+} from "@tanstack/react-table";
+import {
+  AlertCircleIcon,
+  CheckCircle2Icon,
+  ChevronDown,
+  PopcornIcon,
+} from "lucide-react";
 
-import { Button } from "@/app/components/shadcn-ui/Default-Ui/button"
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/app/components/shadcn-ui/Default-Ui/dropdown-menu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/shadcn-ui/Default-Ui/table"
-import { Input } from "@/app/components/shadcn-ui/Default-Ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shadcn-ui/Default-Ui/select"
-import Image from "next/image"
-import { IconDots, IconEye, IconTrash } from "@tabler/icons-react"
-import useSWR from "swr"
-import { Skeleton } from "@/app/components/shadcn-ui/Default-Ui/skeleton"
-import Swal from "sweetalert2"
-import { showToast } from "@/app/components/sweetalert/sweetalert"
+import { Button } from "@/app/components/shadcn-ui/Default-Ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/app/components/shadcn-ui/Default-Ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/shadcn-ui/Default-Ui/table";
+import { Input } from "@/app/components/shadcn-ui/Default-Ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/shadcn-ui/Default-Ui/select";
+import Image from "next/image";
+import { IconDots, IconEye, IconTrash } from "@tabler/icons-react";
+import useSWR from "swr";
+import { Skeleton } from "@/app/components/shadcn-ui/Default-Ui/skeleton";
+import Swal from "sweetalert2";
+import { showToast } from "@/app/components/sweetalert/sweetalert";
+import type { FilterFn } from "@tanstack/react-table";
 
-import { filterFns } from "@tanstack/react-table"
-import type { FilterFn } from "@tanstack/react-table"
-
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/app/components/shadcn-ui/Default-Ui/alert";
+import { useRouter } from "next/navigation";
 
 export type Student = {
-  id: string
-  firstname: string
-  lastname: string
-  sex: number
-  role: number
-  user_img: string
+  id: string;
+  firstname: string;
+  lastname: string;
+  sex: number;
+  role: number;
+  user_img: string;
   student: {
-    studentId: string
-    major: string
-    room: string
-    term: string
-    academicYear: string
+    studentId: string;
+    major: string;
+    room: string;
+    term: string;
+    academicYear: string;
     education: {
-      name: string
-    },
-    gradeLevel: string
-  }
+      name: string;
+    };
+    gradeLevel: string;
+  };
   department: {
-    depname: string
-  }
-}
+    depname: string;
+  };
+};
 
 export type Department = {
-  id: string
-  depname: string
-}
+  id: string;
+  depname: string;
+};
+type Education = {
+  id: number;
+  name: string;
+};
 
 // Helper functions
 const userRole = (role: number) => {
   switch (role) {
-    case 3: return "นักศึกษา"
-    case 2: return "อาจารย์"
-    case 1: return "ผู้ดูแลระบบ"
-    default: return "ไม่ระบุ"
+    case 3:
+      return "นักศึกษา";
+    case 2:
+      return "อาจารย์";
+    case 1:
+      return "ผู้ดูแลระบบ";
+    default:
+      return "ไม่ระบุ";
   }
-}
+};
 
 const userSex = (sex: number) => {
   switch (sex) {
-    case 1: return "ชาย"
-    case 2: return "หญิง"
-    default: return "ไม่ระบุ"
+    case 1:
+      return "ชาย";
+    case 2:
+      return "หญิง";
+    default:
+      return "ไม่ระบุ";
   }
-}
+};
 
 const SkeletonRow = () => (
-    <TableRow className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">
-      <TableCell>
-        <Skeleton className="h-4 w-4" />
-      </TableCell>
-      <TableCell>
+  <TableRow className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">
+    <TableCell>
+      <Skeleton className="h-4 w-4" />
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-4 w-24" />
+    </TableCell>
+    <TableCell>
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-10 w-10 rounded-xl" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+      </div>
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-4 w-12" />
+    </TableCell>
+    <TableCell>
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-3 w-28" />
+      </div>
+    </TableCell>
+    <TableCell>
+      <div className="flex flex-col gap-2">
         <Skeleton className="h-4 w-24" />
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10 rounded-xl" />
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-3 w-20" />
-          </div>
-        </div>
-      </TableCell>
-      <TableCell>
-        <Skeleton className="h-4 w-12" />
-      </TableCell>
-      <TableCell>
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-4 w-40" />
-          <Skeleton className="h-3 w-28" />
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-3 w-32" />
-        </div>
-      </TableCell>
-      <TableCell>
-        <Skeleton className="h-8 w-8" />
-      </TableCell>
-    </TableRow>
-  )
+        <Skeleton className="h-3 w-32" />
+      </div>
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-8 w-8" />
+    </TableCell>
+  </TableRow>
+);
 
-const fetcher = (url: string) => fetch(url).then(res => res.json()) 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function StudentsAllTable() {
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [globalFilter, setGlobalFilter] = React.useState('')
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [departmentFilter, setDepartmentFilter] = React.useState<string>('all')
-
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  );
+  const [globalFilter, setGlobalFilter] = React.useState("");
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
+  const [departmentFilter, setDepartmentFilter] = React.useState<string>("all");
+  const [majorFileter, setMajorFileter] = React.useState<string>("all");
+  const [gradeFilter, setGradeFilter] = React.useState<string>("all"); // เปลี่ยนชื่อจาก yearFiler เป็น gradeFilter
+  const [groupFilter, setGroupFilter] = React.useState<string>("all");
+  const router = useRouter();
   const handleDelete = async (id: string) => {
     Swal.fire({
       title: "แจ้งเตือน!",
-      text: "คุณต้องการลบข้อมูลแผนกวิชานี้หรือไม่?",
+      text: "คุณต้องการลบข้อมูลนักศึกษารายนี้หรือไม่?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
       confirmButtonText: "ต้องการ",
-      cancelButtonText: "ไม่ต้องการ"
-    }).then( async (result) => {
+      cancelButtonText: "ไม่ต้องการ",
+    }).then(async (result) => {
       if (result.isConfirmed) {
         const res = await fetch(`/api/users/${id}`, {
           method: "DELETE",
           headers: {
-            "Content-Type": "application/json"
-          }
-        })
-        if(!res.ok) {
+            "Content-Type": "application/json",
+          },
+        });
+        if (!res.ok) {
           const err = await res.json();
           showToast(err.message, err.type);
-        }else {
+        } else {
           const data = await res.json();
           showToast(data.message, data.type);
           await mutate();
         }
       }
     });
-  }
+  };
 
   const handleView = (id: string) => {
-    console.log("View student:", id)
-    // Add your view logic here
-    // router.push(`/admin/students/${id}`)
-  }
+    router.push(`/admin/students/${id}`)
+  };
 
   const columns: ColumnDef<Student>[] = [
     {
       id: "index",
       header: () => <span>#</span>,
-      cell: ({ row }) => (
-        <div className="text-base">
-          {row.index + 1}
-        </div>
-      ),
+      cell: ({ row }) => <div className="text-base">{row.index + 1}</div>,
       enableSorting: false,
     },
     {
@@ -205,9 +246,7 @@ export function StudentsAllTable() {
       accessorKey: "sex",
       header: () => <span>เพศ</span>,
       cell: ({ row }) => (
-        <div className="text-base">
-          {userSex(Number(row.getValue("sex")))}
-        </div>
+        <div className="text-base">{userSex(Number(row.getValue("sex")))}</div>
       ),
     },
     {
@@ -229,7 +268,8 @@ export function StudentsAllTable() {
         <div className="truncate line-clamp-2 max-w-56">
           <h6 className="text-base">{`${row.original.student.education.name}.${row.original.student.gradeLevel}/${row.original.student.room}`}</h6>
           <p className="text-sm text-darklink dark:text-bodytext">
-            ปีการศึกษา: {`${row.original.student.term}/${row.original.student.academicYear}`}
+            ปีการศึกษา:{" "}
+            {`${row.original.student.term}/${row.original.student.academicYear}`}
           </p>
         </div>
       ),
@@ -238,8 +278,8 @@ export function StudentsAllTable() {
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
-        const student = row.original
-  
+        const student = row.original;
+
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -248,7 +288,10 @@ export function StudentsAllTable() {
                 <IconDots size={22} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white dark:bg-gray-900">
+            <DropdownMenuContent
+              align="end"
+              className="bg-white dark:bg-gray-900"
+            >
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => handleView(student.id)}
@@ -267,10 +310,10 @@ export function StudentsAllTable() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )
+        );
       },
     },
-  ]
+  ];
 
   const nameFilterFn: FilterFn<Student> = (row, columnId, filterValue) => {
     const searchTerm = filterValue.toLowerCase();
@@ -280,21 +323,81 @@ export function StudentsAllTable() {
   };
 
   // Fetch students data
-  const { data: stdData, isLoading, error, mutate } = useSWR('/api/students', fetcher);
-  
+  const {
+    data: stdData,
+    isLoading,
+    error,
+    mutate,
+  } = useSWR("/api/students", fetcher);
+
   // Fetch departments data
-  const { data: deptData, isLoading: isDeptLoading } = useSWR('/api/departments', fetcher);
-  
+  const { data: deptData, isLoading: isDeptLoading } = useSWR(
+    "/api/departments",
+    fetcher
+  );
+  const { data: edctData, isLoading: isEdctLoading } = useSWR(
+    "/api/education",
+    fetcher
+  );
   const departments: Department[] = deptData ?? [];
   const allStudents: Student[] = stdData ?? [];
+  const educations: Education[] = edctData?.data ?? [];
 
-  // Filter students based on selected department
+  // สร้างรายการระดับชั้นที่ผสมระหว่าง education และ gradeLevel
+  const availableGrades = React.useMemo(() => {
+    const gradesSet = new Set<string>();
+    allStudents.forEach((student) => {
+      // สร้าง combination ของ education.name และ gradeLevel
+      const gradeCombo = `${student.student.education.name}.${student.student.gradeLevel}`;
+      gradesSet.add(gradeCombo);
+    });
+    return Array.from(gradesSet).sort(); // เรียงลำดับ
+  }, [allStudents]);
+
+  // Filter students based on selected filters
   const filteredStudents = React.useMemo(() => {
-    if (departmentFilter === 'all') {
-      return allStudents;
-    }
-    return allStudents.filter(student => student.department.depname === departmentFilter);
+    return allStudents.filter((student) => {
+      const matchesDepartment =
+        departmentFilter === "all" ||
+        student.department.depname === departmentFilter;
+      const matchesMajor =
+        majorFileter === "all" || student.student.major === majorFileter;
+
+      // เปรียบเทียบกับ combination ของ education.name และ gradeLevel
+      const studentGradeCombo = `${student.student.education.name}.${student.student.gradeLevel}`;
+      const matchesGrade =
+        gradeFilter === "all" || studentGradeCombo === gradeFilter;
+
+      const matchsGroup =
+        groupFilter === "all" || student.student.room === groupFilter;
+
+      return matchesDepartment && matchesMajor && matchesGrade && matchsGroup;
+    });
+  }, [allStudents, departmentFilter, majorFileter, gradeFilter, groupFilter]);
+
+  // สร้างรายการ major ตาม department ที่เลือก
+  const availableMajors = React.useMemo(() => {
+    const majorsSet = new Set<string>();
+    allStudents.forEach((student) => {
+      if (
+        departmentFilter === "all" ||
+        student.department.depname === departmentFilter
+      ) {
+        majorsSet.add(student.student.major);
+      }
+    });
+    return Array.from(majorsSet);
   }, [allStudents, departmentFilter]);
+
+  const availableGroup = React.useMemo(() => {
+    const groupSet = new Set<string>();
+    allStudents.forEach((student) => {
+      if (majorFileter === "all" || student.student.major === majorFileter) {
+        groupSet.add(student.student.room);
+      }
+    });
+    return Array.from(groupSet);
+  }, [allStudents, majorFileter]);
 
   const table = useReactTable({
     data: filteredStudents,
@@ -314,7 +417,20 @@ export function StudentsAllTable() {
       columnVisibility,
       globalFilter,
     },
-  })
+  });
+
+  if (error) {
+    return (
+      <div className="grid w-full max-w-xl items-center h-[80vh] my-auto mx-auto">
+        <Alert variant="destructive">
+          <AlertCircleIcon className="text-red-600" />
+          <AlertTitle className="text-red-600">
+            เกิดข้อผิดพลาดในการโหลดข้อมูลนักศึกษา
+          </AlertTitle>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -325,18 +441,29 @@ export function StudentsAllTable() {
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-sm"
         />
-        
+
         <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="เลือกแผนกวิชา" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">ทุกแผนกวิชา</SelectItem>
+            <SelectItem
+              value="all"
+              className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              <p className="pb-1">แผนกวิชาทั้งหมด</p>
+            </SelectItem>
             {isDeptLoading ? (
-              <SelectItem value="loading" disabled>กำลังโหลด...</SelectItem>
+              <SelectItem value="loading" disabled>
+                กำลังโหลด...
+              </SelectItem>
             ) : (
               departments.map((dept) => (
-                <SelectItem key={dept.id} value={dept.depname} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">
+                <SelectItem
+                  key={dept.id}
+                  value={dept.depname}
+                  className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
                   {dept.depname}
                 </SelectItem>
               ))
@@ -344,55 +471,121 @@ export function StudentsAllTable() {
           </SelectContent>
         </Select>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                )
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Select value={majorFileter} onValueChange={setMajorFileter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="เลือกสาขาวิชา" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem
+              value="all"
+              className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              <p className="pb-1">สาขาวิชาทั้งหมด</p>
+            </SelectItem>
+            {isDeptLoading ? (
+              <SelectItem value="loading" disabled>
+                กำลังโหลด...
+              </SelectItem>
+            ) : (
+              availableMajors.map((major, index) => (
+                <SelectItem
+                  key={index}
+                  value={String(major)}
+                  className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  {String(major)}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+
+        <Select value={gradeFilter} onValueChange={setGradeFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="เลือกระดับชั้น" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem
+              value="all"
+              className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              <p className="pb-1">ระดับชั้นทั้งหมด</p>
+            </SelectItem>
+            {isLoading ? (
+              <SelectItem value="loading" disabled>
+                กำลังโหลด...
+              </SelectItem>
+            ) : (
+              availableGrades.map((grade, index) => (
+                <SelectItem
+                  key={index}
+                  value={grade}
+                  className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  {grade}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+        <Select value={groupFilter} onValueChange={setGroupFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="เลือกกลุ่ม" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem
+              value="all"
+              className="bg-white  dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              <p className="pb-1">กลุ่มห้องทั้งหมด</p>
+            </SelectItem>
+            {isLoading ? (
+              <SelectItem value="loading" disabled>
+                กำลังโหลด...
+              </SelectItem>
+            ) : (
+              availableGroup.map((group, index) => (
+                <SelectItem
+                  key={index}
+                  value={String(group)}
+                  className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  {String(group)}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
       </div>
-      
+
       <div className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
         <Table className="w-full table-fixed">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow 
+              <TableRow
                 key={headerGroup.id}
                 className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead 
+                    <TableHead
                       key={header.id}
                       className={`text-gray-900 dark:text-gray-100 ${
-                        header.id === 'select' ? 'w-12' : 
-                        header.id === 'index' ? 'w-16' : 
-                        header.id === 'student_studentId' ? 'w-40' : 
-                        header.id === 'sex' ? 'w-20' : 
-                        header.id === 'actions' ? 'w-20' : 
-                        header.id === 'student_education_name' ? 'w-48' : 
-                        header.id === 'department_depname' ? 'w-64' : 
-                        ''
+                        header.id === "select"
+                          ? "w-12"
+                          : header.id === "index"
+                          ? "w-16"
+                          : header.id === "student_studentId"
+                          ? "w-40"
+                          : header.id === "sex"
+                          ? "w-20"
+                          : header.id === "actions"
+                          ? "w-20"
+                          : header.id === "student_education_name"
+                          ? "w-30"
+                          : header.id === "department_depname"
+                          ? "w-50"
+                          : ""
                       }`}
                     >
                       {header.isPlaceholder
@@ -402,7 +595,7 @@ export function StudentsAllTable() {
                             header.getContext()
                           )}
                     </TableHead>
-                  )
+                  );
                 })}
               </TableRow>
             ))}
@@ -419,31 +612,49 @@ export function StudentsAllTable() {
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  {departmentFilter === 'all' 
-                    ? 'ไม่พบข้อมูลนักศึกษา' 
-                    : `ไม่พบข้อมูลนักศึกษาในแผนก ${departmentFilter}`
-                  }
+              <TableRow className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  {departmentFilter === "all" &&
+                  majorFileter === "all" &&
+                  gradeFilter === "all"
+                    ? "ไม่พบข้อมูลนักศึกษา"
+                    : "ไม่พบข้อมูลนักศึกษาตามเงื่อนไขที่เลือก"}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      
+
       <div className="flex items-center justify-between py-4">
         <div className="text-sm text-gray-600 dark:text-gray-400">
-          แสดง {table.getFilteredRowModel().rows.length} จาก {allStudents.length} รายการ
-          {departmentFilter !== 'all' && (
+          แสดง {table.getFilteredRowModel().rows.length} จาก{" "}
+          {allStudents.length} รายการ
+          {departmentFilter !== "all" && (
             <span className="ml-2 text-blue-600 dark:text-blue-400">
               (กรองตามแผนก: {departmentFilter})
+            </span>
+          )}
+          {majorFileter !== "all" && (
+            <span className="ml-2 text-blue-600 dark:text-blue-400">
+              (กรองตามสาขา: {majorFileter})
+            </span>
+          )}
+          {gradeFilter !== "all" && (
+            <span className="ml-2 text-blue-600 dark:text-blue-400">
+              (กรองตามระดับชั้น: {gradeFilter})
             </span>
           )}
         </div>
@@ -473,5 +684,5 @@ export function StudentsAllTable() {
         </div>
       </div>
     </div>
-  )
+  );
 }

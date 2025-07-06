@@ -9,25 +9,25 @@ import {
   useReactTable,
   createColumnHelper,
   ColumnFiltersState,
+  SortingState,
+  VisibilityState,
+  FilterFn,
 } from "@tanstack/react-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/app/components/shadcn-ui/Default-Ui/dialog";
-import { Badge, Button, Dropdown, Select, Spinner } from "flowbite-react";
+
+import {  Button, Dropdown, Select, Spinner } from "flowbite-react";
 import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight, IconDots } from "@tabler/icons-react";
 import { Icon } from "@iconify/react";
 import TitleIconCard from "@/app/components/shared/TitleIconCard";
-import Swal from "sweetalert2";
-import { showToast } from "@/app/components/sweetalert/sweetalert";
 import { useRouter } from "next/navigation";
-import { maskCitizenId, userRole, userSex } from "@/lib/utils";
 import Image from "next/image";
 import useSWR from "swr";
+import { Input } from "@/app/components/shadcn-ui/Default-Ui/input";
+import { Skeleton } from "@/app/components/shadcn-ui/Default-Ui/skeleton";
+import {
+  Alert,
+  AlertTitle,
+} from "@/app/components/shadcn-ui/Default-Ui/alert";
+import { AlertCircleIcon } from "lucide-react";
 
 export interface PaginationTableType {
   id?: string;
@@ -45,8 +45,11 @@ export interface PaginationTableType {
     };
     major: string;
     academicYear: string;
+    room: string;
+    gradeLevel: string;
   };
   department: {
+    id: string;
     depname: string;
   };
   firstname?: string;
@@ -61,14 +64,61 @@ type TermYear = {
   academicYear: string;
 };
 
+type Department = {
+  id: string;
+  depname: string;
+};
+
 const columnHelper = createColumnHelper<PaginationTableType>();
 const fetcher = async (url: string) => await fetch(url).then(res => res.json());
 
+// Skeleton Loading Component
+const SkeletonRow = () => (
+  <tr className="border-b border-ld">
+    <td className="py-3 px-4">
+      <Skeleton className="h-4 w-4" />
+    </td>
+    <td className="py-3 px-4">
+      <Skeleton className="h-4 w-24" />
+    </td>
+    <td className="py-3 px-4">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-10 w-10 rounded-xl" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+      </div>
+    </td>
+    <td className="py-3 px-4">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-3 w-28" />
+      </div>
+    </td>
+    <td className="py-3 px-4">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-3 w-32" />
+      </div>
+    </td>
+    <td className="py-3 px-4">
+      <Skeleton className="h-8 w-8" />
+    </td>
+  </tr>
+);
+
 const StudentTable = () => {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = React.useState("");
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [selected, setSelected] = useState<boolean>(false);
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedTerm, setSelectedTerm] = useState<string>('');
+  const [majorFilter, setMajorFilter] = useState<string>("all");
+  const [gradeFilter, setGradeFilter] = useState<string>("all");
+  const [roomFilter, setRoomFilter] = useState<string>("all");
   const router = useRouter();
   const rerender = React.useReducer(() => ({}), {})[1];
   
@@ -77,6 +127,54 @@ const StudentTable = () => {
     !selected ? '/api/students/getByDepartment' : `/api/students/getByDepartment?term=${selectedTerm}&year=${selectedYear}`, 
     fetcher
   );
+  const stdData = data ?? [];
+  // Filter function for name search
+  const nameFilterFn: FilterFn<PaginationTableType> = (row, columnId, filterValue) => {
+    const searchTerm = filterValue.toLowerCase();
+    const firstName = row.original.firstname?.toLowerCase() || '';
+    const lastName = row.original.lastname?.toLowerCase() || '';
+    const studentId = row.original.student.studentId.toLowerCase();
+    return firstName.includes(searchTerm) || lastName.includes(searchTerm) || studentId.includes(searchTerm);
+  };
+
+  // Filter students based on selected filters
+  const filteredStudents = React.useMemo(() => {
+    if (!data) return [];
+    
+    return data.filter((student) => {
+      const matchesMajor = majorFilter === "all" || student.student.major === majorFilter;
+      const studentGradeCombo = `${student.student.education.name}.${student.student.gradeLevel}`;
+      const matchesGrade = gradeFilter === "all" || studentGradeCombo === gradeFilter;
+      const matchesRoom = roomFilter === "all" || student.student.room === roomFilter;
+
+      return  matchesMajor && matchesGrade && matchesRoom;
+    });
+  }, [data, majorFilter, gradeFilter, roomFilter]);
+
+
+
+  // Generate available grades
+  const availableGrades = React.useMemo(() => {
+    if (!data) return [];
+    const gradesSet = new Set<string>();
+    data.forEach((student) => {
+      const gradeCombo = `${student.student.education.name}.${student.student.gradeLevel}`;
+      gradesSet.add(gradeCombo);
+    });
+    return Array.from(gradesSet).sort();
+  }, [data]);
+
+  // Generate available rooms based on selected major
+  const availableRooms = React.useMemo(() => {
+    if (!data) return [];
+    const roomsSet = new Set<string>();
+    data.forEach((student) => {
+      if (majorFilter === "all" || student.student.major === majorFilter) {
+        roomsSet.add(student.student.room);
+      }
+    });
+    return Array.from(roomsSet);
+  }, [data, majorFilter]);
 
   const columns = [
     columnHelper.display({
@@ -134,14 +232,17 @@ const StudentTable = () => {
       ),
       header: () => <span>แผนกวิชา</span>,
     }),
-    columnHelper.accessor((row) => row.student.academicYear, {
-      id: "academicYear",
+    columnHelper.accessor((row) => row.student.education.name, {
+      id: "education",
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${info.row.original.student.term}/${info.getValue()}`}</h6>
+          <h6 className="text-base">{`${info.getValue()}.${info.row.original.student.gradeLevel}/${info.row.original.student.room}`}</h6>
+          <p className="text-sm text-darklink dark:text-bodytext">
+            ปีการศึกษา: {`${info.row.original.student.term}/${info.row.original.student.academicYear}`}
+          </p>
         </div>
       ),
-      header: () => <span>แผนกวิชา</span>,
+      header: () => <span>ระดับชั้น</span>,
     }),
     columnHelper.display({
       id: "actions",
@@ -174,13 +275,22 @@ const StudentTable = () => {
   ];
 
   const table = useReactTable({
-    data: data ?? [],
+    data: filteredStudents,
     columns,
-    filterFns: {},
+    filterFns: {
+      nameFilter: nameFilterFn,
+    },
     state: {
       columnFilters,
+      sorting,
+      columnVisibility,
+      globalFilter,
     },
     onColumnFiltersChange: setColumnFilters,
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: nameFilterFn,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -191,24 +301,81 @@ const StudentTable = () => {
   });
 
   if (yearLoading) {
-    return  <div className="flex justify-center items-center h-64">
-            <Spinner size="xl" />
-            <span className="ml-3">กำลังโหลดข้อมูล...</span>
-          </div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spinner size="xl" />
+        <span className="ml-3">กำลังโหลดข้อมูล...</span>
+      </div>
+    );
   }
 
   if (yearError) {
-    return <div>Error loading academic years</div>;
+    return (
+      <div className="grid w-full max-w-xl items-center h-[80vh] my-auto mx-auto">
+        <Alert variant="destructive">
+          <AlertCircleIcon className="text-red-600" />
+          <AlertTitle className="text-red-600">
+            เกิดข้อผิดพลาดในการโหลดข้อมูล
+          </AlertTitle>
+        </Alert>
+      </div>
+    );
   }
 
   return (
     <>
       <TitleIconCard title="ข้อมูลนักศึกษา">
-        <div className="flex justify-between mb-3">
-          <div className="mx-2">
-            <label className="block mb-1">
-              ปีการศึกษา:
-              <Select
+        {/* Search and Filter Controls */}
+        <div className="flex flex-wrap gap-4 mb-4">
+          <div className="flex-1 min-w-[200px]">
+            <Input
+              placeholder="ค้นหาชื่อ นามสกุล หรือรหัสนักศึกษา..."
+              value={globalFilter ?? ""}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+          
+
+            <Select
+              value={majorFilter}
+              onChange={(e) => {
+                setMajorFilter(e.target.value);
+                setRoomFilter("all");
+              }}
+            >
+              <option value="all">สาขาวิชาทั้งหมด</option>
+              {[...new Set(stdData.map((std) => std.student.major))].map((major, index) => (
+                <option key={index} value={major}>
+                  {major}
+                </option>
+              ))}
+            </Select>
+
+            <Select
+              value={gradeFilter}
+              onChange={(e) => setGradeFilter(e.target.value)}
+            >
+              <option value="all">ระดับชั้นทั้งหมด</option>
+              {availableGrades.map((grade, index) => (
+                <option key={index} value={grade}>
+                  {grade}
+                </option>
+              ))}
+            </Select>
+
+            <Select
+              value={roomFilter}
+              onChange={(e) => setRoomFilter(e.target.value)}
+            >
+              <option value="all">ห้องทั้งหมด</option>
+              {availableRooms.map((room, index) => (
+                <option key={index} value={room}>
+                  {room}
+                </option>
+              ))}
+            </Select>
+            <Select
                 value={`${selectedTerm}/${selectedYear}`}
                 onChange={(e) => {
                   if (e.target.value === "all") {
@@ -236,24 +403,73 @@ const StudentTable = () => {
                   </option>
                 ))}
               </Select>
-            </label>
           </div>
+
+        {/* Academic Year Selection */}
+        <div className="flex justify-start mb-3">
+          
           <div className="mx-2 flex items-center">
-        <p className="text-md">ปีการศึกษา: { !selected ? "ทั้งหมด" : `${selectedTerm}/${selectedYear}`}</p>
+            <p className="text-md">
+              ปีการศึกษา: {!selected ? "ทั้งหมด" : `${selectedTerm}/${selectedYear}`}
+            </p>
           </div>
+        </div>
+
+        {/* Filter Summary */}
+        <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+          แสดง {table.getFilteredRowModel().rows.length} จาก {data?.length || 0} รายการ
+         
+          {majorFilter !== "all" && (
+            <span className="ml-2 text-blue-600 dark:text-blue-400">
+              (กรองตามสาขา: {majorFilter})
+            </span>
+          )}
+          {gradeFilter !== "all" && (
+            <span className="ml-2 text-blue-600 dark:text-blue-400">
+              (กรองตามระดับชั้น: {gradeFilter})
+            </span>
+          )}
+          {roomFilter !== "all" && (
+            <span className="ml-2 text-blue-600 dark:text-blue-400">
+              (กรองตามห้อง: {roomFilter})
+            </span>
+          )}
         </div>
         
         <div className="border rounded-md border-ld overflow-hidden">
           {isLoading ? (
-            <div className="p-4 text-center">Loading student data...</div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="text-base text-ld font-semibold py-3 text-left border border-ld px-2 xxl:px-4"
+                        >
+                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody>
+                  {[...Array(5)].map((_, i) => <SkeletonRow key={i} />)}
+                </tbody>
+              </table>
+            </div>
           ) : error ? (
             <div className="p-4 text-center text-red-500">Error loading student data</div>
-          ) : !data || data.length === 0 ? (  // ตรวจสอบว่า data ว่างหรือไม่
-                <div className="flex flex-col items-center justify-center py-8">
-                  <Icon icon="tabler:database-off" className="text-gray-400 text-4xl mb-2" />
-                  <span className="text-gray-500">ไม่พบข้อมูลนักศึกษา</span>
-                </div>
-
+          ) : !filteredStudents || filteredStudents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <Icon icon="tabler:database-off" className="text-gray-400 text-4xl mb-2" />
+              <span className="text-gray-500">
+                {majorFilter === "all" && gradeFilter === "all" && roomFilter === "all"
+                  ? "ไม่พบข้อมูลนักศึกษา"
+                  : "ไม่พบข้อมูลนักศึกษาตามเงื่อนไขที่เลือก"}
+              </span>
+            </div>
           ) : (
             <>
               <div className="overflow-x-auto">
