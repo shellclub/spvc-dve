@@ -11,26 +11,29 @@ import { Spinner } from "flowbite-react";
 
 const weekdays = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 export default function InternshipReportForm() {
   const { register, handleSubmit, watch } = useForm();
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const route = useRouter();
   const { data: session } = useSession();
-  const { data, error, isLoading, mutate } = useSWR(`/api/internship/${session?.user.id}`,fetcher);
+  const { data, error, isLoading, mutate } = useSWR(`/api/internship/${session?.user.id}`, fetcher);
+  
   useEffect(() => {
     if (data) {
+      // Add null/undefined check and ensure it's an array
       const { selectedDays } = data;
-      setSelectedDays(selectedDays);
+      setSelectedDays(Array.isArray(selectedDays) ? selectedDays : []);
     }
-  }
-  , [data]);
-  if(isLoading) {
-      return ;
-  } 
-  if(error) {
-      return <div className="text-red-500">ไม่สามารถโหลดข้อมูลได้</div>;
-  }
+  }, [data]);
   
+  if (isLoading) {
+    return <Spinner />;
+  } 
+  
+  if (error) {
+    return <div className="text-red-500">ไม่สามารถโหลดข้อมูลได้</div>;
+  }
   
   const toggleDay = (day: string) => {
     setSelectedDays((prev) =>
@@ -44,6 +47,7 @@ export default function InternshipReportForm() {
       selectedDays,
       dayPerWeeks: selectedDays.length
     };
+    
     const result = await fetch("/api/internship", {
       method: "POST",
       headers: {
@@ -51,19 +55,19 @@ export default function InternshipReportForm() {
       },
       body: JSON.stringify(payload)
     });
-    if(!result.ok) {
-      if(result.status === 401) {
-        route.push("/signin")
+    
+    if (!result.ok) {
+      if (result.status === 401) {
+        route.push("/signin");
       }
 
       const data = await result.json();
-      showToast(data.message, data.type)
-    }else{
+      showToast(data.message, data.type);
+    } else {
       const data = await result.json();
       showToast(data.message, data.type);
       mutate();
     }
-
   };
 
   return (
