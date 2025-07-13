@@ -1,9 +1,7 @@
 "use client";
 import Image from "next/image";
 import React from "react";
-import Bgimg from "/public/images/logos/logo-icon.svg";
-import { Button } from "flowbite-react";
-import authbg from "/public/images/backgrounds/login-security.svg"
+import authbg from "/public/images/backgrounds/logo-login.svg"
 
 const LeftSidebarPart = () => {
   return (
