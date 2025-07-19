@@ -36,7 +36,7 @@ const AuthLogin = () => {
       <form className="mt-6" onSubmit={handleSubmit}>
         <div className="mb-4">
           <div className="mb-2 block">
-            <Label htmlFor="Username" value="Username" />
+            <Label htmlFor="Username" value="ชื่อผู้ใช้" />
           </div>
           <TextInput
             id="username"
@@ -45,11 +45,12 @@ const AuthLogin = () => {
             className="form-control"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            placeholder="กรุณากรอกรหัสนักศึกษาของคุณ"
           />
         </div>
         <div className="mb-4 relative">
       <div className="mb-2 block">
-        <Label htmlFor="userpwd" value="Password" />
+        <Label htmlFor="userpwd" value="รหัสผ่าน" />
       </div>
       <TextInput
         id="userpwd"
@@ -58,6 +59,7 @@ const AuthLogin = () => {
         className="form-control"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        placeholder="กรอกรหัสผ่านของคุณเป็น วัน/เดือน/ปีเกิด"
       />
       <span
         className="absolute right-3 top-[40px] cursor-pointer text-gray-500 hover:text-gray-700"

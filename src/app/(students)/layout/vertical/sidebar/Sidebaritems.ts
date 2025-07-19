@@ -35,7 +35,7 @@ const SidebarContent: MenuItem[] = [
     heading: "Home",
     children: [
       {
-        name: "Dashboard",
+        name: "หน้าแรก",
         icon: 'tabler:aperture',
         id: uniqueId(),
         url: "/",
@@ -54,7 +54,7 @@ const SidebarContent: MenuItem[] = [
         url: "/company"
       },
       {
-        name: "Export",
+        name: "ส่งออกรายงาน",
         icon: 'tabler:printer',
         id: uniqueId(),
         url: "/export"
