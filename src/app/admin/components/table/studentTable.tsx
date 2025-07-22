@@ -395,7 +395,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
             },
             {
               icon: "tabler:trash",
-              listtitle: "Delete",
+              listtitle: "ลบข้อมูล",
               onclick: () => handleDelete(info.row.original.id as string),
             },
           ].map((item, index) => (
@@ -809,22 +809,22 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
           <div className="sm:flex gap-2 p-3 items-center justify-between">
             <div className="flex items-center gap-2">
               <Button color="primary" onClick={() => rerender()}>
-                Force Rerender
+                รีโหลดข้อมูล
               </Button>
               <h1 className="text-gray-700">
-                {table.getPrePaginationRowModel().rows.length} Rows
+                {table.getPrePaginationRowModel().rows.length} แถว
               </h1>
             </div>
             <div className="sm:flex items-center gap-2 sm:mt-0 mt-3">
               <div className="flex">
-                <h2 className="text-gray-700 pe-1">Page</h2>
+                <h2 className="text-gray-700 pe-1">หน้า</h2>
                 <h2 className="font-semibold text-gray-900">
-                  {table.getState().pagination.pageIndex + 1} of{" "}
+                  {table.getState().pagination.pageIndex + 1} จาก{" "}
                   {table.getPageCount()}
                 </h2>
               </div>
               <div className="flex items-center gap-2">
-                | Go to page:
+                | ไปที่หน้า:
                 <input
                   type="number"
                   min="1"

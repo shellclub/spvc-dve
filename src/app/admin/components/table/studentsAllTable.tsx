@@ -292,7 +292,7 @@ export function StudentsAllTable() {
               align="end"
               className="bg-white dark:bg-gray-900"
             >
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>จัดการ</DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => handleView(student.id)}
                 className="flex gap-3  bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -306,7 +306,7 @@ export function StudentsAllTable() {
                 className="flex gap-3  bg-white dark:bg-gray-900 hover:bg-red-50 dark:hover:bg-gray-800 text-red-600"
               >
                 <IconTrash size={18} />
-                <span>Delete</span>
+                <span>ลบข้อมูล</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -658,30 +658,7 @@ export function StudentsAllTable() {
             </span>
           )}
         </div>
-        <div className="flex items-center space-x-2">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
-          </div>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+       
       </div>
     </div>
   );

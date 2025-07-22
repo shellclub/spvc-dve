@@ -42,16 +42,7 @@ export function DatePicker() {
           </Card>
         </PopoverContent>
       </Popover>
-      {date && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          วันที่เลือก:{" "}
-          {date.toLocaleDateString("th-TH", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
-      )}
+     
     </div>
   )
 }

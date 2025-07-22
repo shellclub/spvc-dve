@@ -176,11 +176,11 @@ const InternReport = () => {
           )}
         >
           {[
-            { icon: "tabler:edit", listtitle: "Edit", onclick: () => {
+            { icon: "tabler:edit", listtitle: "แก้ไขข้อมูล", onclick: () => {
               setEditData(info.row.original);
               setOpen(true);
           }},
-            { icon: "tabler:trash", listtitle: "Delete", onclick: () => handleDelete(info.row.original.id as string) },
+            { icon: "tabler:trash", listtitle: "ลบข้อมูล", onclick: () => handleDelete(info.row.original.id as string) },
           ].map((item, index) => (
             <Dropdown.Item key={index} onClick={item.onclick} className="flex gap-3">
               <Icon icon={item.icon} height={18} />
@@ -263,7 +263,7 @@ const InternReport = () => {
               </div>
               <div className="my-3">
                   <Label className="mb-2 block" htmlFor="file-upload-helper-text">
-                    Upload file
+                    อัพโหลดรูปภาพ
                   </Label>
                  <FileInput id="file-upload-helper-text" accept="image/png, image/jpeg" name="image" />
               </div>
@@ -309,21 +309,21 @@ const InternReport = () => {
         <div className="sm:flex gap-2 p-3 items-center justify-between">
           <div className="flex items-center gap-2">
             <Button color="primary" onClick={() => rerender()}>
-              Force Rerender
+              รีโหลดข้อมูล
             </Button>
             <h1 className="text-gray-700">
-              {table.getPrePaginationRowModel().rows.length} Rows
+              {table.getPrePaginationRowModel().rows.length} แถว
             </h1>
           </div>
           <div className="sm:flex items-center gap-2 sm:mt-0 mt-3">
             <div className="flex">
-              <h2 className="text-gray-700 pe-1">Page</h2>
+              <h2 className="text-gray-700 pe-1">หน้า</h2>
               <h2 className="font-semibold text-gray-900">
-                {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                {table.getState().pagination.pageIndex + 1} จาก {table.getPageCount()}
               </h2>
             </div>
             <div className="flex items-center gap-2">
-              | Go to page:
+              | ไปที่หน้า:
               <input
                 type="number"
                 min="1"

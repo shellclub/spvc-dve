@@ -32,7 +32,7 @@ import { uniqueId } from "lodash";
 
 const SidebarContent: MenuItem[] = [
   {
-    heading: "Home",
+    heading: "เมนู",
     children: [
       {
         name: "หน้าแรก",

@@ -94,7 +94,7 @@ const Profile =  () => {
             onClick={() => signOut({ redirectTo: "/signin"})}
             className="w-full rounded-md"
           >
-            Logout
+            ออกจากระบบ
           </Button>
         </div>
       </Dropdown>

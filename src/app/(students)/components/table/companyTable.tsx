@@ -101,6 +101,7 @@ if (isLoading) {
                         name="name"
                         value={formData.name || data?.name}
                         onChange={handleChange}
+                        placeholder='กรอกชื่อสถานประกอบการที่นักศึกษาฝึกงาน'
                         required
                     />
                 </div>
@@ -112,6 +113,7 @@ if (isLoading) {
                         name="address"
                         value={formData.address || data?.address}
                         onChange={handleChange}
+                        placeholder='กรอกที่อยู่สถานประกอบการที่นักศึกษาฝึกงาน'
                         required
                     />
                 </div>
@@ -125,6 +127,7 @@ if (isLoading) {
                         name="tel"
                         value={formData.tel || data?.tel}
                         onChange={handleChange}
+                        placeholder='กรอกเบอร์โทรศัพท์สถานประกอบการที่นักศึกษาฝึกงาน'
                         required
                     />
                 </div>
@@ -137,6 +140,7 @@ if (isLoading) {
                         type="text"
                         value={formData.trainer || data?.trainer}
                         onChange={handleChange}
+                        placeholder='กรอก ชื่อ-นามสกุล ครูฝึกที่รับผิดชอบดูแลนักศึกษาในสถานประกอบการ'
                         required
                     />
                 </div>
@@ -149,6 +153,7 @@ if (isLoading) {
                         type="text"
                         value={formData.position || data?.position}
                         onChange={handleChange}
+                        placeholder='กรอกตำแหน่งของครูฝึก เช่น ผู้จัดการ'
                         required
                     />
                 </div>
@@ -158,6 +163,7 @@ if (isLoading) {
                         id="week"
                         name="week"
                         type="text"
+                        placeholder='กรอกจำนวนสัปดาห์ที่นักศึกษาเข้าฝึกงาน'
                         value={formData.week || data?.week}
                         onChange={handleChange}
                         required
