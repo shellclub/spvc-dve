@@ -19,7 +19,6 @@ export async function findOneStudent(id: string) {
         },
         include: {
             user: true,
-            department: true
         }
     });
 }

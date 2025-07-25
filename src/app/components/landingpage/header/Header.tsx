@@ -3,11 +3,10 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import "flowbite";
 import {Navbar } from "flowbite-react";
-import FullLogo from "@/app/(DashboardLayout)/layout/shared/logo/FullLogo";
-import PagesMenu from "./Pagesmenu";
 import DemosMenu from "./DemosMenu";
 import MobileDrawer from "./MobileDrawer";
 import FrontPageMenu from "./FrontPageMenu";
+import FullLogo from "../../shared/logo/FullLogo";
 
 const Header = () => {
   const [isSticky, setIsSticky] = useState(false);
@@ -42,7 +41,6 @@ const Header = () => {
           <Navbar.Collapse className="xl:block hidden">
             <DemosMenu />
             <FrontPageMenu/>
-            <PagesMenu />
             <Navbar.Link as={Link} href="https://demos.adminmart.com/premium/nextjs/modernize-tailwind-nextjs/docs/docs-start.html" className="rounded-md">
               Documentation
             </Navbar.Link>

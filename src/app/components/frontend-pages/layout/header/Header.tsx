@@ -3,9 +3,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import "flowbite";
 import {Badge, Button, Navbar } from "flowbite-react";
-import FullLogo from "@/app/(DashboardLayout)/layout/shared/logo/FullLogo";
 import MobileDrawer from "./MobileDrawer";
 import { usePathname, useRouter } from "next/navigation";
+import FullLogo from "@/app/components/shared/logo/FullLogo";
 
 const Header = () => {
   const [isSticky, setIsSticky] = useState(false);

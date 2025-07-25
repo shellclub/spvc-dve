@@ -1,10 +1,10 @@
 "use client";
 import React from 'react'
 import FullWidthMegamenuCode from './Code/FullWidthMegamenuCode'
-import FullLogo from '@/app/(DashboardLayout)/layout/shared/logo/FullLogo'
 import { MegaMenu, Navbar } from 'flowbite-react'
 import CardBox from '../../shared/CardBox'
 import { HiChevronDown } from "react-icons/hi";
+import FullLogo from '../../shared/logo/FullLogo';
 const FullWidthMegamenu = () => {
   return (
     <div>

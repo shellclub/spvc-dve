@@ -3,8 +3,8 @@ import React, { useState } from "react";
 import { Button, Drawer } from "flowbite-react";
 import { IconMenu2 } from "@tabler/icons-react";
 import Link from "next/link";
-import FullLogo from "@/app/(DashboardLayout)/layout/shared/logo/FullLogo";
 import MobileDemosMenu from "./MobileDemoMenus";
+import FullLogo from "../../shared/logo/FullLogo";
 const MobileDrawer = () => {
   const [isOpen, setIsOpen] = useState(false);
 

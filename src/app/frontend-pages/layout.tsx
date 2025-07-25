@@ -1,11 +1,9 @@
 "use client"
+import Header from "../components/frontend-pages/layout/header/Header";
 import { Flowbite } from "flowbite-react";
 import customTheme from "@/utils/theme/custom-theme";
-import { useContext, useEffect } from "react";
 import { CustomFooter } from "../components/frontend-pages/layout/CustomFooter";
 import { AnnouncementBar } from "../components/frontend-pages/layout/header/AnnouncementBar";
-import Header from "../components/frontend-pages/layout/header/Header";
-
 
 
 

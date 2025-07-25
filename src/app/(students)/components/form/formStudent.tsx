@@ -5,12 +5,10 @@ import {
   TextInput,
   Select,
   Button,
+  Datepicker,
 } from "flowbite-react";
 import TitleCard from "@/app/components/shared/TitleBorderCard";
-import BasicDatepicker from "@/app/components/shadcn-ui/Datepicker/BasicDatepicker";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
-import { createStd } from "@/utils/actions";
-import { revalidatePath } from "next/cache";
 type Education = {
   id: number;
     name: string;
@@ -339,9 +337,8 @@ const FormStudent: React.FC<FormStudnetProps> = ({id}) => {
 
                   </FormRow>
                   <FormRow label="วันเกิด" htmlFor="birthday">
-                      <BasicDatepicker
-                      value={formData.birthday as Date}
-                      onChange={(date) => setFormData({ ...formData, birthday: date })}
+                      <Datepicker
+                      onSelectedDateChanged={(date) => setFormData({ ...formData, birthday: date})}
                     />
                     <input type="hidden" name="birthday" value={String(formData.birthday)} />
                     <span className="text-red-500">{errors.birthday}</span>

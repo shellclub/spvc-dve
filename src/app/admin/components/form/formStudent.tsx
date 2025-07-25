@@ -9,8 +9,7 @@ import {
 } from "flowbite-react";
 import TitleCard from "@/app/components/shared/TitleBorderCard";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
-import { createStd } from "@/utils/actions";
-import { revalidatePath } from "next/cache";
+
 type Education = {
   id: number;
     name: string;

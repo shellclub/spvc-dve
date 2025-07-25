@@ -1,8 +1,8 @@
-import FullLogo from "@/app/(DashboardLayout)/layout/shared/logo/FullLogo";
 import { Footer } from "flowbite-react";
 import React from "react";
 import CardBox from "../../shared/CardBox";
 import CodeModal from "../CodeModal";
+import FullLogo from "../../shared/logo/FullLogo";
 
 const FooterWithLogo = () => {
   return (

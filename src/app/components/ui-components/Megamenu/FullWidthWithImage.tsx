@@ -2,9 +2,9 @@
 "use client";
 import React from "react";
 import CardBox from "../../shared/CardBox";
-import FullLogo from "@/app/(DashboardLayout)/layout/shared/logo/FullLogo";
 import { MegaMenu, Navbar } from "flowbite-react";
 import { HiChevronDown, HiArrowRight } from "react-icons/hi";
+import FullLogo from "../../shared/logo/FullLogo";
 const FullWidthWithImage = () => {
   return (
     <div>

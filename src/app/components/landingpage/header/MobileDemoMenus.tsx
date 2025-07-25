@@ -4,11 +4,9 @@ import Image from "next/image";
 import React from "react";
 import Link from "next/link";
 import { demosMegamenu, appsMegamenu } from "../Data";
-import * as AppsData from "@/app/(DashboardLayout)/layout/vertical/header/Data";
 import { Button } from "flowbite-react";
 import { Accordion } from "flowbite-react";
 import { IconHelp } from "@tabler/icons-react";
-import Quicklinks from "@/app/(DashboardLayout)/layout/vertical/header/Quicklinks";
 const MobileDemosMenu = () => {
   return (
     <>
@@ -92,7 +90,7 @@ const MobileDemosMenu = () => {
           <div className="grid grid-cols-12 w-full">
                 <div className="xl:col-span-8 col-span-12 flex items-stretch xl:pr-0  px-5 py-5">
                   <div className="grid grid-cols-12 gap-3 w-full">
-                    {AppsData.appsLink.map((links, index) => (
+                    {/* {AppsData.appsLink.map((links, index) => (
                       <div
                         className="col-span-12 xl:col-span-6 flex items-stretch"
                         key={index}
@@ -123,7 +121,7 @@ const MobileDemosMenu = () => {
                           </li>
                         </ul>
                       </div>
-                    ))}
+                    ))} */}
                     <div className="col-span-12 md:col-span-12 md:border-t border-t-0 border-border dark:border-darkborder hidden xl:flex items-stretch pt-4 pr-4">
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center text-dark dark:text-darklink">
@@ -140,9 +138,6 @@ const MobileDemosMenu = () => {
                       </div>
                     </div>
                   </div>
-                </div>
-                <div className="xl:col-span-4 col-span-12  flex items-strech">
-                  <Quicklinks />
                 </div>
               </div>
           </Accordion.Content>

@@ -1,9 +1,9 @@
 "use client";
-import FullLogo from "@/app/(DashboardLayout)/layout/shared/logo/FullLogo";
 import { Navbar, Dropdown, Avatar } from "flowbite-react";
 import React from "react";
 import CardBox from "../../shared/CardBox";
 import CodeModal from "../CodeModal";
+import FullLogo from "../../shared/logo/FullLogo";
 
 const NavWithDropdown = () => {
   return (

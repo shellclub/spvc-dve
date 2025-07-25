@@ -1,9 +1,9 @@
 "use client";
-import FullLogo from "@/app/(DashboardLayout)/layout/shared/logo/FullLogo";
 import { MegaMenu, Button, Navbar } from "flowbite-react";
 import React from "react";
 import CardBox from "../../shared/CardBox";
 import DefaultMegamenuCode from "./Code/DefaultMegamenuCode";
+import FullLogo from "../../shared/logo/FullLogo";
 
 const DefaultMegamenu = () => {
   return (

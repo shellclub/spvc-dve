@@ -1,9 +1,9 @@
 "use client";
 import React, { useState } from "react";
 import CardBox from "../../shared/CardBox";
-import FullLogo from "@/app/(DashboardLayout)/layout/shared/logo/FullLogo";
 import { Label, TextInput, Checkbox, Button } from "flowbite-react";
 import Link from "next/link";
+import FullLogo from "../../shared/logo/FullLogo";
 // Second Form
 const modernizFormData = {
   email: "",

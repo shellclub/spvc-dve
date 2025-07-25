@@ -1,6 +1,6 @@
-import Logo from "@/app/(DashboardLayout)/layout/shared/logo/Logo";
 import Link from "next/link";
 import React from "react";
+import Logo from "../../shared/logo/Logo";
 
 const Footer = () => {
   return (

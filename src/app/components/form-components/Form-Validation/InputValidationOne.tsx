@@ -1,9 +1,9 @@
 "use client";
-import FullLogo from "@/app/(DashboardLayout)/layout/shared/logo/FullLogo";
 import { Label, TextInput, Checkbox, Button } from "flowbite-react";
 import Link from "next/link";
 import React, { useState } from "react";
 import CardBox from "../../shared/CardBox";
+import FullLogo from "../../shared/logo/FullLogo";
 // First Form
 const initialFormData = {
   name: "",

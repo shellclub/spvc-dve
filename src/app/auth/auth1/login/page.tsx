@@ -1,6 +1,5 @@
 
 import React from "react";
-import SocialButtons from "../../authforms/SocialButtons";
 import AuthLogin from "../../authforms/AuthLogin";
 import LeftSidebarPart from "../LeftSidebarPart";
 import type { Metadata } from "next";

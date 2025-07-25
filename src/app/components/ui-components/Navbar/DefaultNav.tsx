@@ -1,10 +1,10 @@
 "use client";
-import FullLogo from "@/app/(DashboardLayout)/layout/shared/logo/FullLogo";
 import { Navbar } from "flowbite-react";
 import Link from "next/link";
 import React from "react";
 import CardBox from "../../shared/CardBox";
 import CodeModal from "../CodeModal";
+import FullLogo from "../../shared/logo/FullLogo";
 
 const DefaultNav = () => {
   return (

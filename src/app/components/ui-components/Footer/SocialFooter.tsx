@@ -1,4 +1,3 @@
-import FullLogo from "@/app/(DashboardLayout)/layout/shared/logo/FullLogo";
 import { Footer } from "flowbite-react";
 import React from "react";
 import CardBox from "../../shared/CardBox";
@@ -9,6 +8,7 @@ import {
   BsInstagram,
   BsTwitter,
 } from "react-icons/bs";
+import FullLogo from "../../shared/logo/FullLogo";
 const SocialFooter = () => {
   return (
     <div>
