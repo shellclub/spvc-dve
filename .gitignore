@@ -34,3 +34,4 @@ db_spvc.sql
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env
