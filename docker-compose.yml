@@ -1,0 +1,24 @@
+version: "3"
+services:
+  spvc-internship:
+    container_name: spvc-internship
+    deploy:
+      replicas: 1
+      # resources:
+      #   limits:
+      #     cpus: '0.256'
+      #     memory: 512M
+      #   reservations:
+      #     cpus: '0.128'
+      #     memory: 128M
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    # image: 211125430268.dkr.ecr.ap-southeast-1.amazonaws.com/npk-front-sit:latest
+    restart: always
+    ports:
+      - 3099:3000
+    # env_file:
+    #   - .env.dev
+     
+   
