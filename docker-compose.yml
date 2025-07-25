@@ -1,7 +1,7 @@
 version: "3"
 services:
-  ptcc-website-dev:
-    container_name: ptcc-website-dev
+  spvc-internship:
+    container_name: spvc-internship
     deploy:
       replicas: 1
       # resources:
