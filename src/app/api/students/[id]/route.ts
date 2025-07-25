@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { parseForm } from "@/lib/uploadFile";
 import { removeStudent, updateStudent } from "@/services/students";
 import { updateUser } from "@/services/users";
 import { NextRequest, NextResponse } from "next/server";
@@ -20,6 +21,8 @@ type StudentRequestBody = {
         birthday: string;
     };
   };
+
+
 export async function GET(request: NextRequest, {params}: {params: Promise<{ id: string}>}) {
     const { id } = await params;
     const student = await prisma.user.findUnique({
@@ -43,27 +46,75 @@ export async function GET(request: NextRequest, {params}: {params: Promise<{ id:
     return NextResponse.json(student, { status: 200});
     
 }
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string}> }) {
     const { id } = await params;
-    const jsonBody = await req.json() as StudentRequestBody;
-    const student = await prisma.student.findUnique({
-        where: {
-            userId: Number(id)
+  
+    try {
+      const formData = await req.formData();
+      const data = Object.fromEntries([...formData.entries()].map(([k, v]) => [k, String(v)]));
+      
+      const student = await prisma.user.findUnique({
+        where: { id: Number(id) },
+        include: { student: true },
+      });
+  
+      if (!student) {
+        return NextResponse.json({ message: "ไม่พบข้อมูลนักศึกษา", type: "error" }, { status: 200 });
+      }
+  
+      const file = formData.get("user_img") as File | null;
+      let userImgPath = student.user_img;
+  
+      if (file && file.size > 0) {
+        userImgPath = await parseForm(file); // สมมุติว่าเป็นฟังก์ชันอัปโหลดรูป
+      }
+  
+      const userData = {
+        firstname: data.firstname,
+        lastname: data.lastname,
+        citizenId: data.citizenId,
+        sex: Number(data.sex),
+        phone: data.phone,
+        departmentId: Number(data.department),
+        birthday: new Date(data.birthday),
+        user_img: userImgPath,
+        username: data.studentId,
+      };
+  
+      const studentData = {
+        studentId: data.studentId,
+        educationLevel: Number(data.educationLevel),
+        major: data.major,
+        academicYear: data.academicYear,
+        room: data.room,
+        term: data.term,
+        gradeLevel: data.gradeLevel,
+      };
+
+    //   console.log("data:", userData, studentData);  ;
+      
+  
+      const updated = await prisma.user.update({
+        where: { id: Number(id) },
+        data: {
+          ...userData,
+          student: { update: studentData },
+        },
+        include: { student: true },
+      });
+        if (!updated) {
+            return NextResponse.json({ message: "ไม่สามารถอัปเดตข้อมูลได้", type: "error" }, { status: 500 });
         }
-    })
+  
+      return NextResponse.json({ message: "แก้ไขข้อมูลสำเร็จ", type: "success" }, { status: 200 });
+  
+    } catch (error) {
+    //   console.log("Update error:", error);
+      return NextResponse.json({ message: "เกิดข้อผิดพลาดในระบบ", type: "error" }, { status: 500 });
+    }
+  }
+  
 
-    if(!student) return NextResponse.json({ message: "ไม่พบข้อมูลนักศึกษา", type: "error"}, { status: 200});
-    
-    const updateuser = await updateUser(id, jsonBody.user);
-
-    if(!updateuser) return NextResponse.json({ message: "กรุณาลองใหม่ภายหลัง!", type: "error"}, { status: 200}); 
-
-    const updatestudent = await updateStudent(student.id.toString() , jsonBody.student);
-
-    if(!updatestudent) return NextResponse.json({ message: "กรุณาลองใหม่ภายหลัง!", type: "error"}, { status: 200});
-
-    return NextResponse.json({ message: "แก้ไขข้อมูลสำเร็จ", type: "success" }, { status: 200});
-}
 
 export async function DELETE(request: NextRequest, {params}: {params: Promise<{ id: string}>}) {
     const { id } = await params;

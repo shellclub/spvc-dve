@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/app/components/shadcn-ui/Default-Ui/dialog";
-import { Badge, Datepicker, Dropdown } from "flowbite-react";
+import { Badge, Datepicker, Dropdown, Spinner } from "flowbite-react";
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -29,6 +29,7 @@ import {
   IconPlus,
   IconUpload,
   IconUser,
+  IconEdit,
 } from "@tabler/icons-react";
 import { Icon } from "@iconify/react";
 import TitleIconCard from "@/app/components/shared/TitleIconCard";
@@ -48,25 +49,29 @@ import {
   SelectValue,
 } from "@/app/components/shadcn-ui/Default-Ui/select";
 import { validateThaiID } from "@/lib/thaiIdVaildate";
-import { ThaiDatePicker } from "thaidatepicker-react";
 
 import { Button } from "@/app/components/shadcn-ui/Default-Ui/button";
-import dayjs from "dayjs";
+
 export interface PaginationTableType {
   id?: string;
   citizenId: string;
   user_img: string;
+  phone?: string;
+  birthday?: string;
   student: {
     studentId: string;
     term: string;
     education: {
+      id: number;
       name: string;
     };
-
     major: string;
     academicYear: string;
+    gradeLevel: string;
+    room: string;
   };
   department: {
+    id: number;
     depname: string;
   };
 
@@ -88,13 +93,16 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
-  const [data, setData] = useState<PaginationTableType[]>([]);
+  const router = useRouter();
+
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date | null>(null);
   const [openAdd, setOpenAdd] = React.useState(false);
+  const [openEdit, setOpenEdit] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [imageFile, setImageFile] = React.useState<File | null>(null);
   const [imagePreview, setImagePreview] = React.useState<string>("");
+  const [editingStudent, setEditingStudent] = React.useState<PaginationTableType | null>(null);
   const [formData, setFormData] = React.useState({
     firstname: "",
     lastname: "",
@@ -110,6 +118,23 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
     term: "",
     academicYear: "",
   });
+
+  // Fetch departments and education data
+  const { data: deptData, isLoading: isDeptLoading } = useSWR(
+    "/api/departments",
+    fetcher
+  );
+  const { data: edctData, isLoading: isEdctLoading } = useSWR(
+    "/api/education",
+    fetcher
+  );
+  const departments = deptData ?? [];
+  const educations = edctData?.data ?? [];
+
+  const { data, isLoading, error, mutate } = useSWR(
+    "/api/students",
+    fetcher
+  );
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -176,11 +201,82 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
       setOpenAdd(false); // เปลี่ยนจาก setOpen เป็น setOpenAdd
       resetForm();
       onSuccess?.();
+      mutate(); // รีเฟรชข้อมูลนักศึกษา
     } catch (error) {
       showToast(
         error instanceof Error
           ? error.message
           : "เกิดข้อผิดพลาดในการเพิ่มข้อมูล",
+        "error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    if (!editingStudent?.id) {
+      showToast("ไม่พบข้อมูลนักศึกษาที่ต้องการแก้ไข", "error");
+      setLoading(false);
+      return;
+    }
+
+    if (!validateThaiID(formData.citizenId)) {
+      showToast("เลขบัตรประจำตัวประชาชนไม่ถูกต้อง", "warning");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Create FormData for file upload
+      const submitData = new FormData();
+
+      // Add form fields
+      submitData.append("firstname", formData.firstname);
+      submitData.append("lastname", formData.lastname);
+      submitData.append("citizenId", formData.citizenId);
+      submitData.append("sex", formData.sex);
+      submitData.append("phone", formData.phone);
+      submitData.append("department", formData.department);
+      submitData.append("birthday", String(date?.toISOString()));
+      submitData.append("studentId", formData.studentId);
+      submitData.append("major", formData.major);
+      submitData.append("educationLevel", formData.educationLevel);
+      submitData.append("gradeLevel", formData.gradeLevel);
+      submitData.append("room", formData.room);
+      submitData.append("term", formData.term);
+      submitData.append("academicYear", formData.academicYear);
+
+      // Add image file if selected
+      if (imageFile) {
+        submitData.append("user_img", imageFile);
+      }
+
+      const response = await fetch(`/api/students/${editingStudent.id}`, {
+        method: "PUT",
+        body: submitData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
+      }
+
+      showToast("แก้ไขข้อมูลนักศึกษาเรียบร้อยแล้ว", "success");
+      setOpenEdit(false);
+      resetForm();
+      setEditingStudent(null);
+      onSuccess?.();
+      mutate(); // รีเฟรชข้อมูลนักศึกษา
+    } catch (error) {
+      showToast(
+        error instanceof Error
+          ? error.message
+          : "เกิดข้อผิดพลาดในการแก้ไขข้อมูล",
         "error"
       );
     } finally {
@@ -216,18 +312,46 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
     }
   };
 
-  // Fetch departments and education data
-  const { data: deptData, isLoading: isDeptLoading } = useSWR(
-    "/api/departments",
-    fetcher
-  );
-  const { data: edctData, isLoading: isEdctLoading } = useSWR(
-    "/api/education",
-    fetcher
-  );
+  const handleEditDialogClose = () => {
+    setOpenEdit(false);
+    if (!loading) {
+      resetForm();
+      setEditingStudent(null);
+    }
+  };
 
-  const departments = deptData ?? [];
-  const educations = edctData?.data ?? [];
+  const handleEdit = (student: PaginationTableType) => {
+    setEditingStudent(student);
+    
+    // เติมข้อมูลเดิมลงในฟอร์ม
+    setFormData({
+      firstname: student.firstname || "",
+      lastname: student.lastname || "",
+      citizenId: student.citizenId || "",
+      sex: student.sex || "",
+      phone: student.phone || "",
+      department: String(student.department.id), // ต้องดึง department ID
+      studentId: student.student?.studentId || "",
+      major: student.student?.major || "",
+      educationLevel: String(student.student.education.id), // ต้องดึง education ID
+      gradeLevel: student.student?.gradeLevel || "",
+      room: student.student?.room || "",
+      term: student.student?.term || "",
+      academicYear: student.student?.academicYear || "",
+    });
+
+    // ตั้งค่ารูปภาพเดิม
+    if (student.user_img) {
+      setImagePreview(`/uploads/${student.user_img}`);
+    }
+
+    // ตั้งค่าวันเกิด
+    if (student.birthday) {
+      setDate(new Date(student.birthday));
+    }
+
+    setOpenEdit(true);
+  };
 
   const handleInputChange = (name: string, value: string) => {
     setFormData((prev) => ({
@@ -237,12 +361,14 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
   };
 
   // old code
-  const router = useRouter();
-  const rerender = React.useReducer(() => ({}), {})[1];
+  const rerender = () => {
+    setColumnFilters([]);
+    mutate(); // Refresh data
+  }
   const handleDelete = async (id: string) => {
     Swal.fire({
       title: "แจ้งเตือน!",
-      text: "คุณต้องการลบข้อมูลแผนกวิชานี้หรือไม่?",
+      text: "คุณต้องการลบข้อมูลนักศึกษานี้หรือไม่?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
@@ -263,6 +389,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
         } else {
           const data = await res.json();
           showToast(data.message, data.type);
+          mutate(); // Refresh data after deletion
           router.refresh();
         }
       }
@@ -280,31 +407,13 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
     if (res.ok) {
       setOpen(false);
       setTimeout(() => {
-        router.refresh();
+        mutate(); // Refresh data after upload
+        showToast("อัปโหลดไฟล์ Excel สำเร็จ", "success");
       }, 1500);
     }
     const data = await res.json();
-    showToast(data.message || data.error, data.type);
+    showToast(data.message || data.error, data.type || "error"); // Show error message if any
   }
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const hooks = await fetch("/api/students", {
-        cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      if (!hooks.ok) {
-        const res = await hooks.json();
-        console.log(res);
-      }
-
-      const res = await hooks.json();
-      setData(res);
-    };
-    fetchUser();
-  }, []);
 
   const columns = [
     columnHelper.display({
@@ -394,6 +503,11 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
                 router.push(`/admin/students/${info.row.original.id}`),
             },
             {
+              icon: "tabler:edit",
+              listtitle: "แก้ไขข้อมูล",
+              onclick: () => handleEdit(info.row.original),
+            },
+            {
               icon: "tabler:trash",
               listtitle: "ลบข้อมูล",
               onclick: () => handleDelete(info.row.original.id as string),
@@ -415,7 +529,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
   ];
 
   const table = useReactTable({
-    data,
+    data: data || [],
     columns,
     filterFns: {},
     state: {
@@ -430,6 +544,34 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
     debugHeaders: true,
     debugColumns: false,
   });
+
+  if(isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
+        <Spinner 
+          size="xl" 
+          color="primary" 
+          aria-label="Loading..." 
+          className="text-blue-600 dark:text-blue-500"
+        />
+        <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
+          กำลังโหลดข้อมูลนักศึกษา โปรดรอสักครู่...
+        </p>
+      </div>
+    );
+  }
+ 
+  
+  if(error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
+        <p className="text-lg font-medium text-red-600 dark:text-red-500">
+          เกิดข้อผิดพลาดในการโหลดข้อมูลนักศึกษา: {error.message}
+        </p>
+      </div>
+    );  
+
+  }
 
   return (
     <>
@@ -446,7 +588,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
               <DialogHeader>
                 <DialogTitle>อัปโหลดไฟล์ Excel</DialogTitle>
                 <DialogDescription>
-                  กรุณาอัปโหลดไฟล์ .xlsx ที่มีคอลัมน์ name และ price
+                  กรุณาอัปโหลดไฟล์ .xlsx ที่มีข้อมูลนักศึกษา
                 </DialogDescription>
               </DialogHeader>
 
@@ -464,6 +606,8 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
               </form>
             </DialogContent>
           </Dialog>
+
+          {/* Add Student Dialog */}
           <Dialog open={openAdd} onOpenChange={setOpenAdd}>
             <DialogTrigger asChild>
               <Button className="bg-blue-600 hover:bg-blue-700 text-white">
@@ -759,6 +903,306 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
                   </Button>
                   <Button type="submit" disabled={loading}>
                     {loading ? "กำลังเพิ่มข้อมูล..." : "เพิ่มข้อมูล"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Student Dialog */}
+          <Dialog open={openEdit} onOpenChange={(open) => {
+            if (!open) {
+              handleEditDialogClose();
+
+            }
+          }}>
+            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <IconEdit size={20} />
+                  แก้ไขข้อมูลนักศึกษา
+                </DialogTitle>
+                <DialogDescription>
+                  แก้ไขข้อมูลนักศึกษา {editingStudent?.firstname} {editingStudent?.lastname}
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleEditSubmit} className="space-y-4">
+                {/* Profile Image */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-image">รูปโปรไฟล์</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                        {imagePreview ? (
+                          <img
+                            src={imagePreview}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <IconUser size={32} className="text-gray-400" />
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <Input
+                        id="edit-image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                      <Label
+                        htmlFor="edit-image"
+                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
+                      >
+                        <IconUpload size={16} />
+                        เปลี่ยนรูปภาพ
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Personal Information */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-citizenId">เลขบัตรประจำตัวประชาชน *</Label>
+                  <Input
+                    id="edit-citizenId"
+                    value={formData.citizenId}
+                    onChange={(e) =>
+                      handleInputChange("citizenId", e.target.value)
+                    }
+                    placeholder="เลขบัตรประจำตัวประชาชน"
+                    inputMode="numeric"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-firstname">ชื่อ *</Label>
+                    <Input
+                      id="edit-firstname"
+                      value={formData.firstname}
+                      onChange={(e) =>
+                        handleInputChange("firstname", e.target.value)
+                      }
+                      placeholder="ชื่อ"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-lastname">นามสกุล *</Label>
+                    <Input
+                      id="edit-lastname"
+                      value={formData.lastname}
+                      onChange={(e) =>
+                        handleInputChange("lastname", e.target.value)
+                      }
+                      placeholder="นามสกุล"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-birthday">วันเกิด *</Label>
+                    <Datepicker
+                        language="th"
+                        onSelectedDateChanged={(date) => setDate(date)}                      />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-studentId">รหัสนักศึกษา *</Label>
+                    <Input
+                      id="edit-studentId"
+                      value={formData.studentId}
+                      onChange={(e) =>
+                        handleInputChange("studentId", e.target.value)
+                      }
+                      placeholder="รหัสนักศึกษา"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-sex">เพศ *</Label>
+                    <Select
+                      value={String(formData.sex)}
+                      onValueChange={(value) => handleInputChange("sex", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกเพศ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">ชาย</SelectItem>
+                        <SelectItem value="2">หญิง</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-phone">เบอร์โทรศัพท์</Label>
+                    <Input
+                      id="edit-phone"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        handleInputChange("phone", e.target.value)
+                      }
+                      placeholder="เบอร์โทรศัพท์"
+                    />
+                  </div>
+                </div>
+
+                {/* Academic Information */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-department">แผนกวิชา *</Label>
+                    <Select
+                      value={String(formData.department)}
+                      onValueChange={(value) =>
+                        handleInputChange("department", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกแผนกวิชา" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {isDeptLoading ? (
+                          <SelectItem value="loading" disabled>
+                            กำลังโหลด...
+                          </SelectItem>
+                        ) : (
+                          departments.map((dept: any) => (
+                            <SelectItem key={dept.id} value={String(dept.id)}>
+                              {dept.depname}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-major">สาขาวิชา *</Label>
+                    <Input
+                      id="edit-major"
+                      value={formData.major}
+                      onChange={(e) =>
+                        handleInputChange("major", e.target.value)
+                      }
+                      placeholder="สาขาวิชา"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-education">ระดับการศึกษา *</Label>
+                    <Select
+                      value={String(formData.educationLevel)}
+                      onValueChange={(value) =>
+                        handleInputChange("educationLevel", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกระดับการศึกษา" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {isEdctLoading ? (
+                          <SelectItem value="loading" disabled>
+                            กำลังโหลด...
+                          </SelectItem>
+                        ) : (
+                          educations.map((edu: any) => (
+                            <SelectItem key={edu.id} value={String(edu.id)}>
+                              {edu.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-gradeLevel">ชั้นปี *</Label>
+                    <Select
+                      value={formData.gradeLevel}
+                      onValueChange={(value) =>
+                        handleInputChange("gradeLevel", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกชั้นปี" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                        <SelectItem value="4">4</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-room">ห้อง *</Label>
+                    <Input
+                      id="edit-room"
+                      value={formData.room}
+                      onChange={(e) =>
+                        handleInputChange("room", e.target.value)
+                      }
+                      placeholder="ห้อง"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-term">เทอม *</Label>
+                    <Select
+                      value={formData.term}
+                      onValueChange={(value) =>
+                        handleInputChange("term", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกเทอม" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1</SelectItem>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="3">3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-academicYear">ปีการศึกษา *</Label>
+                    <Input
+                      id="edit-academicYear"
+                      value={formData.academicYear}
+                      onChange={(e) =>
+                        handleInputChange("academicYear", e.target.value)
+                      }
+                      placeholder="2567"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter className="gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleEditDialogClose}
+                    disabled={loading}
+                  >
+                    ยกเลิก
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "กำลังแก้ไขข้อมูล..." : "บันทึกการแก้ไข"}
                   </Button>
                 </DialogFooter>
               </form>

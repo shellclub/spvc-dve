@@ -124,7 +124,7 @@ export default function EditProfilePage() {
                                     <FileInput 
                                         name='user_img'
                                         id='user_img'
-                                        accept='image/jpeg, image/png'
+                                        accept='image/jpeg'
                                     />
                                   </div>
                                   <div className="w-full flex mt-6 text-end justify-end">
