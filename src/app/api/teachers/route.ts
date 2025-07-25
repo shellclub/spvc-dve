@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
                 citizenId: data.citizenId
             }
         });
+
         if(haveTeacher) {
             return NextResponse.json({ message: "ผู้ใช้นี้มีข้อมูลอยู่ในระบบแล้ว", type: "error"}, { status: 400})
         }else{
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
         }
          
     } catch (error) {
+        console.log("Error creating teacher:", error);
         return NextResponse.json({ message: error, type: "error"}, { status: 500})
         
     }

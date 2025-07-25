@@ -9,23 +9,30 @@ import SimpleBar from "simplebar-react";
 import FullLogo from "../../shared/logo/FullLogo";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
-import profileimg from "/public/images/profile/user-1.jpg"
 import { CustomizerContext } from "@/app/context/CustomizerContext";
 import { signOut, useSession } from "next-auth/react";
 import useSWR from "swr";
 import { userRole } from "@/lib/utils";
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = async(url: string) => await fetch(url).then(res => res.json());
 const SidebarLayout = () => {
   const {isCollapse } = useContext(CustomizerContext);
-  const { data: session } = useSession();
-  const { data, isLoading, error} = useSWR(`/api/users/${session?.user.id}`, fetcher);
+
+  const { data: session, status } = useSession();
+  
+  // สร้าง key สำหรับ SWR โดย check ว่า session.user.id มีค่าหรือไม่
+  const swrKey = session?.user?.id ? `/api/users/${session.user.id}` : null;
+  
+  const { data, isLoading, error } = useSWR(swrKey, fetcher);
+
+  // แสดง loading หาก session ยังไม่โหลดเสร็จ
+  const isSessionLoading = status === "loading";
 
   return (
     <>
       <div className="xl:block hidden ">
         <div className="flex ">
           <Sidebar
-            className={`${isLoading ? 'animate-pulse pointer-events-none opacity-60' : ''} fixed menu-sidebar bg-white dark:bg-dark z-[6] border-r rtl:border-l border-border dark:border-darkborder`}
+            className={`${isLoading || isSessionLoading ? 'animate-pulse pointer-events-none opacity-60' : ''} fixed menu-sidebar bg-white dark:bg-dark z-[6] border-r rtl:border-l border-border dark:border-darkborder`}
             aria-label="Sidebar with multi-level dropdown example"
           >
             <div className={`${isCollapse==="full-sidebar"?"px-6":"px-5"} flex items-center brand-logo overflow-hidden`}>

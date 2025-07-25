@@ -313,7 +313,7 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
                   </FormRow>
                   <FormRow label="เพศ" htmlFor="sex" >
                     <Select id="sex" value={formData.sex !== null ? String(formData.sex) : ""} onChange={handleSelectChange}>
-                      <option hidden value="">เลือกเพศของนักศึกษา</option>
+                      <option hidden value="">เลือกเพศของอาจารย์ผู้ดูแลแผนกวิชา</option>
                       <option value="1">ชาย</option>
                       <option value="2">หญิง</option>
                     </Select>
@@ -325,7 +325,7 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
                     type="file"
                     name="user_img"
                     id="user_img"
-                    accept="image/png, image/jpeg"
+                    accept="image/jpeg"
                     onChange={handleFileChange}
                   />
 

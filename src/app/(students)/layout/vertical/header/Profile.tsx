@@ -11,11 +11,19 @@ import { signOut, useSession } from "next-auth/react";
 import useSWR from "swr";
 import { userRole } from "@/lib/utils";
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = async(url: string) => await fetch(url).then(res => res.json());
 const Profile =  () => {
-  const {data: session} = useSession(); 
-  const {data, isLoading, mutate, error} = useSWR(`/api/users/${session?.user.id}`,fetcher);
-  if(isLoading) {
+
+  const { data: session, status } = useSession();
+  
+  // สร้าง key สำหรับ SWR โดย check ว่า session.user.id มีค่าหรือไม่
+  const swrKey = session?.user?.id ? `/api/users/${session.user.id}` : null;
+  
+  const { data, isLoading, error } = useSWR(swrKey, fetcher);
+
+  // แสดง loading หาก session ยังไม่โหลดเสร็จ
+  const isSessionLoading = status === "loading";  
+  if(isLoading || isSessionLoading) {
     return <p>Loading....</p>
   }
   return (

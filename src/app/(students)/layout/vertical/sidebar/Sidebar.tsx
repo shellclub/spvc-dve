@@ -14,18 +14,32 @@ import { CustomizerContext } from "@/app/context/CustomizerContext";
 import { signOut, useSession } from "next-auth/react";
 import useSWR from "swr";
 import { userRole } from "@/lib/utils";
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = async(url: string) => await fetch(url).then(res => res.json());
 const SidebarLayout = () => {
   const {isCollapse } = useContext(CustomizerContext);
-  const { data: session } = useSession();
-  const { data, isLoading, error} = useSWR(`/api/users/${session?.user.id}`, fetcher);
+
+  const { data: session, status } = useSession();
+  
+  // สร้าง key สำหรับ SWR โดย check ว่า session.user.id มีค่าหรือไม่
+  const swrKey = session?.user?.id ? `/api/users/${session.user.id}` : null;
+  
+  const { data, isLoading, error } = useSWR(swrKey, fetcher);
+
+  // แสดง loading หาก session ยังไม่โหลดเสร็จ
+  console.log(data, session);
+  
+  const isSessionLoading = status === "loading";
+  if (isLoading || isSessionLoading) {
+    return;
+  }
+
 
   return (
     <>
       <div className="xl:block hidden ">
         <div className="flex ">
           <Sidebar
-            className={`${isLoading ? 'animate-pulse pointer-events-none opacity-60' : ''} fixed menu-sidebar bg-white dark:bg-dark z-[6] border-r rtl:border-l border-border dark:border-darkborder`}
+            className={`${isLoading || isSessionLoading ? 'animate-pulse pointer-events-none opacity-60' : ''} fixed menu-sidebar bg-white dark:bg-dark z-[6] border-r rtl:border-l border-border dark:border-darkborder`}
             aria-label="Sidebar with multi-level dropdown example"
           >
             <div className={`${isCollapse==="full-sidebar"?"px-6":"px-5"} flex items-center brand-logo overflow-hidden`}>
@@ -69,7 +83,7 @@ const SidebarLayout = () => {
                 {isLoading ? (<Spinner aria-label="Default status example" />) : (
                      <div className="flex justify-between items-center">
                        <div className="flex gap-4 items-center">
-                         <Image src={`/uploads/${data.user_img}`} alt="profile-image" width={40} height={40} className="rounded-full" />
+                         <Image src={`/uploads/${ data.user_img === undefined ? 'avatar.jpg' : data.user_img}`} alt="profile-image" width={40} height={40} className="rounded-full" />
                          <div>
                            <h3 className="text-base font-semibold" >{data.firstname}</h3>
                             <p className="text-xs font-normal text-muted dark:text-darklink" >{userRole(Number(session?.user.role))}</p>

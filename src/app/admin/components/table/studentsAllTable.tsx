@@ -60,6 +60,8 @@ import {
   AlertTitle,
 } from "@/app/components/shadcn-ui/Default-Ui/alert";
 import { useRouter } from "next/navigation";
+import { PaginationTableType } from "./studentTable";
+import { validateThaiID } from "@/lib/thaiIdVaildate";
 
 export type Student = {
   id: string;
@@ -167,9 +169,31 @@ export function StudentsAllTable() {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [departmentFilter, setDepartmentFilter] = React.useState<string>("all");
+  
   const [majorFileter, setMajorFileter] = React.useState<string>("all");
   const [gradeFilter, setGradeFilter] = React.useState<string>("all"); // เปลี่ยนชื่อจาก yearFiler เป็น gradeFilter
   const [groupFilter, setGroupFilter] = React.useState<string>("all");
+    const [date, setDate] = React.useState<Date | null>(null);
+    const [openEdit, setOpenEdit] = React.useState(false);
+    const [loading, setLoading] = React.useState(false);
+    const [imageFile, setImageFile] = React.useState<File | null>(null);
+    const [imagePreview, setImagePreview] = React.useState<string>("");
+    const [editingStudent, setEditingStudent] = React.useState<PaginationTableType | null>(null);
+    const [formData, setFormData] = React.useState({
+      firstname: "",
+      lastname: "",
+      citizenId: "",
+      sex: "",
+      phone: "",
+      department: "",
+      studentId: "",
+      major: "",
+      educationLevel: "", // เปลี่ยนจาก education เป็น educationLevel
+      gradeLevel: "",
+      room: "",
+      term: "",
+      academicYear: "",
+    });
   const router = useRouter();
   const handleDelete = async (id: string) => {
     Swal.fire({
@@ -203,6 +227,135 @@ export function StudentsAllTable() {
 
   const handleView = (id: string) => {
     router.push(`/admin/students/${id}`)
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    if (!editingStudent?.id) {
+      showToast("ไม่พบข้อมูลนักศึกษาที่ต้องการแก้ไข", "error");
+      setLoading(false);
+      return;
+    }
+
+    if (!validateThaiID(formData.citizenId)) {
+      showToast("เลขบัตรประจำตัวประชาชนไม่ถูกต้อง", "warning");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Create FormData for file upload
+      const submitData = new FormData();
+
+      // Add form fields
+      submitData.append("firstname", formData.firstname);
+      submitData.append("lastname", formData.lastname);
+      submitData.append("citizenId", formData.citizenId);
+      submitData.append("sex", formData.sex);
+      submitData.append("phone", formData.phone);
+      submitData.append("department", formData.department);
+      submitData.append("birthday", String(date?.toISOString()));
+      submitData.append("studentId", formData.studentId);
+      submitData.append("major", formData.major);
+      submitData.append("educationLevel", formData.educationLevel);
+      submitData.append("gradeLevel", formData.gradeLevel);
+      submitData.append("room", formData.room);
+      submitData.append("term", formData.term);
+      submitData.append("academicYear", formData.academicYear);
+
+      // Add image file if selected
+      if (imageFile) {
+        submitData.append("user_img", imageFile);
+      }
+
+      const response = await fetch(`/api/students/${editingStudent.id}`, {
+        method: "PUT",
+        body: submitData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
+      }
+
+      showToast("แก้ไขข้อมูลนักศึกษาเรียบร้อยแล้ว", "success");
+      setOpenEdit(false);
+      resetForm();
+      setEditingStudent(null);
+      mutate(); // รีเฟรชข้อมูลนักศึกษา
+    } catch (error) {
+      showToast(
+        error instanceof Error
+          ? error.message
+          : "เกิดข้อผิดพลาดในการแก้ไขข้อมูล",
+        "error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      firstname: "",
+      lastname: "",
+      citizenId: "",
+      sex: "",
+      phone: "",
+      department: "",
+      studentId: "",
+      major: "",
+      educationLevel: "", // เปลี่ยนจาก education เป็น educationLevel
+      gradeLevel: "",
+      room: "",
+      term: "",
+      academicYear: "",
+    });
+    setDate(null);
+    setImageFile(null);
+    setImagePreview("");
+  };
+ const handleEdit = (student: PaginationTableType) => {
+    setEditingStudent(student);
+    
+    // เติมข้อมูลเดิมลงในฟอร์ม
+    setFormData({
+      firstname: student.firstname || "",
+      lastname: student.lastname || "",
+      citizenId: student.citizenId || "",
+      sex: student.sex || "",
+      phone: student.phone || "",
+      department: String(student.department.id), // ต้องดึง department ID
+      studentId: student.student?.studentId || "",
+      major: student.student?.major || "",
+      educationLevel: String(student.student.education.id), // ต้องดึง education ID
+      gradeLevel: student.student?.gradeLevel || "",
+      room: student.student?.room || "",
+      term: student.student?.term || "",
+      academicYear: student.student?.academicYear || "",
+    });
+
+    // ตั้งค่ารูปภาพเดิม
+    if (student.user_img) {
+      setImagePreview(`/uploads/${student.user_img}`);
+    }
+
+    // ตั้งค่าวันเกิด
+    if (student.birthday) {
+      setDate(new Date(student.birthday));
+    }
+
+    setOpenEdit(true);
+  };
+
+  const handleInputChange = (name: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const columns: ColumnDef<Student>[] = [
@@ -339,6 +492,18 @@ export function StudentsAllTable() {
     "/api/education",
     fetcher
   );
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
   const departments: Department[] = deptData ?? [];
   const allStudents: Student[] = stdData ?? [];
   const educations: Education[] = edctData?.data ?? [];
