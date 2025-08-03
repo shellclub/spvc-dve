@@ -16,8 +16,8 @@ export default function EditProfilePage() {
     const [openProfile, setOpenProfile] = useState<boolean>(false);
     const [openStudent, setOpenStudent] = useState<boolean>(false);
     const [openInternDay, setOpenInternDay] = useState<boolean>(false);
-    const { data: session} = useSession();
-    
+    const { data: session, status} = useSession();
+    const isSessionLoading = status === "loading";
     const { data, isLoading, error, mutate} = useSWR(`/api/students/${session?.user.id}`, fetcher);
     const {data: depdata, isLoading: depLoading} = useSWR(`/api/departments`, fetcher);
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -34,7 +34,7 @@ export default function EditProfilePage() {
         const data = await res.json();
         showToast(data.message, data.type);
     }
-    if (isLoading || depLoading) {
+    if (isLoading || depLoading || isSessionLoading) {
         return (
           <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
             <Spinner 
@@ -64,7 +64,7 @@ export default function EditProfilePage() {
               <div className="flex flex-col sm:flex-row items-center sm:items-start lg:items-center gap-4 w-full">
                
                  <Avatar 
-                 img={`/uploads/${data.user_img}`} 
+                 img={`/uploads/${data?.user_img ?? "avatar.jpg"}`} 
                  rounded 
                  size="xl" // ขนาดใหญ่ขึ้น
                  className="self-center"

@@ -1,4 +1,3 @@
-// app/profile/page.tsx
 'use client'
 
 import { showToast } from '@/app/components/sweetalert/sweetalert';
@@ -6,16 +5,19 @@ import { userRole } from '@/lib/utils';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Button, Avatar, Spinner, Modal, ModalHeader, ModalBody, Label, TextInput, FileInput } from 'flowbite-react'
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { FaPen } from 'react-icons/fa6'
 import useSWR from 'swr';
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 export default function EditProfilePage() {
     const [openProfile, setOpenProfile] = useState<boolean>(false);
-    const { data: session} = useSession();
-    
-    const { data, isLoading, error, mutate} = useSWR(`/api/users/${session?.user.id}`, fetcher);
+    const { data: session, status} = useSession();
+    const swrKey = session?.user?.id ? `/api/users/${session.user.id}` : null;
+  
+    const { data: userData, isLoading, error, mutate } = useSWR(swrKey, fetcher,{
+      revalidateOnFocus: false,
+      fallbackData: null,
+    });
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formdata = new FormData(e.currentTarget);
@@ -30,7 +32,7 @@ export default function EditProfilePage() {
         const data = await res.json();
         showToast(data.message, data.type);
     }
-    if (isLoading) {
+    if (isLoading || status === "loading") {
         return (
           <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
             <Spinner 
@@ -45,6 +47,23 @@ export default function EditProfilePage() {
           </div>
         );
       }
+
+      if (!userData) {
+        return (
+          <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
+            <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
+              No data available
+            </p>
+          </div>
+        );
+    }
+    const data = {
+      firstname: userData.firstname ?? '',
+      lastname: userData.lastname ?? '',
+      phone: userData.phone ?? '',
+      citizenId: userData.citizenId ?? '',
+      user_img: userData.user_img ?? 'avatar.jpg',
+    }
   return (
     <div className=" p-4  sm:p-6">
       <div className="mx-auto w-full max-w-screen-2xl"> {/* เปลี่ยนจาก max-w-4xl เป็น max-w-screen-2xl */}
@@ -55,7 +74,7 @@ export default function EditProfilePage() {
               <div className="flex flex-col sm:flex-row items-center sm:items-start lg:items-center gap-4 w-full">
                
                  <Avatar 
-                 img={`/uploads/${data.user_img}`} 
+                 img={`/uploads/${data.user_img }`} 
                  rounded 
                  size="xl" // ขนาดใหญ่ขึ้น
                  className="self-center"

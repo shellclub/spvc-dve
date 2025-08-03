@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -11,7 +11,7 @@ import {
   ColumnFiltersState,
 } from "@tanstack/react-table";
 
-import { Button } from "flowbite-react";
+import { Button, Spinner } from "flowbite-react";
 import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight } from "@tabler/icons-react";
 import { Icon } from "@iconify/react";
 import TitleIconCard from "@/app/components/shared/TitleIconCard";
@@ -46,11 +46,12 @@ const ExportTable = () => {
   const router = useRouter();
   const rerender = React.useReducer(() => ({}), {})[1];
 
-  const { data: session} = useSession();
-  if(!session) {
-    router.push("/signin");
-  }
-
+  const { data: session, status} = useSession();
+  useEffect(() => {
+    if(status === "unauthenticated") {
+      router.push("/signin");
+    }  
+  },[status, router])
   const { data, error, isLoading, mutate } = useSWR(`/api/report/getBystudent/${session?.user.id}`,fetcher);
   const { data:user, error:userError, isLoading: userLoading } = useSWR(`/api/students/${session?.user.id}`,fetcher);
 
@@ -71,6 +72,51 @@ const ExportTable = () => {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
+    
+    pdf.setFont('THSarabunNew');
+    
+    // โลโก้ - จัดให้อยู่ตรงกลาง
+    const logoWidth = 50;
+    const logoHeight = 50;
+    const logoX = (pageWidth - logoWidth) / 2;
+    pdf.addImage("/images/logos/logo_pdf.png", 'PNG', logoX, 30, logoWidth, logoHeight);
+    
+    // ชื่อสถาบัน
+    pdf.setFontSize(40);
+    pdf.text('วิทยาลัยอาชีวะศึกษาสุพรรณบุรี', pageWidth / 2, 100, { align: 'center' });
+    
+    // หัวข้อรายงาน
+    pdf.setFontSize(30);
+    pdf.text('รายงานผลการฝึกงาน', pageWidth / 2, 120, { align: 'center' });
+    
+    // รายละเอียดภาคเรียน
+    pdf.setFontSize(30);
+    const currentYear = new Date().getFullYear() + 543; // แปลงเป็นปีพุทธศักราช
+    pdf.text(`ภาคเรียนที่ 1 ปีการศึกษา ${currentYear}`, pageWidth / 2, 140, { align: 'center' });
+    
+    // ข้อมูลนักศึกษา - จัดให้อยู่ตรงกลาง
+    pdf.setFontSize(30);
+    const studentInfo = [
+      `${user?.student?.studentId || ''}`,
+      `${user?.sex === 1 ? "นาย" : user?.sex === 2 ? "นางสาว": ""} ${user?.firstname || ''} ${user?.lastname || ''}`,
+      `ระดับชั้น ${user?.student?.gradeLevel || ''} ปวส.2 (ทท. 2/1 )`,
+      `สาขาวิชา ${user?.student?.major || ""}`
+    ];
+    
+    let yPosition = 170;
+    studentInfo.forEach(info => {
+      pdf.text(info, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 20;
+    });
+    
+    // หัวข้อด้านล่าง
+    pdf.setFontSize(40);
+    pdf.text('คำนำงานคณะกรรมการการอาชีวศึกษา', pageWidth / 2, 250, { align: 'center' });
+    pdf.text('กระทรวงศึกษาธิการ', pageWidth / 2, 270, { align: 'center' });
+
+
+    // หน้าใหม่สำหรับตาราง
+    pdf.addPage();
 
     const headerText = `รายงานการฝึกงาน \n ${user?.student?.studentId}  ${user?.sex === 1 ? "นาย" : user?.sex === 2 ? "นางสาว": ""} ${user?.firstname} ${user?.lastname} ระดับชั้น ${user?.student?.gradeLevel} กลุ่ม ${user?.student?.room} สาขาวิชา ${user?.student?.major}`;
     pdf.setFont('THSarabunNew');
@@ -165,6 +211,10 @@ const ExportTable = () => {
 
   return (
     <>
+      {isLoading ?  <div className="flex justify-center items-center h-64">
+              <Spinner size="xl" />
+              <span className="ml-3">กำลังโหลดข้อมูล...</span>
+            </div> :
     <TitleIconCard title="ข้อมูลนักศึกษา">
       <div className="flex justify-end items-center my-6">
     <Button onClick={exportToPDF}>
@@ -172,7 +222,6 @@ const ExportTable = () => {
       </Button>
       
       </div>
-    
       <div className="border rounded-md border-ld overflow-hidden">
         <div className="overflow-x-auto p-6" id="reportContent">
           <table className="min-w-full">
@@ -286,6 +335,7 @@ const ExportTable = () => {
         </div>
       </div>
     </TitleIconCard>
+}
 
     
 </>

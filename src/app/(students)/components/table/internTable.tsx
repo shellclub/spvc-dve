@@ -47,12 +47,15 @@ const InternReport = () => {
   const router = useRouter();
   const rerender = React.useReducer(() => ({}), {})[1];
 
-  const { data: session} = useSession();
-  if(!session) {
+  const { data: session, status} = useSession();
+React.useEffect(() => {
+  if(status === "unauthenticated") {
     router.push("/signin");
   }
-
-  const { data, error, isLoading, mutate } = useSWR(`/api/report/getBystudent/${session?.user.id}`,fetcher);
+}, [status, router]);
+const swrKey = session?.user?.id ? `/api/report/getBystudent/${session?.user.id}` : null;
+  
+const { data, isLoading, error, mutate } = useSWR(swrKey, fetcher);
 
   if(error) {
     console.log(error);

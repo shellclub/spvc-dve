@@ -13,9 +13,10 @@ import useSWR from 'swr';
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 export default function EditProfilePage() {
     const [openProfile, setOpenProfile] = useState<boolean>(false);
-    const { data: session} = useSession();
-    
-    const { data, isLoading, error, mutate} = useSWR(`/api/users/${session?.user.id}`, fetcher);
+    const { data: session, status} = useSession();
+    const swrKey = session?.user?.id ? `/api/users/${session.user.id}` : null;
+  
+    const { data, isLoading, error, mutate } = useSWR(swrKey, fetcher);
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formdata = new FormData(e.currentTarget);
@@ -30,7 +31,7 @@ export default function EditProfilePage() {
         const data = await res.json();
         showToast(data.message, data.type);
     }
-    if (isLoading) {
+    if (isLoading || status === "loading") {
         return (
           <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
             <Spinner 
@@ -55,7 +56,7 @@ export default function EditProfilePage() {
               <div className="flex flex-col sm:flex-row items-center sm:items-start lg:items-center gap-4 w-full">
                
                  <Avatar 
-                 img={`/uploads/${data.user_img}`} 
+                 img={`/uploads/${data?.user_img ?? 'avatar.jpg'}`} 
                  rounded 
                  size="xl" // ขนาดใหญ่ขึ้น
                  className="self-center"
