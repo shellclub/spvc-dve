@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -10,21 +10,12 @@ import {
   createColumnHelper,
   ColumnFiltersState,
 } from "@tanstack/react-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/app/components/shadcn-ui/Default-Ui/dialog";
-import { Badge, Button, Dropdown, Select, Spinner } from "flowbite-react";
-import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight, IconDots } from "@tabler/icons-react";
+
+import { Button, Spinner } from "flowbite-react";
+import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight } from "@tabler/icons-react";
 import { Icon } from "@iconify/react";
 import TitleIconCard from "@/app/components/shared/TitleIconCard";
-import Swal from "sweetalert2";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import useSWR from "swr";
 import { formatThaiDate } from "@/lib/utils";
@@ -50,7 +41,6 @@ interface Inturnship {
 interface Student {
   id: number;
   studentId: string;
-  major: string;
   academicYear: string;
   term: string;
   room: string;
@@ -58,8 +48,17 @@ interface Student {
     id: number;
     name: string;
   };
+  major: {
+    id: number;
+    major_name: string;
+  }
+  department: {
+    id: number;
+    depname: string;
+  };
   gradeLevel: string;
   inturnship: Inturnship;
+  user: UserData;
   report: Report[];
 }
 
@@ -67,11 +66,6 @@ export interface UserData {
   id: number;
   firstname: string;
   lastname: string;
-  department: {
-    id: number;
-    depname: string;
-  };
-  student: Student;
   sex: number;
 }
 
@@ -99,21 +93,21 @@ const StudentDetailTable = ({ id }: StudentProps) => {
     internshipDays: 'กำลังโหลด...'
   });
 
-  const { data, error, isLoading, mutate } = useSWR<UserData>(
+  const { data, error, isLoading, mutate } = useSWR<Student>(
     `/api/report/studentDetail/${id}`,
     fetcher,
     {
       onSuccess: (data) => {
         if (data) {
           setStudentInfo({
-            studentId: data.student?.studentId || 'ไม่มีข้อมูล',
-            name: `${data.firstname || ''} ${data.lastname || ''}`.trim(),
+            studentId: data.studentId || 'ไม่มีข้อมูล',
+            name: `${data.user.firstname || ''} ${data.user.lastname || ''}`.trim(),
             department: data.department?.depname || 'ไม่มีข้อมูล',
-            major: data.student?.major || 'ไม่มีข้อมูล',
-            academicYear: data.student 
-              ? `${data.student.term}/${data.student.academicYear}` 
+            major: data.major?.major_name || 'ไม่มีข้อมูล',
+            academicYear: data 
+              ? `${data.term}/${data.academicYear}` 
               : 'ไม่มีข้อมูล',
-            internshipDays: data.student?.inturnship?.selectedDays?.join(', ') || 'ไม่มีข้อมูล'
+            internshipDays: data.inturnship?.selectedDays?.join(', ') || 'ไม่มีข้อมูล'
           });
         }
       },
@@ -138,7 +132,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
     const pageHeight = pdf.internal.pageSize.getHeight();
 
 
-    const headerText = `รายงานการฝึกงาน \n ${data?.student?.studentId}  ${data?.sex === 1 ? "นาย" : data?.sex === 2 ? "นางสาว": ""} ${data?.firstname} ${data?.lastname} ระดับชั้น ${data?.student?.gradeLevel} กลุ่ม ${data?.student?.room} สาขาวิชา ${data?.student?.major}`;
+    const headerText = `รายงานการฝึกงาน \n ${data?.studentId}  ${data?.user?.sex === 1 ? "นาย" : data?.user?.sex === 2 ? "นางสาว": ""} ${data?.user?.firstname} ${data?.user?.lastname} ระดับชั้น ${data?.gradeLevel} กลุ่ม ${data?.room} สาขาวิชา ${data?.major?.major_name}`;
     pdf.setFont('THSarabunNew');
     pdf.setFontSize(18);
     pdf.text(headerText, pageWidth / 2, 15, { align: 'center' });
@@ -203,7 +197,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
   ];
 
   const table = useReactTable({
-    data: data?.student.report || [],
+    data: data?.report || [],
     columns,
     filterFns: {},
     state: {
@@ -276,7 +270,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
             
             </div>
       <div className="border rounded-md border-ld overflow-hidden">
-        {!data?.student.report || data.student.report.length === 0 ? (
+        {!data?.report || data.report.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8">
             <Icon icon="tabler:report-off" className="text-gray-400 text-4xl mb-2" />
             <span className="text-gray-500">ไม่พบรายงานการฝึกงาน</span>

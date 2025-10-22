@@ -19,8 +19,31 @@ model Department {
   depname String @unique 
   createAt DateTime @default(now()) @map("create_at")
   updateAt DateTime @updatedAt() @map("update_at")
-  user    User[]
+  teacher  Teacher[]
+  marjors Major[]
+  student Student[]
   @@map("departments")
+}
+
+model Major {
+  id  Int @id @default(autoincrement())
+  major_name String @unique
+  department Department @relation(fields: [departmentId],references: [id])
+  departmentId  Int
+  students Student[]
+  teacher Teacher[]
+  createAt DateTime @default(now()) @map("create_at")
+  updateAt DateTime @updatedAt  @map("update_at")
+
+}
+
+model Teacher {
+  id             Int @id @default(autoincrement())
+  department     Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  departmentId   Int?
+  majorId        Int?
+  major          Major? @relation(fields: [majorId], references: [id], onDelete: Cascade)
+  room           String?
 }
 
 model User {
@@ -34,11 +57,8 @@ model User {
   sex            Int
   createdAt      DateTime         @default(now())
   student        Student?         // ถ้าเป็นนักศึกษา
-  department     Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  departmentId  Int? 
   birthday       DateTime
   user_img      String?
-
   @@map("users")
 }
 
@@ -50,12 +70,15 @@ model Student {
   education      education_levels @relation(fields: [educationLevel], references: [id])
   educationLevel Int     // เช่น ปวช., ปวส., ป.ตรี
   companies      companies[]
-  major          String
+  major_id      Int?
+  major         Major?  @relation(fields: [major_id], references: [id], onDelete: Cascade)
   academicYear   String     // เช่น 2566
   status         Int @default(1)
   term           String
   room           String
   inturnship     Inturnship?
+  department     Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  departmentId   Int?
   report         InternshipReport[]
   gradeLevel     String?
   @@map("students")

@@ -74,7 +74,7 @@ export default function EditProfilePage() {
               <div className="flex flex-col sm:flex-row items-center sm:items-start lg:items-center gap-4 w-full">
                
                  <Avatar 
-                 img={`/uploads/${data.user_img }`} 
+                 img={`/uploads/${data?.user_img ?? 'avatar.jpg'}`} 
                  rounded 
                  size="xl" // ขนาดใหญ่ขึ้น
                  className="self-center"

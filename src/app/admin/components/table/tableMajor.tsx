@@ -18,28 +18,38 @@ import Swal from "sweetalert2";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/shadcn-ui/Default-Ui/select";
 
-export interface PaginationTableType {
+interface PaginationTableType {
   id?: number | string;
-  depname?: string;
-  actions?: any;
+  major_name: string;
+  department: {
+    id: number | string;
+    depname: string;
+  }
 }
 
 
 const columnHelper = createColumnHelper<PaginationTableType>();
 const fetcher = (url: string) => fetch(url).then(res => res.json());
-const TableDepartment = () => {
+const TableMajors = () => {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [open, setOpen] = useState<boolean>(false);
-  const [depname, setDepname] = useState<string>("");
-  const [Depid, setDepid] = useState<string>("");
+  const [majorName, setMajorName] = useState<string>("");
+  const [depId, setDepId] = useState<string>("");
+  const [MajorId, setMajorId] = useState<string>("");
   const router = useRouter();
   const rerender = React.useReducer(() => ({}), {})[1];
-  const {data ,isLoading, error, mutate} = useSWR("/api/departments",fetcher);
+  const {data ,isLoading, error, mutate} = useSWR("/api/major",fetcher);
+  const { data: deptData, isLoading: isDeptLoading } = useSWR(
+    "/api/departments",
+    fetcher
+  );
+ const departments = deptData ?? [];
   const handleDelete = async (id: string) => {
     Swal.fire({
       title: "แจ้งเตือน!",
-      text: "คุณต้องการลบข้อมูลแผนกวิชานี้หรือไม่?",
+      text: "คุณต้องการลบข้อมูลสาขาวิชานี้หรือไม่?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
@@ -48,7 +58,7 @@ const TableDepartment = () => {
       cancelButtonText: "ไม่ต้องการ"
     }).then( async (result) => {
       if (result.isConfirmed) {
-        const res = await fetch(`/api/departments/${id}`, {
+        const res = await fetch(`/api/major/${id}`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json"
@@ -70,18 +80,18 @@ const TableDepartment = () => {
 
 const handleSubmit = async (e: FormEvent) => {
   e.preventDefault();
-  const result = await fetch(Depid ? `/api/departments/${Depid}` : "/api/departments",{
-    method: Depid ? "PUT" : "POST",
+  const result = await fetch(MajorId ? `/api/major/${MajorId}` : "/api/major",{
+    method: MajorId ? "PUT" : "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ depname: depname})
+    body: JSON.stringify({ major_name: majorName, department: depId })
   })
   if(result.ok) {
     setOpen(false);
     mutate();
-    setDepname("");
-    setDepid("");
+    setMajorName("");
+    setMajorId("");
 
   }
   const data = await result.json();
@@ -98,11 +108,21 @@ const handleSubmit = async (e: FormEvent) => {
         </div>
       ),
     }),
-    columnHelper.accessor("depname", {
+    columnHelper.accessor("major_name", {
       cell: (info) => (
         
         <div className="text-base">
         {info.getValue()}
+      </div>
+        
+      ),
+      header: () => <span>สาขาวิชา</span>,
+    }),
+    columnHelper.accessor("department", {
+      cell: (info) => (
+        
+        <div className="text-base">
+        {info.getValue().depname}
       </div>
         
       ),
@@ -122,8 +142,8 @@ const handleSubmit = async (e: FormEvent) => {
         >
           {[
             { icon: "tabler:edit", listtitle: "แก้ไขข้อมูล", onclick: () => {
-              setDepname(String(info.row.original.depname));
-              setDepid(String(info.row.original.id));
+              setMajorName(String(info.row.original.major_name));
+              setMajorId(String(info.row.original.id));
               setOpen(true);
             }},
             { icon: "tabler:trash", listtitle: "ลบข้อมูล", onclick: () => handleDelete(info.row.original.id as string) },
@@ -157,7 +177,7 @@ const handleSubmit = async (e: FormEvent) => {
   });
 
   return (
-    <TitleIconCard title="ข้อมูลแผนกวิชา">
+    <TitleIconCard title="ข้อมูลสาขาวิชา">
       <div className="flex justify-end items-center my-6">
             <Button onClick={() => {
               setOpen(true)
@@ -166,18 +186,44 @@ const handleSubmit = async (e: FormEvent) => {
               <ModalHeader />
               <ModalBody>
               <div className="space-y-6">
-                <h3 className="text-xl font-medium text-gray-900 dark:text-white">จัดการข้อมูลแผนกวิชา</h3>
+                <h3 className="text-xl font-medium text-gray-900 dark:text-white">จัดการข้อมูลสาขาวิชา</h3>
                 <form onSubmit={handleSubmit}>
                   <div className="mb-3">
-                    <Label>กรอกชื่อแผนกวิชา</Label>
+                    <Label>กรอกชื่อสาขาวิชา</Label>
                     <TextInput 
-                      name="depname"
-                      placeholder="กรุณากรอกชื่อแผนกวิชา"
-                      id="depname"
-                      value={depname}
-                      onChange={(e) => setDepname(e.target.value)}
+                      name="major_name"
+                      placeholder="กรุณากรอกชื่อสาขาวิชา"
+                      id="major_name"
+                      value={majorName}
+                      onChange={(e) => setMajorName(e.target.value)}
                     />
                   </div>
+                  <div className="space-y-2">
+                                      <Label htmlFor="department">แผนกวิชา *</Label>
+                                      <Select
+                                        value={depId}
+                                        onValueChange={(value) =>
+                                          setDepId(value)
+                                        }
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="เลือกแผนกวิชา" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {isDeptLoading ? (
+                                            <SelectItem value="loading" disabled>
+                                              กำลังโหลด...
+                                            </SelectItem>
+                                          ) : (
+                                            departments.map((dept: any) => (
+                                              <SelectItem key={dept.id} value={String(dept.id)}>
+                                                {dept.depname}
+                                              </SelectItem>
+                                            ))
+                                          )}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
                   <div className="w-full flex mt-6 text-end justify-end">
                       <Button type="submit">ส่งข้อมูล</Button>
                   </div>
@@ -221,7 +267,7 @@ const handleSubmit = async (e: FormEvent) => {
             <td colSpan={4} className="text-center p-8">
               <div className="flex flex-col items-center justify-center gap-3">
                 <Icon icon="tabler:database-off" className="text-gray-400" width={48} height={48} />
-                <p className="text-gray-500 text-base">ไม่พบข้อมูลแผนกวิชา</p>
+                <p className="text-gray-500 text-base">ไม่พบข้อมูลสาขาวิชา</p>
               </div>
             </td>
           </tr>
@@ -326,4 +372,4 @@ const handleSubmit = async (e: FormEvent) => {
   );
 };
 
-export default TableDepartment;
+export default TableMajors;

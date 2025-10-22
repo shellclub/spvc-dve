@@ -177,15 +177,7 @@ const StudentTable = () => {
   }, [data, majorFilter]);
 
 
-        if (!data) {
-        return (
-          <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
-            <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
-              No data available
-            </p>
-          </div>
-        );
-    }
+       
 
   const columns = [
     columnHelper.display({
@@ -284,7 +276,7 @@ const StudentTable = () => {
       header: () => <span></span>,
     }),
   ];
-
+ 
   const table = useReactTable({
     data: filteredStudents,
     columns,

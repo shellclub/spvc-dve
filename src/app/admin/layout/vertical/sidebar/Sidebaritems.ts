@@ -52,6 +52,11 @@ const SidebarContent: MenuItem[] = [
           },
           {
             id: uniqueId(),
+            name: "จัดการสาขาวิชา",
+            url: "/admin/majors",
+          },
+          {
+            id: uniqueId(),
             name: "จัดการข้อมูลนักศึกษา",
             url: "/admin/students",
           },

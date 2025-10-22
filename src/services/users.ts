@@ -5,14 +5,6 @@ export async function findAllUser() {
     return await prisma.user.findMany({
         orderBy: {
             id: "desc"
-        },
-        include: {
-            student: {
-                include: {
-                    education: true
-                }
-            },
-            department: true
         }
     })
 }
@@ -20,15 +12,7 @@ export async function findOneUser(id: string) {
     return await prisma.user.findUnique({
         where: {
             id: Number(id)
-        },
-        include: {
-            student: {
-                include: {
-                    education: true,
-                }
-            },
-            department: true,
-         }
+        }
     })
 }
 

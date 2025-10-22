@@ -53,32 +53,37 @@ import { validateThaiID } from "@/lib/thaiIdVaildate";
 import { Button } from "@/app/components/shadcn-ui/Default-Ui/button";
 
 export interface PaginationTableType {
-  id?: string;
-  citizenId: string;
-  user_img: string;
-  phone?: string;
-  birthday?: string;
-  student: {
-    studentId: string;
+  id: number;
+  studentId: string;
     term: string;
     education: {
       id: number;
       name: string;
     };
-    major: string;
+    major: {
+      id: number;
+      major_name: string;
+    };
     academicYear: string;
     gradeLevel: string;
     room: string;
-  };
-  department: {
-    id: number;
-    depname: string;
-  };
-
+    department: {
+      id: number;
+      depname: string;
+    };
+  user: {
+  id?: string;
+  citizenId: string;
+  user_img: string;
+  phone?: string;
+  birthday?: string;
+    
+  
   firstname?: string;
   lastname?: string;
   role?: string;
   sex?: string;
+};
   actions?: any;
 }
 
@@ -93,7 +98,25 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
-  const router = useRouter();
+  const router = useRouter();  
+  const { data: majorData, isLoading: ismajorsLoading } = useSWR(
+    "/api/major",
+    fetcher
+  );
+
+  const { data: deptData, isLoading: isDeptLoading } = useSWR( 
+    "/api/departments",
+    fetcher
+  );
+  const { data: edctData, isLoading: isEdctLoading } = useSWR(
+    "/api/education",
+    fetcher
+  );
+
+
+  const majors = majorData ?? [];
+  const departments = deptData ?? [];
+  const educations = edctData?.data ?? [];
 
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date | null>(null);
@@ -103,6 +126,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
   const [imageFile, setImageFile] = React.useState<File | null>(null);
   const [imagePreview, setImagePreview] = React.useState<string>("");
   const [editingStudent, setEditingStudent] = React.useState<PaginationTableType | null>(null);
+  const [filteredMajors, setFilteredMajors] = useState(majors);
   const [formData, setFormData] = React.useState({
     firstname: "",
     lastname: "",
@@ -111,7 +135,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
     phone: "",
     department: "",
     studentId: "",
-    major: "",
+    major_id: "",
     educationLevel: "", // เปลี่ยนจาก education เป็น educationLevel
     gradeLevel: "",
     room: "",
@@ -120,21 +144,25 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
   });
 
   // Fetch departments and education data
-  const { data: deptData, isLoading: isDeptLoading } = useSWR(
-    "/api/departments",
-    fetcher
-  );
-  const { data: edctData, isLoading: isEdctLoading } = useSWR(
-    "/api/education",
-    fetcher
-  );
-  const departments = deptData ?? [];
-  const educations = edctData?.data ?? [];
+
 
   const { data, isLoading, error, mutate } = useSWR(
     "/api/students",
     fetcher
   );
+
+  useEffect(() => {
+    if (!formData.department) {
+      // ยังไม่ได้เลือก department → แสดงทุก major
+      setFilteredMajors(majors);
+    } else {
+      // กรองตาม department_id
+      const filtered = majors.filter(
+        (major: any) => String(major.departmentId) === String(formData.department)
+      );
+      setFilteredMajors(filtered);
+    }
+  }, [formData.department, majors]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -171,7 +199,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
       submitData.append("department", formData.department); // จะส่งเป็น departmentId
       submitData.append("birthday", String(date?.toISOString()))
       submitData.append("studentId", formData.studentId); // จะใช้เป็น username ด้วย
-      submitData.append("major", formData.major);
+      submitData.append("major_id", formData.major_id);
       submitData.append("educationLevel", formData.educationLevel);
       submitData.append('gradeLevel',formData.gradeLevel)
       submitData.append("room", formData.room);
@@ -243,7 +271,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
       submitData.append("department", formData.department);
       submitData.append("birthday", String(date?.toISOString()));
       submitData.append("studentId", formData.studentId);
-      submitData.append("major", formData.major);
+      submitData.append("major_id", String(formData.major_id));
       submitData.append("educationLevel", formData.educationLevel);
       submitData.append("gradeLevel", formData.gradeLevel);
       submitData.append("room", formData.room);
@@ -293,7 +321,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
       phone: "",
       department: "",
       studentId: "",
-      major: "",
+      major_id: "",
       educationLevel: "", // เปลี่ยนจาก education เป็น educationLevel
       gradeLevel: "",
       room: "",
@@ -325,29 +353,29 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
     
     // เติมข้อมูลเดิมลงในฟอร์ม
     setFormData({
-      firstname: student.firstname || "",
-      lastname: student.lastname || "",
-      citizenId: student.citizenId || "",
-      sex: student.sex || "",
-      phone: student.phone || "",
+      firstname: student.user.firstname || "",
+      lastname: student.user.lastname || "",
+      citizenId: student.user.citizenId || "",
+      sex: student.user.sex || "",
+      phone: student.user.phone || "",
       department: String(student.department.id), // ต้องดึง department ID
-      studentId: student.student?.studentId || "",
-      major: student.student?.major || "",
-      educationLevel: String(student.student.education.id), // ต้องดึง education ID
-      gradeLevel: student.student?.gradeLevel || "",
-      room: student.student?.room || "",
-      term: student.student?.term || "",
-      academicYear: student.student?.academicYear || "",
+      studentId: student.studentId || "",
+      major_id: String(student.major.id) || "",
+      educationLevel: String(student.education.id), // ต้องดึง education ID
+      gradeLevel: student?.gradeLevel || "",
+      room: student.room || "",
+      term: student.term || "",
+      academicYear: student.academicYear || "",
     });
 
     // ตั้งค่ารูปภาพเดิม
-    if (student.user_img) {
-      setImagePreview(`/uploads/${student.user_img}`);
+    if (student.user.user_img) {
+      setImagePreview(`/uploads/${student.user.user_img}`);
     }
 
     // ตั้งค่าวันเกิด
-    if (student.birthday) {
-      setDate(new Date(student.birthday));
+    if (student.user.birthday) {
+      setDate(new Date(student.user.birthday));
     }
 
     setOpenEdit(true);
@@ -421,62 +449,60 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
       header: () => <span>#</span>,
       cell: (info) => <div className="text-base">{info.row.index + 1}</div>,
     }),
-    columnHelper.accessor("student", {
+    columnHelper.accessor("studentId", {
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${info.getValue().studentId}`}</h6>
+          <h6 className="text-base">{`${info.getValue()}`}</h6>
         </div>
       ),
       header: () => <span>รหัสนักศึกษา</span>,
     }),
-    columnHelper.accessor("firstname", {
+    columnHelper.accessor("user", {
       cell: (info) => (
         <div className="flex gap-3 items-center">
           <Image
-            src={`/uploads/${info.row.original.user_img}`}
+            src={`/uploads/${info.getValue().user_img}`}
             width={50}
             height={50}
             alt="icon"
             className="h-10 w-10 rounded-xl"
           />
           <div className="truncate line-clamp-2 max-w-56">
-            <h6 className="text-base">{`${info.getValue()} ${
-              info.row.original.lastname
+            <h6 className="text-base">{`${info.getValue().firstname} ${
+              info.getValue().lastname
             }`}</h6>
             <p className="text-sm text-darklink dark:text-bodytext">
-              {userRole(Number(info.row.original.role))}
+              {userRole(Number(info.getValue().role))}
             </p>
           </div>
         </div>
       ),
       header: () => <span>ผู้ใช้</span>,
     }),
-    columnHelper.accessor("sex", {
+    columnHelper.accessor("user.sex", {
       cell: (info) => (
         <div className="text-base">{userSex(Number(info.getValue()))}</div>
       ),
       header: () => <span>เพศ</span>,
     }),
-    columnHelper.accessor((row) => row.department.depname, {
-      id: "department",
+    columnHelper.accessor('department', {
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${info.getValue()}`}</h6>
+          <h6 className="text-base">{`${info.getValue()?.depname}`}</h6>
           <p className="text-sm text-darklink dark:text-bodytext">
-            {info.row.original.student.major}
+            {info.row.original.major?.major_name}
           </p>
         </div>
       ),
       header: () => <span>แผนกวิชา</span>,
     }),
-    columnHelper.accessor((row) => row.student.education.name, {
-      id: "education",
+    columnHelper.accessor("education", {
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${info.getValue()}`}</h6>
+          <h6 className="text-base">{`${info.getValue().name}`}</h6>
           <p className="text-sm text-darklink dark:text-bodytext">
             ปีการศึกษา:{" "}
-            {`${info.row.original.student.term}/${info.row.original.student.academicYear}`}
+            {`${info.row.original.term}/${info.row.original.academicYear}`}
           </p>
         </div>
       ),
@@ -510,7 +536,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
             {
               icon: "tabler:trash",
               listtitle: "ลบข้อมูล",
-              onclick: () => handleDelete(info.row.original.id as string),
+              onclick: () => handleDelete(String(info.row.original.user.id)),
             },
           ].map((item, index) => (
             <Dropdown.Item
@@ -788,15 +814,34 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="major">สาขาวิชา *</Label>
-                    <Input
-                      id="major"
-                      value={formData.major}
-                      onChange={(e) =>
-                        handleInputChange("major", e.target.value)
+                    <Select
+                      value={formData.major_id}
+                      onValueChange={(value) =>
+                        handleInputChange("major_id", value)
                       }
-                      placeholder="สาขาวิชา"
-                      required
-                    />
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกสาขาวิชา" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ismajorsLoading ? (
+                          <SelectItem value="loading" disabled>
+                            กำลังโหลด...
+                          </SelectItem>
+                        ) : filteredMajors.length > 0 ? (
+                          majors.map((major: any) => (
+                            <SelectItem key={major.id} value={String(major.id)}>
+                              {major.major_name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>
+                            ไม่มีสาขาในแผนกนี้
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    
                   </div>
                 </div>
 
@@ -923,7 +968,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
                   แก้ไขข้อมูลนักศึกษา
                 </DialogTitle>
                 <DialogDescription>
-                  แก้ไขข้อมูลนักศึกษา {editingStudent?.firstname} {editingStudent?.lastname}
+                  แก้ไขข้อมูลนักศึกษา {editingStudent?.user.firstname} {editingStudent?.user.lastname}
                 </DialogDescription>
               </DialogHeader>
 
@@ -1087,16 +1132,35 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-major">สาขาวิชา *</Label>
-                    <Input
-                      id="edit-major"
-                      value={formData.major}
-                      onChange={(e) =>
-                        handleInputChange("major", e.target.value)
+                    <Label htmlFor="major">สาขาวิชา *</Label>
+                    <Select
+                      value={formData.major_id}
+                      onValueChange={(value) =>
+                        handleInputChange("major_id", value)
                       }
-                      placeholder="สาขาวิชา"
-                      required
-                    />
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกสาขาวิชา" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ismajorsLoading ? (
+                          <SelectItem value="loading" disabled>
+                            กำลังโหลด...
+                          </SelectItem>
+                        ) : filteredMajors.length > 0 ? (
+                          majors.map((major: any) => (
+                            <SelectItem key={major.id} value={String(major.id)}>
+                              {major.major_name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>
+                            ไม่มีสาขาในแผนกนี้
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    
                   </div>
                 </div>
 

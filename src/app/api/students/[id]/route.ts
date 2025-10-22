@@ -34,10 +34,11 @@ export async function GET(request: NextRequest, {params}: {params: Promise<{ id:
                 include: {
                     education: true,
                     inturnship: true,
-                    report: true
+                    report: true,
+                    department: true,
+                    major: true
                 }
             },
-            department: true,
         }
     })
 
@@ -75,7 +76,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         citizenId: data.citizenId,
         sex: Number(data.sex),
         phone: data.phone,
-        departmentId: Number(data.department),
         birthday: new Date(data.birthday),
         user_img: userImgPath,
         username: data.studentId,
@@ -84,8 +84,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       const studentData = {
         studentId: data.studentId,
         educationLevel: Number(data.educationLevel),
-        major: data.major,
+        major_id: Number(data.major),
         academicYear: data.academicYear,
+        departmentId: Number(data.department),
         room: data.room,
         term: data.term,
         gradeLevel: data.gradeLevel,

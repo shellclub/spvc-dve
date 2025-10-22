@@ -76,9 +76,9 @@ const SidebarLayout = () => {
                 {isLoading ? (<Spinner aria-label="Default status example" />) : (
                      <div className="flex justify-between items-center">
                        <div className="flex gap-4 items-center">
-                         <Image src={`/uploads/${data.user_img}`} alt="profile-image" width={40} height={40} className="rounded-full" />
+                         <Image src={`/uploads/${data?.user_img || 'avatar.jpg'}`} alt="profile-image" width={40} height={40} className="rounded-full" />
                          <div>
-                           <h3 className="text-base font-semibold" >{data.firstname}</h3>
+                           <h3 className="text-base font-semibold" >{data?.firstname || 'loading'}</h3>
                             <p className="text-xs font-normal text-muted dark:text-darklink" >{userRole(Number(session?.user.role))}</p>
                          </div>
                        </div>
