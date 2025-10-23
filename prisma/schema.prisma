@@ -44,6 +44,8 @@ model Teacher {
   majorId        Int?
   major          Major? @relation(fields: [majorId], references: [id], onDelete: Cascade)
   room           String?
+  userId         Int   @unique
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
@@ -59,6 +61,7 @@ model User {
   student        Student?         // ถ้าเป็นนักศึกษา
   birthday       DateTime
   user_img      String?
+  teacher       Teacher?    
   @@map("users")
 }
 

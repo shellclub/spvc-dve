@@ -47,15 +47,29 @@ export async function POST(req: NextRequest) {
     }
 
     // Check for existing user
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.user.findFirst({
       where: {
-        citizenId: data.citizenId,
-      },
+        OR: [
+          { citizenId: data.citizenId },
+          { phone: data.phone },
+          { username: data.username }
+        ]
+      }
     });
-
+    
     if (existingUser) {
+      let message = "พบข้อมูลผู้ใช้ดังกล่าวในระบบแล้ว";
+    
+      if (existingUser.citizenId === data.citizenId) {
+        message = "พบข้อมูลผู้ใช้ดังกล่าวในระบบแล้ว (เลขบัตรประชาชนซ้ำ)";
+      } else if (existingUser.phone === data.phone) {
+        message = "พบข้อมูลเบอร์โทรศัพท์ดังกล่าวในระบบแล้ว";
+      } else if (existingUser.username === data.username) {
+        message = "พบข้อมูลรหัสนักศึกษาดังกล่าวในระบบแล้ว";
+      }
+    
       return NextResponse.json(
-        { message: "พบข้อมูลผู้ใช้ดังกล่าวในระบบแล้ว", type: "error" },
+        { message, type: "error" },
         { status: 400 }
       );
     }
@@ -76,7 +90,8 @@ export async function POST(req: NextRequest) {
 
     // Upload file
     const userImgPath = await parseForm(file);
-
+    
+    
     // Create user and student
     const user = await prisma.user.create({
       data: {
@@ -93,7 +108,7 @@ export async function POST(req: NextRequest) {
             studentId: data.studentId,
             educationLevel: Number(data.educationLevel),
             major_id: Number(data.major_id),
-            departmentId: Number(data.departmentId), // Make sure form sends this
+            departmentId: Number(data.department), // Make sure form sends this
             academicYear: data.academicYear,
             room: data.room,
             term: data.term,
@@ -121,11 +136,11 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating student:", error);
-
+    // // console.log("Error creating student:", JSON.parse(String(error)));
+    // return NextResponse.json({message: error}, {status: 500});
     return NextResponse.json(
       {
-        message: "เกิดข้อผิดพลาดในการเพิ่มข้อมูล",
+        message: "เกิดข้อผิดพลาดในการเพิ่มข้อมูล"+error,
         type: "error",
         error: error instanceof Error ? error.message : "Unknown error",
       },

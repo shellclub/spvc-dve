@@ -10,15 +10,15 @@ type StudentRequestBody = {
       citizenId: string;
       sex: number;
       phone: string;
-      departmentId: number;
     };
     student: {
         id: string;
         studentId: string;
         educationLevel: number;
-        major: string;
+        major_id: string;
         academicYear: string;
         birthday: string;
+        department: number
     };
   };
 
@@ -84,7 +84,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       const studentData = {
         studentId: data.studentId,
         educationLevel: Number(data.educationLevel),
-        major_id: Number(data.major),
+        major_id: Number(data.major_id),
         academicYear: data.academicYear,
         departmentId: Number(data.department),
         room: data.room,
@@ -92,9 +92,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         gradeLevel: data.gradeLevel,
       };
 
-    //   console.log("data:", userData, studentData);  ;
-      
-  
       const updated = await prisma.user.update({
         where: { id: Number(id) },
         data: {
@@ -110,7 +107,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ message: "แก้ไขข้อมูลสำเร็จ", type: "success" }, { status: 200 });
   
     } catch (error) {
-    //   console.log("Update error:", error);
+      // console.log("Update error:", error);
       return NextResponse.json({ message: "เกิดข้อผิดพลาดในระบบ", type: "error" }, { status: 500 });
     }
   }

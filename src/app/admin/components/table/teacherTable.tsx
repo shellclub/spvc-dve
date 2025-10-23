@@ -21,15 +21,18 @@ import { maskCitizenId, userRole, userSex } from "@/lib/utils";
 import Image from "next/image";
 export interface PaginationTableType {
   id?:  string;
-  citizenId: string;
-  user_img: string;
   department: {
     depname: string;
   };
-  firstname?: string;
-  lastname?: string;
-  role?: string;
-  sex?: string;
+  user: {
+    id: string;
+    citizenId: string;
+    user_img: string;
+    firstname?: string;
+    lastname?: string;
+    role?: string;
+    sex?: string;
+  }
   actions?: any;
 }
 
@@ -55,7 +58,7 @@ const TeacherTable = () => {
       cancelButtonText: "ไม่ต้องการ"
     }).then( async (result) => {
       if (result.isConfirmed) {
-        const res = await fetch(`/api/users/${id}`, {
+        const res = await fetch(`/api/teachers/${id}`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json"
@@ -105,7 +108,7 @@ const TeacherTable = () => {
         </div>
       ),
     }),
-    columnHelper.accessor("citizenId", {
+    columnHelper.accessor("user.citizenId", {
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
             <h6 className="text-base">{`${maskCitizenId(info.getValue())}`}</h6>
@@ -114,20 +117,20 @@ const TeacherTable = () => {
       ),
       header: () => <span>เลขบัตรประชาชน</span>,
     }),
-    columnHelper.accessor("firstname", {
+    columnHelper.accessor("user", {
       cell: (info) => (
         <div className="flex gap-3 items-center">
                     <Image
-                    src={`/uploads/${info.row.original.user_img}`}
+                    src={`/uploads/${info.getValue().user_img ? info.getValue().user_img : 'avatar.jpg'}`}
                     width={50}
                     height={50}
                     alt="icon"
                     className="h-10 w-10 rounded-xl"
                   />
                   <div className="truncate line-clamp-2 max-w-56">
-                    <h6 className="text-base">{`${info.getValue()} ${info.row.original.lastname}`}</h6>
+                    <h6 className="text-base">{`${info.getValue()?.firstname} ${info.getValue()?.lastname}`}</h6>
                     <p className="text-sm text-darklink dark:text-bodytext">
-                      {userRole(Number(info.row.original.role))}
+                      {userRole(Number(info.getValue().role))}
                     </p>
                   </div>
                   
@@ -136,7 +139,7 @@ const TeacherTable = () => {
       ),
       header: () => <span>ผู้ใช้</span>,
     }),
-    columnHelper.accessor("sex", {
+    columnHelper.accessor("user.sex", {
       cell: (info) => (
         
         <div className="text-base">
@@ -146,11 +149,11 @@ const TeacherTable = () => {
       ),
       header: () => <span>เพศ</span>,
     }),
-    columnHelper.accessor((row) => row.department.depname, {
+    columnHelper.accessor("department", {
       id: "department",
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
-            <h6 className="text-base">{`${info.getValue()}`}</h6>
+            <h6 className="text-base">{`${info.getValue()?.depname}`}</h6>
           
         </div>
         
@@ -172,7 +175,7 @@ const TeacherTable = () => {
           )}
         >
           {[
-            { icon: "tabler:edit", listtitle: "แก้ไขข้อมูล", onclick: () => router.push(`/admin/addteacher/${info.row.original.id as string}`)},
+            { icon: "tabler:edit", listtitle: "แก้ไขข้อมูล", onclick: () => router.push(`/admin/addteacher/${info.row.original.user.id as string}`)},
             { icon: "tabler:trash", listtitle: "ลบข้อมูล", onclick: () => handleDelete(info.row.original.id as string) },
           ].map((item, index) => (
             <Dropdown.Item key={index} onClick={item.onclick} className="flex gap-3">

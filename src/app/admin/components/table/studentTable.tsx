@@ -152,6 +152,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
   );
 
   useEffect(() => {
+   if(ismajorsLoading || isDeptLoading) return; 
     if (!formData.department) {
       // ยังไม่ได้เลือก department → แสดงทุก major
       setFilteredMajors(majors);
@@ -162,6 +163,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
       );
       setFilteredMajors(filtered);
     }
+   
   }, [formData.department, majors]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -282,8 +284,8 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
       if (imageFile) {
         submitData.append("user_img", imageFile);
       }
-
-      const response = await fetch(`/api/students/${editingStudent.id}`, {
+      
+      const response = await fetch(`/api/students/${editingStudent.user.id}`, {
         method: "PUT",
         body: submitData,
       });

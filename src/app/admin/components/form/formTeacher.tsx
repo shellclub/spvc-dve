@@ -95,7 +95,7 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
         setDepartments(depData);
   
         if(id) {
-          const userRes = await fetch(`/api/users/${id}`, {cache: "no-store"});
+          const userRes = await fetch(`/api/teachers/${id}`, {cache: "no-store"});
           const userData = await userRes.json();
           setFormData({
             citizenId: userData.citizenId || null,
@@ -103,7 +103,7 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
             lastname: userData.lastname || null,
             sex: userData.sex || null,
             birthday: userData.birthday ? new Date(userData.birthday) : null,
-            departmentId: userData.departmentId || null,
+            departmentId: userData.teacher.departmentId || null,
             phone: userData.phone || null,
           });
         }

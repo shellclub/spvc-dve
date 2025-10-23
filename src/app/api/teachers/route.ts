@@ -35,11 +35,18 @@ export async function POST(request: NextRequest) {
                   citizenId: data.citizenId,
                   sex: Number(data.sex),
                   phone: data.phone,
-                  departmentId: Number(data.departmentId),
                   birthday: new Date(data.birthday),
                   user_img: userImgPath,
-                  role: 2
-                }   
+                  role: 2,
+                    teacher: {
+                        create: {
+                            departmentId: Number(data.departmentId)
+                        }
+                    }
+                },
+                include: {
+                    teacher: true
+                }
               });
             if(!teacher) return NextResponse.json({ message: "โปรดลองใหม่อีกครั้ง!", type: "error"}, {status: 500})
             return NextResponse.json({ message: "เพิ่มข้อมูลสำเร็จ", type: "success"}, { status: 201})
@@ -52,15 +59,14 @@ export async function POST(request: NextRequest) {
     }
 }
 export async function GET() {
-    const teacher = await prisma.user.findMany({
-        where: {
-            role: 2
-        },
+    const teacher = await prisma.teacher.findMany({
         orderBy: {
             id: "desc"
         },
         include: {
-            department: true
+            department: true,
+            user: true,
+            major: true
         }
     });
     if(!teacher) {
