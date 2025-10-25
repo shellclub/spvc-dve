@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
+import { formatThaiDateFixed } from "@/lib/thaiDateConvert";
 import { parseForm } from "@/lib/uploadFile";
 import { NextRequest, NextResponse } from "next/server";
-
+import bcrypt from 'bcryptjs'
 export async function GET() {
   try {
     const students = await prisma.student.findMany({
@@ -52,7 +53,6 @@ export async function POST(req: NextRequest) {
         OR: [
           { citizenId: data.citizenId },
           { phone: data.phone },
-          { username: data.username }
         ]
       }
     });
@@ -64,8 +64,6 @@ export async function POST(req: NextRequest) {
         message = "พบข้อมูลผู้ใช้ดังกล่าวในระบบแล้ว (เลขบัตรประชาชนซ้ำ)";
       } else if (existingUser.phone === data.phone) {
         message = "พบข้อมูลเบอร์โทรศัพท์ดังกล่าวในระบบแล้ว";
-      } else if (existingUser.username === data.username) {
-        message = "พบข้อมูลรหัสนักศึกษาดังกล่าวในระบบแล้ว";
       }
     
       return NextResponse.json(
@@ -91,8 +89,6 @@ export async function POST(req: NextRequest) {
     // Upload file
     const userImgPath = await parseForm(file);
     
-    
-    // Create user and student
     const user = await prisma.user.create({
       data: {
         firstname: data.firstname,
@@ -102,7 +98,7 @@ export async function POST(req: NextRequest) {
         phone: data.phone,
         birthday: new Date(data.birthday),
         user_img: userImgPath,
-        username: data.studentId,
+        
         student: {
           create: {
             studentId: data.studentId,
@@ -115,8 +111,15 @@ export async function POST(req: NextRequest) {
             gradeLevel: data.gradeLevel,
           },
         },
+        login:{
+          create: {
+            username: data.studentId,
+            password: bcrypt.hashSync(formatThaiDateFixed(data.birthday), 10),
+          }
+        }
       },
       include: {
+        login: true,
         student: {
           include: {
             education: true,
@@ -126,12 +129,13 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+    // Create user and student
+   
 
     return NextResponse.json(
       {
         message: "เพิ่มข้อมูลนักศึกษาสำเร็จ",
         type: "success",
-        data: user,
       },
       { status: 201 }
     );

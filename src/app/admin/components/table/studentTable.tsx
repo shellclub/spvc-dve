@@ -116,7 +116,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
 
   const majors = majorData ?? [];
   const departments = deptData ?? [];
-  const educations = edctData?.data ?? [];
+  const educations = edctData ?? [];
 
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date | null>(null);
@@ -831,7 +831,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
                             กำลังโหลด...
                           </SelectItem>
                         ) : filteredMajors.length > 0 ? (
-                          majors.map((major: any) => (
+                          filteredMajors.map((major: any) => (
                             <SelectItem key={major.id} value={String(major.id)}>
                               {major.major_name}
                             </SelectItem>
@@ -1150,7 +1150,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
                             กำลังโหลด...
                           </SelectItem>
                         ) : filteredMajors.length > 0 ? (
-                          majors.map((major: any) => (
+                          filteredMajors.map((major: any) => (
                             <SelectItem key={major.id} value={String(major.id)}>
                               {major.major_name}
                             </SelectItem>

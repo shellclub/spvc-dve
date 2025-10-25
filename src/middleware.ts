@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest) {
      
      
         return NextResponse.redirect(
-          new URL(user.role === 1 ? '/admin' : user.role === 2 ? "/departments" : '/', request.url)
+          new URL(user.role === 1 ? '/admin' : user.role === 3 ? "/departments" : '/', request.url)
         )
         
       
@@ -29,11 +29,11 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/protected', request.url)); // ถ้าไม่ใช่ admin ส่งไปหน้า /protected
       }
     } else if(pathname.startsWith('/departments')) {
-      if (user?.role !== 2) {
+      if (user?.role !== 3) {
         return NextResponse.redirect(new URL('/protected', request.url)); // ถ้าไม่ใช่ user ส่งไปหน้า /protected
       }
     }else{
-        if (user?.role !== 3) {
+        if (user?.role !== 6) {
             return NextResponse.redirect(new URL('/protected', request.url)); // ถ้าไม่ใช่ user ส่งไปหน้า /protected
           }
     }
@@ -43,9 +43,9 @@ export async function middleware(request: NextRequest) {
       switch (user.role) {
         case 1: // Admin
           return NextResponse.redirect(new URL('/admin', request.url));
-        case 2: // Board
-          return NextResponse.redirect(new URL('/departments', request.url));
         case 3: // Board
+          return NextResponse.redirect(new URL('/departments', request.url));
+        case 6: // Board
           return NextResponse.redirect(new URL('/', request.url));
 
       }

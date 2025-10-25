@@ -10,6 +10,7 @@ import {
 import TitleCard from "@/app/components/shared/TitleBorderCard";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
 import { useRouter } from "next/navigation";
+import useSWR from "swr";
 type Education = {
   id: number;
     name: string;
@@ -27,10 +28,18 @@ type Teacher = {
   firstname: string | null;
   lastname: string | null;
   sex: number | null;
+  // New fields
+  majorId?: number | null;
+  room: string | null;
+  educationId?: number | null;
+  years: string | null;
+  term: string | null;
+  grade: string | null;
+  // New fields end
   birthday: Date | null;
   departmentId: number | null;
   phone: string | null;
-  role?: number
+  role?: number | null
   user_img ?: File | null
 }
 
@@ -39,44 +48,83 @@ type ErrorrMessage = {
   firstname: string;
   lastname: string;
   sex: string;
+  majorId: string;
   birthdate: string;
+  role: string;
   departmentId: string;
   phone: string;
   user_img: string;
+  room: string;
+  educationId: string;
+  years: string;
+  term: string;
+  grade: string;
 }
 
 interface FormStudnetProps {
   id?: string; // prop นี้ไม่ส่งมาก็ได้
 }
-
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
+  const { data: majors, isLoading: isMajorLoading , error} = useSWR(`/api/major`, fetcher);
+  const { data: educations, isLoading: isEducationLoading , error: eduError} = useSWR(`/api/education`, fetcher);
   const [rows, setRows] = useState<Education[] | null>([]);
   const [departments, setDepartments] = useState<Department[] | null>([])
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const [filteredMajors, setFilteredMajors] = useState(majors);
+
   const [formData, setFormData] = useState<Teacher>({
     firstname: "",
     lastname: "",
     sex: null,
     birthday: null,
     citizenId: "",
+    majorId: null,
+    room: "",
+    educationId: null,
+    years: "",
+    term: null,
+    grade: null,
     phone: '',
     departmentId: null,
-    role: 2,
+    role: null,
     user_img: null
   });
   const createEmptyErrors = (): ErrorrMessage => ({
     citizenId: "",
     firstname: "",
+    room: "",
+    educationId: "",
+    years: "",
+    term: "",
+    grade: "",
     lastname: "",
     sex: "",
+    majorId: "",
     birthdate: "",
+    role: "",
     departmentId: "",
     phone: "",
     user_img: ""
   });
   const [errors, setErrors] = useState<ErrorrMessage>(createEmptyErrors());
   
+ useEffect(() => {
+   if(isMajorLoading) return; 
+    if (!formData.departmentId) {
+      // ยังไม่ได้เลือก department → แสดงทุก major
+      setFilteredMajors(majors);
+    } else {
+      // กรองตาม department_id
+      const filtered = majors.filter(
+        (major: any) => String(major.departmentId) === String(formData.departmentId)
+      );
+      setFilteredMajors(filtered);
+    }
+   
+  }, [formData.departmentId, majors]);
+
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -102,6 +150,13 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
             firstname: userData.firstname || null,
             lastname: userData.lastname || null,
             sex: userData.sex || null,
+            role: userData.role || null,
+            room: userData.teacher.room || "",
+            educationId: userData.teacher.educationId || null,
+            years: userData.teacher.years || "",
+            term: userData.teacher.term || null,
+            grade: userData.teacher.grade || null,
+            majorId: userData.role === 4 || userData.role === 5 ? userData.teacher.majorId || null : null,
             birthday: userData.birthday ? new Date(userData.birthday) : null,
             departmentId: userData.teacher.departmentId || null,
             phone: userData.phone || null,
@@ -159,6 +214,38 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
       newErrors.sex = "กรุณาเลือกเพศ";
       isValid = false;
     }
+    if (!formData.role) {
+      newErrors.role = "กรุณาเลือกตำแหน่ง";
+      isValid = false;
+    }
+    
+    if(formData.role === 4 || formData.role === 5) {
+      if (!formData.majorId) {
+        newErrors.departmentId = "กรุณาเลือกสาขาวิชา";
+        isValid = false;
+      }
+      if (!formData.room) {
+        newErrors.room = "กรุณากรอกห้องเรียน";
+        isValid = false;
+      }
+      if (!formData.educationId) {
+        newErrors.educationId = "กรุณาเลือกวุฒิการศึกษา";
+        isValid = false;
+      }
+      if (!formData.years) {
+        newErrors.years = "กรุณากรอกปีการศึกษา";
+        isValid = false;
+      }
+      if (!formData.term) {
+        newErrors.term = "กรุณากรอกภาคเรียน";
+        isValid = false;
+      }
+      if (!formData.grade) {
+        newErrors.grade = "กรุณากรอกระดับชั้น";
+        isValid = false;
+      }
+
+    }
 
     setErrors(newErrors);
     return isValid;
@@ -182,6 +269,14 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
     form.append("birthday", formData.birthday?.toISOString() ?? "");
     form.append("departmentId", formData.departmentId?.toString() ?? "");
     form.append("phone", formData.phone ?? "");
+    form.append("role", formData.role?.toString() ?? "");
+    form.append("majorId", formData.majorId?.toString() ?? "");
+    form.append("room", formData.room ?? "");
+    form.append("educationId", formData.educationId?.toString() ?? "");
+    form.append("years", formData.years ?? "");
+    form.append("term", formData.term?.toString() ?? "");
+    form.append("grade", formData.grade?.toString() ?? "");
+
     if (formData.user_img) {
       form.append("user_img", formData.user_img);
     }
@@ -194,17 +289,27 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
     if(!res.ok) {
       const err = await res.json();
       showToast(err.message, err.type)
+      // console.log(err.message);
     }else{
       const response = await res.json();
+      
+      
       showToast(response.message, response.type)
       setFormData({
         firstname: "",
         lastname: "",
         sex: null,
+        room: "",
+        educationId: null,
+        years: "",
+        term: null,
+        majorId: null,
+        grade: null,
         birthday: null,
         citizenId: "",
         phone: "",
         departmentId: null,
+        role: null,
         user_img: null
   
       });
@@ -220,6 +325,13 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
       birthday: null,
       citizenId: "",
       phone: "",
+      role: null,
+      majorId: null,
+      room: "",
+      educationId: null,
+      years: "",
+      term: null,
+      grade: null,
       departmentId: null,
       user_img: null
     });
@@ -229,7 +341,7 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
   };
 
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading || isMajorLoading || isEducationLoading) return <div>Loading...</div>;
 
   return (
     <div>
@@ -245,6 +357,7 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
                 
                 {/* Left */}
                 <div className="flex flex-col gap-[1.875rem]">
+               
                
                <FormRow label="เลขบัตรประชาชน" htmlFor="citizenId">
                   <TextInput
@@ -286,6 +399,62 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
                     <span className="text-red-500">{errors.birthdate}</span>
 
                   </FormRow>
+                  { (formData.role === 4 || formData.role === 5) && (
+                    <>
+                     <FormRow label="ระดับการศึกษา" htmlFor="educationId">
+                     <Select id="educationId" value={String(formData.educationId)} onChange={handleSelectChange}>
+                       <option hidden value="">เลือกระดับการศึกษา (ที่รับผิดชอบ)</option>
+                       {isEducationLoading ? (
+                         <option>Loading...</option>
+                       ) : educations.length > 0 ? ( 
+                         educations?.map((education: any, index: any) => (
+                         <option value={String(education.id)} key={index}>{education.name}</option>
+                       ))) : (
+                         <option>ไม่พบข้อมูล</option>
+                       )}
+ 
+                     </Select>
+                     <span className="text-red-500">{errors.educationId}</span>
+                   </FormRow>
+                  
+                      <FormRow label="ชั้นปี" htmlFor="grade">
+                      <Select id="grade" value={formData.grade !== null ? String(formData.grade) : ""} onChange={handleSelectChange}>
+                        <option hidden value="">เลือกชั้นทีปี(ที่รับผิดชอบ)</option>
+
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                       
+  
+                      </Select>
+                      <span className="text-red-500">{errors.grade}</span>
+                    </FormRow>
+                    <FormRow label="ห้อง" htmlFor="room">
+                      <TextInput
+                        id="room"
+                        name="room"
+                        value={formData.room as string}
+                        onChange={handleChange}
+                        placeholder="ห้องหรือกลุ่มที่รับผิดชอบ"
+                        className="xxl:ms-12"
+                    
+                      />
+                      <span className="text-red-500">{errors.room}</span>
+                    </FormRow>
+                    </>
+                )}
+                  <FormRow label="รูปโปรไฟล์" htmlFor="user_img">
+                  <input
+                    type="file"
+                    name="user_img"
+                    id="user_img"
+                    accept="image/jpeg"
+                    onChange={handleFileChange}
+                  />
+
+                    <span className="text-red-500">{errors.user_img}</span>
+
+                  </FormRow>
                   
                 </div>
 
@@ -301,16 +470,6 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
                     />
                     <span className="text-red-500">{errors.phone}</span>
                   </FormRow>
-                  
-                  <FormRow label="แผนกวิชา" htmlFor="department">
-                    <Select id="departmentId" value={formData.departmentId !== null ? String(formData.departmentId) : ""} onChange={handleSelectChange}>
-                      <option hidden value="">เลือกแผนกวิชา</option>
-                      {departments?.map((dep) => (
-                        <option value={dep.id} key={dep.id}>{dep.depname}</option>
-                      ))}
-                    </Select>
-                    <span className="text-red-500">{errors.departmentId}</span>
-                  </FormRow>
                   <FormRow label="เพศ" htmlFor="sex" >
                     <Select id="sex" value={formData.sex !== null ? String(formData.sex) : ""} onChange={handleSelectChange}>
                       <option hidden value="">เลือกเพศของอาจารย์ผู้ดูแลแผนกวิชา</option>
@@ -320,18 +479,71 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
                     <span className="text-red-500">{errors.sex}</span>
 
                   </FormRow>
-                  <FormRow label="รูปโปรไฟล์" htmlFor="user_img">
-                  <input
-                    type="file"
-                    name="user_img"
-                    id="user_img"
-                    accept="image/jpeg"
-                    onChange={handleFileChange}
-                  />
-
-                    <span className="text-red-500">{errors.user_img}</span>
+                  
+                
+                  <FormRow label="ตำแหน่ง" htmlFor="role" >
+                    <Select id="role" value={formData.role !== null ? String(formData.role) : ""} onChange={handleSelectChange}>
+                      <option hidden value="">เลือกตำแหน่งของบุคคลากร</option>
+                      <option value="2">ผู้บริหาร</option>
+                      <option value="3">หัวหน้าแผนกวิชา</option>
+                      <option value="4">ครูที่ปรึกษา</option>
+                      <option value="5">ครูทวิภาคี</option>
+                    </Select>
+                    <span className="text-red-500">{errors.role}</span>
 
                   </FormRow>
+                  <FormRow label="แผนกวิชา" htmlFor="department">
+                    <Select id="departmentId" value={formData.departmentId !== null ? String(formData.departmentId) : ""} onChange={handleSelectChange}>
+                      <option hidden value="">เลือกแผนกวิชา</option>
+                      {departments?.map((dep) => (
+                        <option value={dep.id} key={dep.id}>{dep.depname}</option>
+                      ))}
+                    </Select>
+                    <span className="text-red-500">{errors.departmentId}</span>
+                  </FormRow>
+                 
+                  { (formData.role === 4 || formData.role === 5) && (
+                    <>
+                      <FormRow label="สาขาวิชา" htmlFor="major">
+                      <Select id="majorId" value={formData.majorId !== null ? String(formData.majorId) : ""} onChange={handleSelectChange}>
+                        <option hidden value="">เลือกสาขาวิชา(ที่รับผิดชอบ)</option>
+                        {isMajorLoading ? (
+                          <option>Loading...</option>
+                        ) : filteredMajors.length > 0 ? ( 
+                          filteredMajors?.map((major: any) => (
+                          <option value={major.id} key={major.id}>{major.major_name}</option>
+                        ))) : (
+                          <option>ไม่มีสาขาวิชาในแผนกนี้</option>
+                        )}
+
+                      </Select>
+                      <span className="text-red-500">{errors.majorId}</span>
+                    </FormRow>
+                    <FormRow label="ภาคเรียน" htmlFor="term">
+                      <Select id="term" value={String(formData.term)} onChange={handleSelectChange}>
+                        <option hidden value="">เลือกภาคเรียน(ที่รับผิดชอบ)</option>
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>  
+                      </Select>
+                      <span className="text-red-500">{errors.years}</span>
+                    </FormRow>
+
+                    
+                      <FormRow label="ปีการศึกษา" htmlFor="years">
+                      <TextInput
+                        id="years"
+                        name="years"
+                        value={formData.years as string}
+                        onChange={handleChange}
+                        placeholder="เช่น 2566"
+                        className="xxl:ms-12"
+                    
+                      />
+                      <span className="text-red-500">{errors.years}</span>
+                    </FormRow>
+                    </>
+                )}
                 </div>
               </div>
 

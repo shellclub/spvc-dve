@@ -13,7 +13,10 @@ export async function GET(req: NextRequest,  { params }: { params: Promise<{ id:
         include: {
             teacher: {
                 include: {
-                    department: true
+                    department: true,
+                    education: true,
+                    major: true,
+                    
                 }
             },
             
@@ -67,12 +70,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           phone: data.phone,
           birthday: new Date(data.birthday),
           user_img: userImgPath, 
+          role: Number(data.role),
           teacher: {
-            update: { departmentId: Number(data.departmentId) },
+            update: { 
+              departmentId: Number(data.departmentId),
+              majorId: Number(data.majorId) || null,
+              room: data.room || null,
+              grade: data.grade || null,
+              educationId: Number(data.educationId) || null,
+              term: data.term || null,
+              years: data.years || null
+            },
           },
         },
         include: {
-          teacher: { include: { department: true } },
+          teacher: { 
+            include: { 
+              department: true,
+              major: true,
+              education: true
+            } },
         },
       });
   

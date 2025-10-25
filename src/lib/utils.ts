@@ -15,7 +15,10 @@ export function userRole(role: number) {
 
   if(role === 1) roleName = "ผู้ดูแลระบบ";
 
-  if(role === 2) roleName = "ผู้ดูแลแผนกวิชา";
+  if(role === 2) roleName = "ผู้บริหาร";
+  if(role === 3) roleName = "หัวหน้าแผนก";
+  if(role === 4) roleName = "ครูที่ปรึกษา";
+  if(role === 5) roleName = "ครูทวิภาคี";
 
   return roleName;  
 }

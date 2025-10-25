@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { parseForm } from "@/lib/uploadFile";
 import { createUser } from "@/services/users";
 import { Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 export const config = {
     api: {
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
                     
             const teacher = await prisma.user.create({
                 data: {
-                  username: data.citizenId,
+                  
                   firstname: data.firstname,
                   lastname: data.lastname,
                   citizenId: data.citizenId,
@@ -37,15 +38,35 @@ export async function POST(request: NextRequest) {
                   phone: data.phone,
                   birthday: new Date(data.birthday),
                   user_img: userImgPath,
-                  role: 2,
+                  role: Number(data.role),
                     teacher: {
                         create: {
-                            departmentId: Number(data.departmentId)
+                            departmentId: Number(data.departmentId),
+                            majorId: Number(data.majorId) || null,
+                            room: data.room || null,
+                            grade: data.grade || null,
+                            educationId: Number(data.educationId) || null,
+                            term: data.term || null,
+                            years: data.years || null
+                        }
+                    },
+                    login: {
+                        create: {
+                            username: data.citizenId,
+                            password: bcrypt.hashSync(data.citizenId, 10),
                         }
                     }
                 },
                 include: {
-                    teacher: true
+                    login: true,
+                    teacher: {
+                        include: {
+                            department: true,
+                            major: true,
+                            education: true
+                        }
+                    },
+
                 }
               });
             if(!teacher) return NextResponse.json({ message: "โปรดลองใหม่อีกครั้ง!", type: "error"}, {status: 500})
@@ -53,7 +74,7 @@ export async function POST(request: NextRequest) {
         }
          
     } catch (error) {
-        console.log("Error creating teacher:", error);
+        // console.log("Error creating teacher:", error);
         return NextResponse.json({ message: error, type: "error"}, { status: 500})
         
     }
@@ -66,11 +87,10 @@ export async function GET() {
         include: {
             department: true,
             user: true,
-            major: true
+            major: true,
+            education: true
         }
     });
-    if(!teacher) {
-        return NextResponse.json({},{status: 200})
-    }
+
     return NextResponse.json(teacher)
 }

@@ -176,7 +176,7 @@ const TeacherTable = () => {
         >
           {[
             { icon: "tabler:edit", listtitle: "แก้ไขข้อมูล", onclick: () => router.push(`/admin/addteacher/${info.row.original.user.id as string}`)},
-            { icon: "tabler:trash", listtitle: "ลบข้อมูล", onclick: () => handleDelete(info.row.original.id as string) },
+            { icon: "tabler:trash", listtitle: "ลบข้อมูล", onclick: () => handleDelete(info.row.original.user.id as string) },
           ].map((item, index) => (
             <Dropdown.Item key={index} onClick={item.onclick} className="flex gap-3">
               <Icon icon={item.icon} height={18} />

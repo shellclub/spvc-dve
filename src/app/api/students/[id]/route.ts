@@ -78,7 +78,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         phone: data.phone,
         birthday: new Date(data.birthday),
         user_img: userImgPath,
-        username: data.studentId,
       };
   
       const studentData = {
@@ -97,8 +96,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         data: {
           ...userData,
           student: { update: studentData },
+          login: { update: {
+            username: data.studentId
+          }}
         },
-        include: { student: true },
+        include: { 
+          student: true,
+          login: true
+        },
       });
         if (!updated) {
             return NextResponse.json({ message: "ไม่สามารถอัปเดตข้อมูลได้", type: "error" }, { status: 500 });
