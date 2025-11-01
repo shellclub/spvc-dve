@@ -36,48 +36,22 @@ const SidebarContent: MenuItem[] = [
     children: [
       {
         name: "หน้าแรก",
-        icon: 'tabler:aperture',
+        icon: 'tabler:home',
         id: uniqueId(),
-        url: "/",
+        url: "/board/departments",
       },
       {
-        name: "จัดการ",
-        icon: 'tabler:settings',
+        name: "ข้อมูลบุคลากร",
+        icon: 'tabler:users',
         id: uniqueId(),
-        children: [
-          {
-            id: uniqueId(),
-            name: "จัดการข้อมูลแผนกวิชา",
-            url: "/admin/mng-department",
-          },
-          {
-            id: uniqueId(),
-            name: "จัดการสาขาวิชา",
-            url: "/admin/majors",
-          },
-          {
-            id: uniqueId(),
-            name: "จัดการข้อมูลนักศึกษา",
-            url: "/admin/students",
-          },
-          {
-            id: uniqueId(),
-            name: "จัดการข้อมูลบุคคลากร",
-            url: "/admin/teachers",
-          },
-          {
-            id: uniqueId(),
-            name: "จัดการข้อมูลสถานประกอบการ",
-            url: "/admin/company",
-          }
-        ],
+        url: "/board/teacher",
       },
       {
+        name: "ข้อมูลสถานประการ",
+        icon: 'tabler:buildings',
         id: uniqueId(),
-        name: "รายชื่อนักศึกษาทั้งหมด",
-        url: "/admin/students/all",
-        icon: 'tabler:users'
-      }
+        url: "/board/company",
+      },
       // {
       //   name: "eCommerce",
       //   icon: 'tabler:shopping-cart',

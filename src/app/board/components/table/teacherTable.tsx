@@ -33,7 +33,6 @@ export interface PaginationTableType {
     role?: string;
     sex?: string;
   }
-  actions?: any;
 }
 
 
@@ -80,7 +79,7 @@ const TeacherTable = () => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const hooks = await fetch("/api/teachers",{
+      const hooks = await fetch("/api/teachers/getWithBoard",{
         cache: "no-store",
         headers: {
           "Content-Type": "application/json"
@@ -162,31 +161,6 @@ const TeacherTable = () => {
     }),
    
 
-    columnHelper.display({
-      id: "actions",
-      cell: (info) => (
-        <Dropdown
-          label=""
-          dismissOnClick={false}
-          renderTrigger={() => (
-            <span className="h-9 w-9 flex justify-center items-center rounded-full hover:bg-lightprimary hover:text-primary cursor-pointer">
-              <IconDots size={22} />
-            </span>
-          )}
-        >
-          {[
-            { icon: "tabler:edit", listtitle: "แก้ไขข้อมูล", onclick: () => router.push(`/admin/addteacher/${info.row.original.user.id as string}`)},
-            { icon: "tabler:trash", listtitle: "ลบข้อมูล", onclick: () => handleDelete(info.row.original.user.id as string) },
-          ].map((item, index) => (
-            <Dropdown.Item key={index} onClick={item.onclick} className="flex gap-3">
-              <Icon icon={item.icon} height={18} />
-              <span >{item.listtitle}</span>
-            </Dropdown.Item>
-          ))}
-        </Dropdown>
-      ),
-      header: () => <span></span>,
-    }),
   ];
 
   const table = useReactTable({
@@ -207,10 +181,7 @@ const TeacherTable = () => {
   });
 
   return (
-    <TitleIconCard title="ข้อมูลผู้อาจารย์ประจำแผนกวิชา">
-      <div className=" flex justify-end items-center my-6">
-      <Button href="/admin/addteacher" color={`primary`}><Icon icon={'tabler:plus'}/> เพิ่ม</Button>
-      </div>
+    <TitleIconCard title="ข้อมูลบุคลากร">
       <div className="border rounded-md border-ld overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">

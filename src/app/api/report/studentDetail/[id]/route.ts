@@ -16,8 +16,5 @@ export async function GET(request: NextRequest,{params}: {params: Promise<{id: s
             report: true
         }
     })
-    if(!student) {
-        return NextResponse.json([],{status: 404});
-    }
     return NextResponse.json(student);
 }

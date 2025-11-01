@@ -47,12 +47,14 @@ export async function GET(request: NextRequest) {
       where: {
         id: Number(session.user.id)
       },
-      select: {
-        departmentId: true
+      include: {
+        student: {
+          select: { departmentId: true }
+        }
       }
     });
 
-    if (!user?.departmentId) {
+    if (!user?.student?.departmentId) {
       return NextResponse.json(
         { message: "Department not found" }, 
         { status: 404 }
@@ -61,8 +63,7 @@ export async function GET(request: NextRequest) {
 
     // Build query conditions
     const whereConditions: any = {
-      departmentId: user.departmentId,
-      role: 3, // Assuming 3 is student role
+      departmentId: user.student.departmentId,
     };
 
     // Add term/year filters if provided
@@ -83,15 +84,18 @@ export async function GET(request: NextRequest) {
         student: {
           include: {
             education: true,
-            inturnship: true
+            inturnship: true,
+            department: true,
+            major: true
           }
         },
-        department: true
+      
       }
     });
 
     if (!students.length) {
-      return NextResponse.json([],
+      return NextResponse.json({ message: "No students found" },
+        
         { status: 404 }
       );
     }

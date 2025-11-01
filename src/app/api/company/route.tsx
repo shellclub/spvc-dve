@@ -1,84 +1,108 @@
-import { auth } from "@/auth";
+
+// src/app/api/company/route.tsx
 import { prisma } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import { log } from "console";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
-    const session = await auth();
-    if(!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const student = await prisma.student.findUnique({
-        where: { 
-            userId: Number(session.user.id)
-         },
-    });
-    if(!student) {
-        return NextResponse.json({ error: "Student not found" }, { status: 404 });
-    }
-    const companies = await prisma.companies.findUnique({
-        where: {
-            studentId: student.id,
+export async function GET(request: NextRequest) {
+    try {
+      const companies = await prisma.companies.findMany({
+        orderBy: {
+          id: 'desc'
         },
-    });
-    if(!companies) {
-        return NextResponse.json({}, { status: 200 });
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstname: true,
+              lastname: true,
+              phone: true,
+              citizenId: true,
+            }
+          }
+        }
+      });
+  
+      return NextResponse.json(companies);
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+      return NextResponse.json(
+        { message: "เกิดข้อผิดพลาดในการดึงข้อมูล", type: "error" },
+        { status: 500 }
+      );
     }
-    return NextResponse.json(companies, { status: 200 });
-}
-export async function POST(request: NextRequest) {
-    const session = await auth();
+  }
 
-    if(!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+
+  export async function POST(request: NextRequest) {
+    try {
+      const body = await request.json();
+      const { name, address, firstname, lastname, phone, citizenId } = body;
+  
+    const exitsUser = await prisma.user.findUnique({
+        where: { citizenId: String(citizenId) }
+        });
+    if (exitsUser) {
+        return NextResponse.json(
+        { message: "มีข้อมูลผู้ใช้งานดังกล่าวแล้ว", type: "error" },
+        { status: 400 }
+        );
     }
-    const student = await prisma.student.findUnique({
-        where: { 
-            userId: Number(session.user.id)
-         },
-    });
-    if(!student) {
-        return NextResponse.json({ error: "Student not found" }, { status: 404 });
-    }
-    const existingCompany = await prisma.companies.findUnique({
-        where: {
-            studentId: student.id,
+      // ตรวจสอบว่า student นี้มี company แล้วหรือยัง
+      const existingCompany = await prisma.companies.findUnique({
+        where: { name: String(name) }
+      });
+  
+      if (existingCompany) {
+        return NextResponse.json(
+          { message: "มีข้อมูลสถานประกอบการดังกล่าวแล้ว", type: "error" },
+          { status: 400 }
+        );
+      }
+  
+      // สร้าง user สำหรับสถานประกอบการ
+      const user = await prisma.user.create({
+        data: {
+          firstname,
+          lastname,
+          phone: phone || "",
+          citizenId,
+          role: 6, // role สำหรับสถานประกอบการ
+        login: {
+            create: {
+                username: citizenId,
+                password: bcrypt.hashSync(citizenId, 10),
+            }
         },
-    });
+        company: {
+            create: {
+                name,
+                address
+            }
+        }
+       
+    },
+    include: {
+        company: true,
+        login: true
+    }
 
-    
-    let companies;
-    if(existingCompany) {
-        const body = await request.json() as Prisma.companiesUpdateInput;
-        companies = await prisma.companies.update({
-            where: {
-                studentId: student.id,
-            },
-            data: {
-                name: body.name,
-                address: body.address,
-                tel: body.tel,
-                trainer: body.trainer,
-                position: body.position,
-                week: Number(body.week),
-            },
-        });
-    }else{
-        const body = await request.json() as Prisma.companiesCreateInput;
-         companies = await prisma.companies.create({
-            data: {
-                name: body.name,
-                address: body.address,
-                tel: body.tel,
-                trainer: body.trainer,
-                position: body.position,
-                week: Number(body.week),
-                studentId: student.id,
-            },
-        });
+      });
+  
+
+  
+      return NextResponse.json({
+        message: "เพิ่มข้อมูลสถานประกอบการสำเร็จ",
+        type: "success",
+      }, { status: 201 });
+  
+    } catch (error) {
+      console.error("Error creating company:", error);
+      return NextResponse.json(
+        { message: "เกิดข้อผิดพลาดในการเพิ่มข้อมูล", type: "error" },
+        { status: 500 }
+      );
     }
-    if(!companies) {
-        return NextResponse.json({ error: "Company not found" }, { status: 404 });
-    }
-    return NextResponse.json({message: "ดำเนินการสำเร็จ"}, { status: 201 });
-}
+  }

@@ -3,6 +3,8 @@ import * as XLSX from "xlsx";
 import dayjs from "dayjs";
 import { prisma } from "@/lib/db";
 import { excelSerialToDate } from "@/lib/utils";
+import { formatThaiDateFixed } from "@/lib/thaiDateConvert";
+import bcrypt from "bcryptjs";
 
 interface ExcelRow {
   firstname: string;
@@ -288,19 +290,24 @@ export async function POST(req: Request) {
                 phone: String(row.phone).replace(/[-\s]/g, ''),
                 sex: Number(row.sex),
                 birthday: birthday,
-                departmentId: Number(row.departmentId),
-                username: String(row.studentId),
                 role: 3, // Student role
                 user_img: String(row.user_img || ''),
                 student: {
                   create: {
                     studentId: String(row.studentId),
                     educationLevel: Number(row.educationlevel),
-                    major: String(row.major),
+                    major_id: Number(row.major),
                     academicYear: String(row.academicyear),
+                    departmentId: Number(row.departmentId),
                     room: String(row.room || ''),
                     term: String(row.term || ''),
                     gradeLevel: String(row.gradelevel),
+                  }
+                },
+                login: {
+                  create: {
+                    username: row.citizenId,
+                    password: bcrypt.hashSync(formatThaiDateFixed(row.birthday), 10),
                   }
                 }
               }

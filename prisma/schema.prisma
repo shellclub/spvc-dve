@@ -40,10 +40,12 @@ model Major {
 model Login {
   id                Int   @id   @default(autoincrement())
   username          String  @unique
-  password          String  @unique
+  password          String  
   userId            Int     @unique
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  password_status   Int     @default(0)
+  is_first_login  Boolean @default(true)
+  skip_password_change DateTime?
+  @@map("logins")
 }
 model Teacher {
   id             Int @id @default(autoincrement())
@@ -67,14 +69,15 @@ model User {
   lastname       String
   citizenId      String     @db.VarChar(13)     @unique
   phone          String     @db.VarChar(10)     @unique
-  role           Int        @default(6)
-  sex            Int
+  role           Int        @default(7)
+  sex            Int?
   createdAt      DateTime         @default(now())
   student        Student?         // ถ้าเป็นนักศึกษา
-  birthday       DateTime
+  birthday       DateTime?
   user_img       String?
   teacher        Teacher?
   login          Login?   
+  company        companies?
   @@map("users")
 }
 
@@ -133,10 +136,12 @@ model education_levels{
 
 model companies {
   id Int @id @default(autoincrement())
-  name String
+  name String @unique
   address String
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId Int @unique
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId Int? @unique
+  userId    Int @unique
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("companies")
