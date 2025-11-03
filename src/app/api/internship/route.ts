@@ -1,77 +1,68 @@
-import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-    const session = await auth();
-   try {
-    const { selectedDays, dayPerWeeks} = await request.json();
-    if(!session) {
-        return NextResponse.json({ message: "Not has session", type: "error"}, { status: 401});
-    }
-    const students = await prisma.student.findUnique({
-        where: {
-            userId: Number(session.user.id)
-        }
-    });
+   const { id, companyId } = await request.json();
 
-    if(!students) {
-        return NextResponse.json({ message: "ไม่พบข้อมูลนักศึกษา", type: "error"}, { status: 401});
-    }
-    const check = await prisma.inturnship.findUnique({
-        where: {
-            studentId: students.id
-        }
-    });
-    let internship;
-    if(check) {
-         internship = await prisma.inturnship.update({
-            where: {
-                studentId: students.id
-            },
-            data: {
-                dayperweeks: String(dayPerWeeks),
-                selectedDays: selectedDays
-            }
-        });
-    }else{
-         internship = await prisma.inturnship.create({
-            data: {
-                studentId: students.id,
-                dayperweeks: String(dayPerWeeks),
-                selectedDays: selectedDays
-            }
-        });
-    }
-   
+   const student = await prisma.student.findUnique({
+       where: { id: Number(id) }
+   });
 
-    if(!internship) {
-        return NextResponse.json({ message: "เกิดข้อผิดพลาด", type: "error"},{ status: 400});
-    }
-    return NextResponse.json({ message: "ดำเนินการสำเร็จ", type: "success"},{ status: 201});
-   } catch (error) {
-    console.log(error);
-    
-    return NextResponse.json({ message: error, type: "error"}, { status: 500})
+   if (!student) {
+       return NextResponse.json(
+           { message: "ไม่พบข้อมูลนักศึกษา", type: "error" },
+           { status: 404 }
+       );
    }
-}
 
-export async function GET() {
- try {
-    const internship = await prisma.inturnship.findMany({
-        orderBy: {
-            id: "desc"
-        }
-    })
+   // ตรวจสอบว่า Company มีอยู่จริงหรือไม่
+   const company = await prisma.companies.findUnique({
+       where: { id: Number(companyId) }
+   });
 
-    if(!internship) {
-        return NextResponse.json({ message: 'เกิดข้อผิดพลาด', type: 'error'}, { status: 500})
-    }
+   if (!company) {
+       return NextResponse.json(
+           { message: "ไม่พบข้อมูลบริษัท", type: "error" },
+           { status: 404 }
+       );
+   }
 
-    return NextResponse.json(internship)
- } catch (error) {
-    console.log(error);
-    return NextResponse.json({ error: error}, { status: 500})
-    
- }
+   // ตรวจสอบว่ามีข้อมูลอยู่แล้วหรือไม่
+   const existing = await prisma.studentCompanies.findUnique({
+       where: {
+           studentId_companyId: {
+               studentId: Number(id),
+               companyId: Number(companyId)
+           }
+       }
+   });
+
+   if (existing) {
+       return NextResponse.json(
+           { message: "นักศึกษามีข้อมูลการฝึกงานแล้ว", type: "error" },
+           { status: 400 }
+       );
+   }
+
+   try {
+       const internshipCompany = await prisma.studentCompanies.create({
+           data: {
+               studentId: Number(id),
+               companyId: Number(companyId),
+               startDate: new Date(),
+               endDate: new Date(),
+           }
+       });
+
+       return NextResponse.json(
+           { message: "ดำเนินการสำเร็จ", type: "success", data: internshipCompany },
+           { status: 201 }
+       );
+   } catch (error) {
+       console.error("Error creating studentCompanies:", error);
+       return NextResponse.json(
+           { message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล", type: "error" },
+           { status: 500 }
+       );
+   }
 }

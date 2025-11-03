@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -14,8 +14,8 @@ import {
   FilterFn,
 } from "@tanstack/react-table";
 
-import { Button, Dropdown, Select, Spinner } from "flowbite-react";
-import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight, IconDots } from "@tabler/icons-react";
+import { Button, Select, Spinner, Card } from "flowbite-react";
+import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight } from "@tabler/icons-react";
 import { Icon } from "@iconify/react";
 import TitleIconCard from "@/app/components/shared/TitleIconCard";
 import { useRouter } from "next/navigation";
@@ -23,13 +23,16 @@ import Image from "next/image";
 import useSWR from "swr";
 import { Input } from "@/app/components/shadcn-ui/Default-Ui/input";
 import { Skeleton } from "@/app/components/shadcn-ui/Default-Ui/skeleton";
+import { Checkbox } from "@/app/components/shadcn-ui/Default-Ui/checkbox";
 import {
   Alert,
   AlertTitle,
+  AlertDescription,
 } from "@/app/components/shadcn-ui/Default-Ui/alert";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, CheckCircle2 } from "lucide-react";
+import { showToast } from "@/app/components/sweetalert/sweetalert";
 
-export interface PaginationTableType {
+interface PaginationTableType {
   id?: string;
   citizenId: string;
   user_img: string;
@@ -39,9 +42,6 @@ export interface PaginationTableType {
     term: string;
     education: {
       name: string;
-    };
-    inturnship: {
-      selectedDays: string[];
     };
     major: {
       id: string;
@@ -54,12 +54,15 @@ export interface PaginationTableType {
       id: string;
       depname: string;
     };
+    internship?: {
+      id: string;
+      company: {
+        name: string;
+      };
+    };
   };
   firstname?: string;
   lastname?: string;
-  role?: string;
-  sex?: string;
-  actions?: any;
 }
 
 type TermYear = {
@@ -67,56 +70,51 @@ type TermYear = {
   academicYear: string;
 };
 
+interface Company {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+}
+
 const columnHelper = createColumnHelper<PaginationTableType>();
 const fetcher = async (url: string) => await fetch(url).then(res => res.json());
 
-// Skeleton Loading Component
 const SkeletonRow = () => (
   <tr className="border-b border-ld">
-    <td className="py-3 px-4">
-      <Skeleton className="h-4 w-4" />
-    </td>
-    <td className="py-3 px-4">
-      <Skeleton className="h-4 w-24" />
-    </td>
+    <td className="py-3 px-4"><Skeleton className="h-4 w-4" /></td>
+    <td className="py-3 px-4"><Skeleton className="h-4 w-4" /></td>
+    <td className="py-3 px-4"><Skeleton className="h-4 w-24" /></td>
     <td className="py-3 px-4">
       <div className="flex items-center gap-3">
         <Skeleton className="h-10 w-10 rounded-xl" />
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-3 w-20" />
-        </div>
+        <Skeleton className="h-4 w-32" />
       </div>
     </td>
-    <td className="py-3 px-4">
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-4 w-40" />
-        <Skeleton className="h-3 w-28" />
-      </div>
-    </td>
-    <td className="py-3 px-4">
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-3 w-32" />
-      </div>
-    </td>
-    <td className="py-3 px-4">
-      <Skeleton className="h-8 w-8" />
-    </td>
+    <td className="py-3 px-4"><Skeleton className="h-4 w-40" /></td>
+    <td className="py-3 px-4"><Skeleton className="h-4 w-24" /></td>
+    <td className="py-3 px-4"><Skeleton className="h-6 w-32" /></td>
   </tr>
 );
 
-const StudentTable = () => {
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = React.useState("");
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [selected, setSelected] = React.useState<boolean>(false);
-  const [selectedYear, setSelectedYear] = React.useState<string>('');
-  const [selectedTerm, setSelectedTerm] = React.useState<string>('');
-  const [majorFilter, setMajorFilter] = React.useState<string>("all");
-  const [gradeFilter, setGradeFilter] = React.useState<string>("all");
-  const [roomFilter, setRoomFilter] = React.useState<string>("all");
+const BulkInternshipManagement = () => {
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [selected, setSelected] = useState<boolean>(false);
+  const [selectedYear, setSelectedYear] = useState<string>('');
+  const [selectedTerm, setSelectedTerm] = useState<string>('');
+  const [majorFilter, setMajorFilter] = useState<string>("all");
+  const [gradeFilter, setGradeFilter] = useState<string>("all");
+  const [roomFilter, setRoomFilter] = useState<string>("all");
+  const [selectedCompany, setSelectedCompany] = useState<string>("");
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  
   const router = useRouter();
   const rerender = React.useReducer(() => ({}), {})[1];
   
@@ -125,10 +123,10 @@ const StudentTable = () => {
     !selected ? '/api/students/getByDepartment' : `/api/students/getByDepartment?term=${selectedTerm}&year=${selectedYear}`, 
     fetcher
   );
+  const { data: companyData, error: companyError, isLoading: companyLoading } = useSWR<Company[]>('/api/company', fetcher);
 
   const stdData = data ?? [];
 
-  // Filter function for name search
   const nameFilterFn: FilterFn<PaginationTableType> = (row, columnId, filterValue) => {
     const searchTerm = filterValue.toLowerCase();
     const firstName = row.original.firstname?.toLowerCase() || '';
@@ -137,8 +135,7 @@ const StudentTable = () => {
     return firstName.includes(searchTerm) || lastName.includes(searchTerm) || studentId.includes(searchTerm);
   };
 
-  // Filter students based on selected filters
-  const filteredStudents = React.useMemo(() => {
+  const filteredStudents = useMemo(() => {
     if (!data) return [];
     
     return data.filter((student) => {
@@ -151,8 +148,7 @@ const StudentTable = () => {
     });
   }, [data, majorFilter, gradeFilter, roomFilter]);
 
-  // Generate available grades
-  const availableGrades = React.useMemo(() => {
+  const availableGrades = useMemo(() => {
     if (!data) return [];
     const gradesSet = new Set<string>();
     data.forEach((student) => {
@@ -162,8 +158,7 @@ const StudentTable = () => {
     return Array.from(gradesSet).sort();
   }, [data]);
 
-  // Generate available rooms based on selected major
-  const availableRooms = React.useMemo(() => {
+  const availableRooms = useMemo(() => {
     if (!data) return [];
     const roomsSet = new Set<string>();
     data.forEach((student) => {
@@ -174,7 +169,107 @@ const StudentTable = () => {
     return Array.from(roomsSet);
   }, [data, majorFilter]);
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allStudentIds = new Set(
+        filteredStudents
+          .filter(s => !s.student.internship)
+          .map(s => s.student.id)
+      );
+      setSelectedStudents(allStudentIds);
+    } else {
+      setSelectedStudents(new Set());
+    }
+  };
+
+  const handleSelectStudent = (studentId: string, checked: boolean) => {
+    const newSelected = new Set(selectedStudents);
+    if (checked) {
+      newSelected.add(studentId);
+    } else {
+      newSelected.delete(studentId);
+    }
+    setSelectedStudents(newSelected);
+  };
+
+  const handleBulkSubmit = async () => {
+    if (selectedStudents.size === 0) {
+      showToast('กรุณาเลือกนักศึกษาอย่างน้อย 1 คน', 'warning');
+      return;
+    }
+
+    if (!selectedCompany) {
+      showToast('กรุณาเลือกสถานประกอบการ', 'warning');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const promises = Array.from(selectedStudents).map(studentId =>
+        fetch('/api/internship/addInternshipCompany', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: studentId,
+            companyId: selectedCompany,
+            startDate: startDate || null,
+            endDate: endDate || null,
+          }),
+        })
+      );
+
+      const results = await Promise.allSettled(promises);
+      
+      const successCount = results.filter(r => r.status === 'fulfilled' && (r.value as Response).ok).length;
+      const failCount = results.length - successCount;
+
+      if (successCount > 0) {
+        showToast(`เพิ่มข้อมูลสำเร็จ ${successCount} คน${failCount > 0 ? ` (ล้มเหลว ${failCount} คน)` : ''}`, 'success');
+        mutate();
+        setSelectedStudents(new Set());
+        setSelectedCompany("");
+        setStartDate("");
+        setEndDate("");
+      } else {
+        showToast('ไม่สามารถเพิ่มข้อมูลได้', 'error');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const columns = [
+    columnHelper.display({
+      id: "select",
+      header: ({ table }) => {
+        const availableStudents = table.getFilteredRowModel().rows.filter(row => !row.original.student.internship);
+        const allSelected = availableStudents.length > 0 && availableStudents.every(row => selectedStudents.has(row.original.student.id));
+        
+        return (
+          <Checkbox
+            checked={allSelected}
+            onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+            disabled={availableStudents.length === 0}
+          />
+        );
+      },
+      cell: (info) => {
+        const hasInternship = info.row.original.student.internship;
+        return (
+          <Checkbox
+            checked={selectedStudents.has(info.row.original.student.id)}
+            onCheckedChange={(checked) => handleSelectStudent(info.row.original.student.id, checked as boolean)}
+            disabled={!!hasInternship}
+          />
+        );
+      },
+    }),
     columnHelper.display({
       id: "index",
       header: () => <span>#</span>,
@@ -243,34 +338,21 @@ const StudentTable = () => {
       header: () => <span>ระดับชั้น</span>,
     }),
     columnHelper.display({
-      id: "actions",
-      cell: (info) => (
-        <Dropdown
-          label=""
-          dismissOnClick={false}
-          renderTrigger={() => (
-            <span className="h-9 w-9 flex justify-center items-center rounded-full hover:bg-lightprimary hover:text-primary cursor-pointer">
-              <IconDots size={22} />
+      id: "status",
+      header: () => <span>สถานะ</span>,
+      cell: (info) => {
+        const internship = info.row.original.student.internship;
+        return internship ? (
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <span className="text-sm text-green-700 font-medium">
+              {internship.company.name}
             </span>
-          )}
-        >
-          <Dropdown.Item 
-            onClick={() => router.push(`/supervision/students/${info.row.original.id as string}`)} 
-            className="flex gap-3"
-          >
-            <Icon icon="tabler:eye" height={18} />
-            <span>รายละเอียด</span>
-          </Dropdown.Item>
-          <Dropdown.Item 
-            onClick={() => router.push(`/supervision/students/${info.row.original.id as string}/internship`)} 
-            className="flex gap-3"
-          >
-            <Icon icon="tabler:briefcase" height={18} />
-            <span>ข้อมูลการฝึกงาน</span>
-          </Dropdown.Item>
-        </Dropdown>
-      ),
-      header: () => <span></span>,
+          </div>
+        ) : (
+          <span className="text-sm text-gray-500">ยังไม่มีข้อมูล</span>
+        );
+      },
     }),
   ];
  
@@ -295,12 +377,9 @@ const StudentTable = () => {
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    debugTable: true,
-    debugHeaders: true,
-    debugColumns: false,
   });
 
-  if (yearLoading) {
+  if (yearLoading || companyLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Spinner size="xl" />
@@ -309,7 +388,7 @@ const StudentTable = () => {
     );
   }
 
-  if (yearError) {
+  if (yearError || companyError) {
     return (
       <div className="grid w-full max-w-xl items-center h-[80vh] my-auto mx-auto">
         <Alert variant="destructive">
@@ -322,9 +401,109 @@ const StudentTable = () => {
     );
   }
 
+  const studentsWithoutInternship = filteredStudents.filter(s => !s.student.internship).length;
+
   return (
     <>
-      <TitleIconCard title="ข้อมูลนักศึกษา">
+      <div className="mb-4">
+        <Button
+          color="gray"
+          onClick={() => router.back()}
+          className="flex items-center gap-2"
+        >
+          <Icon icon="tabler:arrow-left" height={18} />
+          ย้อนกลับ
+        </Button>
+      </div>
+
+      <TitleIconCard title="เพิ่มข้อมูลการฝึกงานหลายคน">
+        {/* Bulk Action Card */}
+        {selectedStudents.size > 0 && (
+          <Card className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Icon icon="tabler:users" className="text-blue-600" height={24} />
+                  <span className="font-semibold text-blue-900 dark:text-blue-100">
+                    เลือกแล้ว {selectedStudents.size} คน
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  color="gray"
+                  onClick={() => setSelectedStudents(new Set())}
+                >
+                  ยกเลิกทั้งหมด
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-3">
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    สถานประกอบการ <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    value={selectedCompany}
+                    onChange={(e) => setSelectedCompany(e.target.value)}
+                  >
+                    <option value="">เลือกสถานประกอบการ</option>
+                    {companyData?.map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    วันที่เริ่มฝึกงาน
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    วันที่สิ้นสุดฝึกงาน
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+
+                <div className="flex items-end">
+                  <Button
+                    color="primary"
+                    onClick={handleBulkSubmit}
+                    disabled={isSubmitting || !selectedCompany}
+                    className="w-full"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Spinner size="sm" className="mr-2" />
+                        กำลังบันทึก...
+                      </>
+                    ) : (
+                      <>
+                        <Icon icon="tabler:check" height={18} className="mr-2" />
+                        บันทึกข้อมูล ({selectedStudents.size} คน)
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Search and Filter Controls */}
         <div className="flex flex-wrap gap-4 mb-4">
           <div className="flex-1 min-w-[200px]">
@@ -405,34 +584,20 @@ const StudentTable = () => {
           </Select>
         </div>
 
-        {/* Academic Year Selection */}
-        <div className="flex justify-start mb-3">
-          <div className="mx-2 flex items-center">
-            <p className="text-md">
-              ปีการศึกษา: {!selected ? "ทั้งหมด" : `${selectedTerm}/${selectedYear}`}
-            </p>
+        {/* Stats */}
+        <div className="mb-4 flex gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600 dark:text-gray-400">ทั้งหมด:</span>
+            <span className="font-semibold">{filteredStudents.length} คน</span>
           </div>
-        </div>
-
-        {/* Filter Summary */}
-        <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          แสดง {table.getFilteredRowModel().rows.length} จาก {data?.length || 0} รายการ
-         
-          {majorFilter !== "all" && (
-            <span className="ml-2 text-blue-600 dark:text-blue-400">
-              (กรองตามสาขา: {majorFilter})
-            </span>
-          )}
-          {gradeFilter !== "all" && (
-            <span className="ml-2 text-blue-600 dark:text-blue-400">
-              (กรองตามระดับชั้น: {gradeFilter})
-            </span>
-          )}
-          {roomFilter !== "all" && (
-            <span className="ml-2 text-blue-600 dark:text-blue-400">
-              (กรองตามห้อง: {roomFilter})
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600 dark:text-gray-400">ยังไม่มีข้อมูลฝึกงาน:</span>
+            <span className="font-semibold text-orange-600">{studentsWithoutInternship} คน</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600 dark:text-gray-400">มีข้อมูลแล้ว:</span>
+            <span className="font-semibold text-green-600">{filteredStudents.length - studentsWithoutInternship} คน</span>
+          </div>
         </div>
         
         <div className="border rounded-md border-ld overflow-hidden">
@@ -463,11 +628,7 @@ const StudentTable = () => {
           ) : !filteredStudents || filteredStudents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8">
               <Icon icon="tabler:database-off" className="text-gray-400 text-4xl mb-2" />
-              <span className="text-gray-500">
-                {majorFilter === "all" && gradeFilter === "all" && roomFilter === "all"
-                  ? "ไม่พบข้อมูลนักศึกษา"
-                  : "ไม่พบข้อมูลนักศึกษาตามเงื่อนไขที่เลือก"}
-              </span>
+              <span className="text-gray-500">ไม่พบข้อมูลนักศึกษา</span>
             </div>
           ) : (
             <>
@@ -489,7 +650,7 @@ const StudentTable = () => {
                   </thead>
                   <tbody className="divide-y divide-border dark:divide-darkborder">
                     {table.getRowModel().rows.map((row) => (
-                      <tr key={row.id}>
+                      <tr key={row.id} className={row.original.student.internship ? 'bg-gray-50 dark:bg-gray-800/50' : ''}>
                         {row.getVisibleCells().map((cell) => (
                           <td key={cell.id} className="whitespace-nowrap border border-ld py-3 px-4">
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -542,56 +703,55 @@ const StudentTable = () => {
                       }}
                       className="border w-20 rounded px-2 py-1"
                     >
-                      {[10, 15, 20, 25].map((pageSize) => (
+                      {[10, 20, 50, 100].map((pageSize) => (
                         <option key={pageSize} value={pageSize}>
                           {pageSize}
                         </option>
                       ))}
                     </select>
                   </div>
-                  
-                  <div className="flex gap-2 sm:mt-0 mt-3">
-                    <Button
-                      size="small"
-                      onClick={() => table.setPageIndex(0)}
-                      disabled={!table.getCanPreviousPage()}
-                      className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                    >
-                      <IconChevronsLeft className="text-ld" size={20} />
-                    </Button>
-                    <Button
-                      size="small"
-                      onClick={() => table.previousPage()}
-                      disabled={!table.getCanPreviousPage()}
-                      className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                    >
-                      <IconChevronLeft className="text-ld" size={20} />
-                    </Button>
-                    <Button
-                      size="small"
-                      onClick={() => table.nextPage()}
-                      disabled={!table.getCanNextPage()}
-                      className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                    >
-                      <IconChevronRight className="text-ld" size={20} />
-                    </Button>
-                    <Button
-                      size="small"
-                      onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                      disabled={!table.getCanNextPage()}
-                      className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                    >
-                      <IconChevronsRight className="text-ld" size={20} />
-                    </Button>
-                  </div>
+                    <div className="flex gap-1">
+                        <Button
+                            color="gray"
+                            size="sm"
+                            onClick={() => table.setPageIndex(0)}
+                            disabled={!table.getCanPreviousPage()}
+                        >   
+
+                            <IconChevronsLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            color="gray"
+                            size="sm"
+                            onClick={() => table.previousPage()}
+                            disabled={!table.getCanPreviousPage()}
+                        >
+                            <IconChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            color="gray"   
+                            size="sm"
+                            onClick={() => table.nextPage()}
+                            disabled={!table.getCanNextPage()}
+                        >
+                            <IconChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            color="gray"
+                            size="sm"
+                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                            disabled={!table.getCanNextPage()}
+                        >
+                            <IconChevronsRight className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
               </div>
             </>
           )}
         </div>
-      </TitleIconCard>
+        </TitleIconCard>
     </>
   );
-};
-
-export default StudentTable;
+}
+export default BulkInternshipManagement;

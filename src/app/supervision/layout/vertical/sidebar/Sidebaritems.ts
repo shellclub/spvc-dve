@@ -38,7 +38,13 @@ const SidebarContent: MenuItem[] = [
         name: "หน้าแรก",
         icon: 'tabler:home',
         id: uniqueId(),
-        url: "/departments",
+        url: "/supervision",
+      },
+      {
+        name: "ข้อมูลการฝึกงาน",
+        icon: 'tabler:briefcase',
+        id: uniqueId(),
+        url: "/supervision/internship",
       },
       // {
       //   name: "eCommerce",
