@@ -48,35 +48,45 @@ export async function GET(request: NextRequest) {
         id: Number(session.user.id)
       },
       include: {
-        student: {
-          select: { departmentId: true }
+        teacher: {
+          select: { departmentId: true}
         }
       }
     });
 
-    if (!user?.student?.departmentId) {
+    // console.log("user:", user);
+    
+    if (!user) {
       return NextResponse.json(
-        { message: "Department not found" }, 
+        { message: "User not found" }, 
         { status: 404 }
       );
     }
+    if (!user?.teacher?.departmentId) {
+      return NextResponse.json(
+        { message: "User is not associated with any department or majorId" }, 
+        { status: 403 }
+      );
+    }
+
 
     // Build query conditions
     const whereConditions: any = {
-      departmentId: user.student.departmentId,
+      departmentId: user.teacher.departmentId || null,
+      // majorId: user?.teacher?.majorId || null,
     };
 
     // Add term/year filters if provided
     if (year && term) {
-      whereConditions.student = {
-        term: String(term),
-        academicYear: String(year)
-      };
+      whereConditions.term = String(term);
+      whereConditions.academicYear = String(year);
     }
 
     // Get students
     const students = await prisma.user.findMany({
-      where: whereConditions,
+      where: {
+        student: whereConditions
+      },
       orderBy: {
         id: "desc"
       },
@@ -87,18 +97,13 @@ export async function GET(request: NextRequest) {
             inturnship: true,
             department: true,
             major: true
-          }
+          },
         },
       
       }
     });
 
-    if (!students.length) {
-      return NextResponse.json({ message: "No students found" },
-        
-        { status: 404 }
-      );
-    }
+  
 
     // Transform response data
    

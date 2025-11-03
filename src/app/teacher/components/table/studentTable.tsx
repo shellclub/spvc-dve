@@ -140,7 +140,6 @@ const StudentTable = () => {
     return firstName.includes(searchTerm) || lastName.includes(searchTerm) || studentId.includes(searchTerm);
   };
 
-  
   // Filter students based on selected filters
   const filteredStudents = React.useMemo(() => {
     if (!data) return [];
@@ -155,7 +154,7 @@ const StudentTable = () => {
     });
   }, [data, majorFilter, gradeFilter, roomFilter]);
 
-  
+
 
   // Generate available grades
   const availableGrades = React.useMemo(() => {

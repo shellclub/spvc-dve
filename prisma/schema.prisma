@@ -90,7 +90,6 @@ model Student {
   userId         Int        @unique
   education      education_levels @relation(fields: [educationLevel], references: [id])
   educationLevel Int     // เช่น ปวช., ปวส., ป.ตรี
-  companies      companies[]
   major_id      Int?
   major         Major?  @relation(fields: [major_id], references: [id], onDelete: Cascade)
   academicYear   String     // เช่น 2566
@@ -138,11 +137,17 @@ model companies {
   id Int @id @default(autoincrement())
   name String @unique
   address String
-  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId Int? @unique
   userId    Int @unique
   user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("companies")
+}
+
+model studentCompanies {
+  studentId Int
+  companyId Int
+  assignedAt DateTime @default(now())
+  @@id([studentId, companyId])
+  @@map("student_companies")
 }

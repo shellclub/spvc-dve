@@ -1,5 +1,5 @@
 "use client";
-import React, { FormEvent, useEffect, useState } from "react";
+import React, { FormEvent, useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -14,7 +14,7 @@ import {
   FilterFn,
 } from "@tanstack/react-table";
 
-import {  Button, Dropdown, Select, Spinner } from "flowbite-react";
+import {  Button, Dropdown, Modal, ModalBody, ModalHeader, Select, Spinner } from "flowbite-react";
 import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight, IconDots } from "@tabler/icons-react";
 import { Icon } from "@iconify/react";
 import TitleIconCard from "@/app/components/shared/TitleIconCard";
@@ -122,6 +122,11 @@ const StudentTable = () => {
   const [majorFilter, setMajorFilter] = useState<string>("all");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
   const [roomFilter, setRoomFilter] = useState<string>("all");
+  const [formData, setFormData] = useState({
+    id: "",
+    company: ""
+  });
+  const [open, setOpen] = useState(false);
   const router = useRouter();
   const rerender = React.useReducer(() => ({}), {})[1];
   
@@ -130,7 +135,14 @@ const StudentTable = () => {
     !selected ? '/api/students/getByDepartment' : `/api/students/getByDepartment?term=${selectedTerm}&year=${selectedYear}`, 
     fetcher
   );
+
+  const { data: companyData, error: companyError, isLoading: companyLoading } = useSWR('/api/company', fetcher)
   const stdData = data ?? [];
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+
+  };
   // Filter function for name search
   const nameFilterFn: FilterFn<PaginationTableType> = (row, columnId, filterValue) => {
     const searchTerm = filterValue.toLowerCase();
@@ -140,7 +152,6 @@ const StudentTable = () => {
     return firstName.includes(searchTerm) || lastName.includes(searchTerm) || studentId.includes(searchTerm);
   };
 
-  
   // Filter students based on selected filters
   const filteredStudents = React.useMemo(() => {
     if (!data) return [];
@@ -155,7 +166,7 @@ const StudentTable = () => {
     });
   }, [data, majorFilter, gradeFilter, roomFilter]);
 
-  
+
 
   // Generate available grades
   const availableGrades = React.useMemo(() => {
@@ -179,6 +190,8 @@ const StudentTable = () => {
     });
     return Array.from(roomsSet);
   }, [data, majorFilter]);
+
+
 
 
        
@@ -265,6 +278,11 @@ const StudentTable = () => {
         >
           {[
             { 
+              icon: "tabler:plus", 
+              listtitle: "เพิ่มข้อมูลการฝึกงาน", 
+              onclick: () => setOpen(true)
+            },
+            { 
               icon: "tabler:eye", 
               listtitle: "รายละเอียด", 
               onclick: () => router.push(`/departments/students/${info.row.original.id as string}`)
@@ -307,7 +325,7 @@ const StudentTable = () => {
     debugColumns: false,
   });
 
-  if (yearLoading) {
+  if (yearLoading || companyLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Spinner size="xl" />
@@ -316,7 +334,7 @@ const StudentTable = () => {
     );
   }
 
-  if (yearError) {
+  if (yearError || companyError) {
     return (
       <div className="grid w-full max-w-xl items-center h-[80vh] my-auto mx-auto">
         <Alert variant="destructive">
@@ -334,6 +352,22 @@ const StudentTable = () => {
       <TitleIconCard title="ข้อมูลนักศึกษา">
         {/* Search and Filter Controls */}
         <div className="flex flex-wrap gap-4 mb-4">
+           <Modal show={open} size="3xl" onClose={() => setOpen(false)} popup>
+                       <ModalHeader />
+                       <ModalBody>
+                       <div className="space-y-6">
+                         <h3 className="text-xl font-medium text-gray-900 dark:text-white">จัดการข้อมูลแผนกวิชา</h3>
+                         <form onSubmit={handleSubmit}>
+                           <div className="mb-3">
+                            {/* model body */}
+                           </div>
+                           <div className="w-full flex mt-6 text-end justify-end">
+                               <Button type="submit">ส่งข้อมูล</Button>
+                           </div>
+                         </form>
+                       </div>
+                       </ModalBody>
+                     </Modal> 
           <div className="flex-1 min-w-[200px]">
             <Input
               placeholder="ค้นหาชื่อ นามสกุล หรือรหัสนักศึกษา..."
