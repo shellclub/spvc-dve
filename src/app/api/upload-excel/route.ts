@@ -13,7 +13,7 @@ interface ExcelRow {
   phone: string;
   sex: number;
   birthday: string;
-  departmentId: number;
+  dep_name: number;
   username?: string;
   password?: string;
   studentId: string;
@@ -33,7 +33,7 @@ const columnHeaderMap: Record<string, string> = {
   "เบอร์โทร": "phone",
   "เพศ": "sex",
   "วันเกิด": "birthday",
-  "แผนก": "departmentId",
+  "แผนก": "dep_name",
   "รูปภาพ": "user_img",
   "รหัสนักศึกษา": "studentId",
   "ระดับการศึกษา": "educationlevel",
@@ -46,11 +46,11 @@ const columnHeaderMap: Record<string, string> = {
 
 const requiredUserFields = [
   "firstname", "lastname", "citizenId", "phone", "sex",
-  "birthday", "departmentId", "user_img"
+  "birthday", "dep_name"
 ];
 
 const requiredStudentFields = [
-  "studentId", "educationlevel", "major", "academicyear", "gradelevel"
+  "studentId", "educationlevel", "major","dep_name", "academicyear", "gradelevel","term","room"
 ];
 
 // Validation functions
@@ -68,10 +68,6 @@ function validateCitizenId(citizenId: string): boolean {
 function validatePhone(phone: string): boolean {
   // Thai phone number validation
   return /^[0-9]{10}$/.test(phone.replace(/[-\s]/g, ''));
-}
-
-function validateEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function sanitizeData(data: any): any {
@@ -210,12 +206,19 @@ export async function POST(req: Request) {
         errors.push(`แถว ${rowIndex + 2}: เบอร์โทรศัพท์ไม่ถูกต้อง`);
         continue;
       }
-      
+
+      if(sanitized.sex === 'ชาย'){
+        sanitized.sex = 1;
+      } else if(sanitized.sex === 'หญิง'){
+        sanitized.sex = 2;
+      }
       // Validate sex (1 = male, 2 = female)
       if (![1, 2].includes(Number(sanitized.sex))) {
-        errors.push(`แถว ${rowIndex + 2}: เพศต้องเป็น 1 (ชาย) หรือ 2 (หญิง)`);
+        errors.push(`แถว ${rowIndex + 2}: เพศต้องเป็น ชาย หรือ หญิง`);
         continue;
       }
+
+      
       
       processedData.push(sanitized as ExcelRow);
     }
@@ -271,10 +274,27 @@ export async function POST(req: Request) {
             let birthday: Date;
             try {
               if (typeof row.birthday === 'number') {
+                // ส่วนนี้จัดการ Excel Serial Date (น่าจะคืนค่าเป็น ค.ศ. อยู่แล้ว)
                 birthday = new Date(excelSerialToDate(row.birthday));
               } else {
-                birthday = dayjs(row.birthday).toDate();
+                // ส่วนนี้สำหรับข้อความ (เช่น "10/05/2540")
+                const tempDate = dayjs(row.birthday);
+          
+                // ตรวจสอบว่าวันที่ถูกต้อง และปีที่ได้มีค่าสูง (น่าจะเป็น พ.ศ.)
+                if (tempDate.isValid() && tempDate.year() > 2400) {
+                  // ถ้าใช่ ให้ลบ 543 ปี เพื่อแปลงเป็น ค.ศ.
+                  birthday = tempDate.subtract(543, 'year').toDate();
+                } else {
+                  // ถ้าไม่ใช่ (เป็น ค.ศ. อยู่แล้ว หรือ format ผิด)
+                  birthday = tempDate.toDate();
+                }
               }
+          
+              // (เพิ่มการตรวจสอบ Invalid Date หลังการแปลงค่า)
+              if (isNaN(birthday.getTime())) {
+                throw new Error("Invalid date after processing");
+              }
+          
             } catch (error) {
               console.error(`Invalid birthday format for student ${row.studentId}:`, row.birthday);
               errorCount++;
@@ -290,15 +310,21 @@ export async function POST(req: Request) {
                 phone: String(row.phone).replace(/[-\s]/g, ''),
                 sex: Number(row.sex),
                 birthday: birthday,
-                role: 3, // Student role
-                user_img: String(row.user_img || ''),
+                role: 7, // Student role
+                user_img: String(row.user_img || 'avatar.jpg'),
                 student: {
                   create: {
                     studentId: String(row.studentId),
-                    educationLevel: Number(row.educationlevel),
-                    major_id: Number(row.major),
+                    education: { 
+                      connect: { name: String(row.educationlevel) } 
+                    },
+                    major: { 
+                      connect: { major_name: String(row.major) } 
+                    },
                     academicYear: String(row.academicyear),
-                    departmentId: Number(row.departmentId),
+                    department: {
+                      connect: { depname: String(row.dep_name) }
+                    },
                     room: String(row.room || ''),
                     term: String(row.term || ''),
                     gradeLevel: String(row.gradelevel),

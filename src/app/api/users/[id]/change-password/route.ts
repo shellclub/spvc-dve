@@ -129,29 +129,29 @@ export async function PUT(
     }
 }
 
-export async function POST(request: NextRequest,{ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params;
-    const { password } = await request.json();
+// export async function POST(request: NextRequest,{ params }: { params: Promise<{ id: string }> }) {
+//     const { id } = await params;
+//     const { password } = await request.json();
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+//     const hashedPassword = await bcrypt.hash(password, 10);
 
     
 
-    const updatePassword = await prisma.user.update({
-        where: { id: Number(id) },
-        data: {
-            login: {
-                update: {
-                    password: hashedPassword
-                }
-            }
-        },
-        include: {
-            login: true
-        }
-    });
-    if (!updatePassword) {
-        return NextResponse.json({ message: "โปรดลองใหม่ภายหลัง", type: "error" }, { status: 400 });
-    }
-    return NextResponse.json({ message: "รีเซ็ตรหัสผ่านสำเร็จ", type: "success" }, { status: 200 });
-}   
+//     const updatePassword = await prisma.user.update({
+//         where: { id: Number(id) },
+//         data: {
+//             login: {
+//                 update: {
+//                     password: hashedPassword
+//                 }
+//             }
+//         },
+//         include: {
+//             login: true
+//         }
+//     });
+//     if (!updatePassword) {
+//         return NextResponse.json({ message: "โปรดลองใหม่ภายหลัง", type: "error" }, { status: 400 });
+//     }
+//     return NextResponse.json({ message: "รีเซ็ตรหัสผ่านสำเร็จ", type: "success" }, { status: 200 });
+// }   

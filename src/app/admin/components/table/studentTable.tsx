@@ -90,14 +90,19 @@ export interface PaginationTableType {
 interface AddStudentDialogProps {
   onSuccess?: () => void;
 }
-
+const gender_options: {[key: number]: string} = {
+  1: "นาย",
+  2: "นางสาว",
+}
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 const columnHelper = createColumnHelper<PaginationTableType>();
-
 const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
+  
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
+
+
   const router = useRouter();  
   const { data: majorData, isLoading: ismajorsLoading } = useSWR(
     "/api/major",
@@ -470,7 +475,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
             className="h-10 w-10 rounded-xl"
           />
           <div className="truncate line-clamp-2 max-w-56">
-            <h6 className="text-base">{`${info.getValue().firstname} ${
+            <h6 className="text-base">{`${gender_options[Number(info.getValue().sex) ?? 0] || "ไม่ทราบเพศ"}${info.getValue().firstname} ${
               info.getValue().lastname
             }`}</h6>
             <p className="text-sm text-darklink dark:text-bodytext">
@@ -479,7 +484,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
           </div>
         </div>
       ),
-      header: () => <span>ผู้ใช้</span>,
+      header: () => <span>ชื่อ-นามสกุล</span>,
     }),
     columnHelper.accessor("user.sex", {
       cell: (info) => (

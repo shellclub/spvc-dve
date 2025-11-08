@@ -128,6 +128,7 @@ const StudentTable = () => {
 
   const stdData = data ?? [];
 
+  
   // Filter function for name search
   const nameFilterFn: FilterFn<PaginationTableType> = (row, columnId, filterValue) => {
     const searchTerm = filterValue.toLowerCase();
@@ -255,19 +256,13 @@ const StudentTable = () => {
           )}
         >
           <Dropdown.Item 
-            onClick={() => router.push(`/supervision/students/${info.row.original.id as string}`)} 
+            onClick={() => router.push(`/supervision/students/${info.row.original.student.id as string}`)} 
             className="flex gap-3"
           >
             <Icon icon="tabler:eye" height={18} />
             <span>รายละเอียด</span>
           </Dropdown.Item>
-          <Dropdown.Item 
-            onClick={() => router.push(`/supervision/students/${info.row.original.id as string}/internship`)} 
-            className="flex gap-3"
-          >
-            <Icon icon="tabler:briefcase" height={18} />
-            <span>ข้อมูลการฝึกงาน</span>
-          </Dropdown.Item>
+          
         </Dropdown>
       ),
       header: () => <span></span>,

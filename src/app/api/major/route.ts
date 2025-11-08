@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     const body = await request.json() as Prisma.MajorCreateInput;
-    console.log(body.major_name, body.department);
     
     if(!body.major_name || !body.department) {
         return NextResponse.json({message: 'กรุณาตรวจสอบข้อมูลอีกครั้ง', type: "error"}, { status: 400})

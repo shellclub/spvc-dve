@@ -1,3 +1,4 @@
+import { studentCompanies } from './../../../../../node_modules/.prisma/client/index.d';
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
@@ -30,12 +31,13 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     
     // Validate session
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json(
         { message: "Unauthorized" }, 
         { status: 401 }
       );
     }
+    
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
@@ -53,8 +55,6 @@ export async function GET(request: NextRequest) {
         }
       }
     });
-
-    // console.log("user:", user);
     
     if (!user) {
       return NextResponse.json(
@@ -96,7 +96,12 @@ export async function GET(request: NextRequest) {
             education: true,
             inturnship: true,
             department: true,
-            major: true
+            major: true,
+            studentCompanies: {
+              include: {
+                company: true
+              }
+            },
           },
         },
       

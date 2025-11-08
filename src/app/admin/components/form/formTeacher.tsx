@@ -492,15 +492,18 @@ const FormTeacher: React.FC<FormStudnetProps> = ({id}) => {
                     <span className="text-red-500">{errors.role}</span>
 
                   </FormRow>
-                  <FormRow label="แผนกวิชา" htmlFor="department">
-                    <Select id="departmentId" value={formData.departmentId !== null ? String(formData.departmentId) : ""} onChange={handleSelectChange}>
-                      <option hidden value="">เลือกแผนกวิชา</option>
-                      {departments?.map((dep) => (
-                        <option value={dep.id} key={dep.id}>{dep.depname}</option>
-                      ))}
-                    </Select>
-                    <span className="text-red-500">{errors.departmentId}</span>
-                  </FormRow>
+                  { formData.role !== 2 && (
+                                    <FormRow label="แผนกวิชา" htmlFor="department">
+                                    <Select id="departmentId" value={formData.departmentId !== null ? String(formData.departmentId) : ""} onChange={handleSelectChange}>
+                                      <option hidden value="">เลือกแผนกวิชา</option>
+                                      {departments?.map((dep) => (
+                                        <option value={dep.id} key={dep.id}>{dep.depname}</option>
+                                      ))}
+                                    </Select>
+                                    <span className="text-red-500">{errors.departmentId}</span>
+                                  </FormRow>
+                                  )  
+                  }
                  
                   { (formData.role === 4 || formData.role === 5) && (
                     <>
