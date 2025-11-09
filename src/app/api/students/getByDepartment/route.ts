@@ -1,4 +1,3 @@
-import { studentCompanies } from './../../../../../node_modules/.prisma/client/index.d';
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
@@ -99,7 +98,12 @@ export async function GET(request: NextRequest) {
             major: true,
             studentCompanies: {
               include: {
-                company: true
+                company: true,
+                supervisions: {
+                  select: {
+                    studentId: true
+                  }
+                }
               }
             },
           },
@@ -110,7 +114,7 @@ export async function GET(request: NextRequest) {
 
   
 
-    // Transform response data
+
    
     return NextResponse.json(students);
 

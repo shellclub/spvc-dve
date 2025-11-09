@@ -14,14 +14,13 @@ import {
   type FilterFn,
 } from "@tanstack/react-table"
 
-import { Button, Select, Spinner, Card } from "flowbite-react"
+import { Button, Select, Spinner, Card, Textarea } from "flowbite-react"
 import {
-  IconBuilding,
   IconChevronLeft,
   IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
-  IconPlus,
+  IconClipboardText, // ไอคอนสำหรับการนิเทศ
 } from "@tabler/icons-react"
 import { Icon } from "@iconify/react"
 import TitleIconCard from "@/app/components/shared/TitleIconCard"
@@ -34,7 +33,6 @@ import { Checkbox } from "@/app/components/shadcn-ui/Default-Ui/checkbox"
 import { Alert, AlertTitle } from "@/app/components/shadcn-ui/Default-Ui/alert"
 import { AlertCircleIcon, CheckCircle2 } from "lucide-react"
 import { showToast } from "@/app/components/sweetalert/sweetalert"
-import { validateThaiID } from "@/lib/thaiIdVaildate"
 import { Label } from "@/app/components/shadcn-ui/Default-Ui/label"
 import {
   Dialog,
@@ -46,12 +44,13 @@ import {
   DialogTrigger,
 } from "@/app/components/shadcn-ui/Default-Ui/dialog"
 
+// Interface สำหรับข้อมูลนักศึกษา
 interface PaginationTableType {
   id?: string
   citizenId: string
   user_img: string
   student: {
-    id: string
+    id: string // เราจะใช้ ID นี้ในการส่งข้อมูล
     studentId: string
     term: string
     education: {
@@ -73,12 +72,16 @@ interface PaginationTableType {
       company: {
         name: string
       }
+      supervisions: {
+        studentId: string
+      }[],
     }[]
   }
   firstname?: string
   lastname?: string
 }
 
+// Interface สำหรับปีการศึกษา
 type TermYear = {
   term: string
   academicYear: string
@@ -87,6 +90,7 @@ type TermYear = {
 const columnHelper = createColumnHelper<PaginationTableType>()
 const fetcher = async (url: string) => await fetch(url).then((res) => res.json())
 
+// Component แสดงแถว Skeleton ขณะโหลด
 const SkeletonRow = () => (
   <tr className="border-b border-ld">
     <td className="py-3 px-4">
@@ -116,125 +120,129 @@ const SkeletonRow = () => (
   </tr>
 )
 
-const BulkInternshipManagement = () => {
+// Component หลัก
+const SuperviseTable = () => {
+  // States สำหรับตาราง
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState("")
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+
+  // States สำหรับ Filter
   const [selected, setSelected] = useState<boolean>(false)
   const [selectedYear, setSelectedYear] = useState<string>("")
   const [selectedTerm, setSelectedTerm] = useState<string>("")
   const [majorFilter, setMajorFilter] = useState<string>("all")
   const [gradeFilter, setGradeFilter] = useState<string>("all")
   const [roomFilter, setRoomFilter] = useState<string>("all")
+
+  // State สำหรับนักศึกษาที่ถูกเลือก
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set())
 
-  const [openAdd, setOpenAdd] = useState(false)
-
+  // States สำหรับ Dialog การนิเทศ
+  const [openSupervisionDialog, setOpenSupervisionDialog] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const rerender = React.useReducer(() => ({}), {})[1]
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    firstname: "",
-    lastname: "",
-    phone: "",
-    citizenId: "",
-    studentIds: [] as string[],
-    startDate: "",
-    endDate: "",
+
+  // State สำหรับฟอร์มข้อมูลการนิเทศ
+  const [supervisionData, setSupervisionData] = useState({
+    notes: "",
+    supervisionDate: new Date().toISOString().split("T")[0], // ค่าเริ่มต้นเป็นวันนี้
+    supervisionType: "ON_SITE",
   })
 
-  const handleInputChange = (name: string, value: string) => {
-    setFormData((prev) => ({
+  // Handler เมื่อข้อมูลในฟอร์มการนิเทศเปลี่ยนแปลง
+  const handleSupervisionChange = (name: string, value: string) => {
+    setSupervisionData((prev) => ({
       ...prev,
       [name]: value,
     }))
   }
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      address: "",
-      firstname: "",
-      lastname: "",
-      phone: "",
-      studentIds: [],
-      citizenId: "",
-      startDate: "",
-      endDate: "",
+  // Reset ฟอร์มการนิเทศ
+  const resetSupervisionForm = () => {
+    setSupervisionData({
+      notes: "",
+      supervisionDate: new Date().toISOString().split("T")[0],
+      supervisionType: "ON_SITE",
     })
   }
 
-  
+  // Handler สำหรับการ Submit ฟอร์มการนิเทศ
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     const studentIds = Array.from(selectedStudents)
 
-    // 1. ตรวจสอบว่ามีนักศึกษาถูกเลือกหรือไม่ (แม้ว่า UI จะบังคับก็ตาม)
+    // ตรวจสอบข้อมูล
     if (studentIds.length === 0) {
-      showToast("กรุณาเลือกนักศึกษาที่ต้องการเพิ่มข้อมูล", "warning")
+      showToast("กรุณาเลือกนักศึกษาที่ต้องการบันทึกการนิเทศ", "warning")
       setLoading(false)
       return
     }
-
-    // 2. ตรวจสอบเลขบัตรประชาชน
-    if (!validateThaiID(formData.citizenId)) {
-      showToast("เลขบัตรประจำตัวประชาชนไม่ถูกต้อง", "warning")
+    if (!supervisionData.supervisionDate) {
+      showToast("กรุณากรอกข้อมูลการนิเทศให้ครบถ้วน (วันที่)", "warning")
       setLoading(false)
       return
     }
 
     try {
-      // 3. ส่งข้อมูลไปยัง API
-      formData.studentIds = studentIds
-      const response = await fetch("/api/company", {
-        // หมายเหตุ: API endpoint นี้ของคุณ ต้องรองรับการรับ "studentIds" ด้วย
+      // ส่งข้อมูลไปยัง API Route
+      const response = await fetch("/api/supervision/bulk", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...formData,
+          studentIds: studentIds,
+          ...supervisionData,
         }),
       })
 
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.message || "เกิดข้อผิดพลาดในการเพิ่มข้อมูล")
+        if (response.status === 401) {
+          router.push("/signin")
+        }
+        throw new Error(result.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล")
       }
 
-      // 4. จัดการเมื่อสำเร็จ
-      showToast("เพิ่มข้อมูลสถานประกอบการและนักศึกษาเรียบร้อยแล้ว", "success")
-      resetForm()
-      setSelectedStudents(new Set()) // <-- เพิ่ม: ล้างรายชื่อนักศึกษาที่เลือก
-      setOpenAdd(false) // <-- เพิ่ม: ปิด Dialog หลังจากบันทึกสำเร็จ
-      mutate() // <-- โหลดข้อมูลตารางใหม่
+      // เมื่อสำเร็จ
+      showToast(`บันทึกการนิเทศสำหรับนักศึกษา ${studentIds.length} คนเรียบร้อยแล้ว`, "success")
+      resetSupervisionForm()
+      setSelectedStudents(new Set())
+      setOpenSupervisionDialog(false)
+      mutate() // โหลดข้อมูลตารางใหม่
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการเพิ่มข้อมูล", "error")
+      showToast(error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการบันทึกข้อมูล", "error")
     } finally {
       setLoading(false)
     }
   }
+
+  // SWR Hooks สำหรับดึงข้อมูล
   const {
     data: academicYears,
     error: yearError,
     isLoading: yearLoading,
   } = useSWR<TermYear[]>("/api/academic_year", fetcher)
+
   const { data, error, isLoading, mutate } = useSWR<PaginationTableType[]>(
     !selected
-      ? "/api/students/getByDepartment"
-      : `/api/students/getByDepartment?term=${selectedTerm}&year=${selectedYear}`,
+      ? "/api/students/getByDepartment" // ดึงข้อมูลนักเรียนทั้งหมด
+      : `/api/students/getByDepartment?term=${selectedTerm}&year=${selectedYear}`, // ดึงตามปีการศึกษา
     fetcher,
   )
-  // const { data: companyData, error: companyError, isLoading: companyLoading } = useSWR<Company[]>('/api/company', fetcher);
+
+  // !!! SWR นี้สำหรับดึงข้อมูลอาจารย์มาใส่ใน Dropdown !!!
+  // const { data: teachers, error: teacherError } = useSWR<any[]>('/api/teachers', fetcher);
 
   const stdData = data ?? []
 
+  // Filter Function สำหรับการค้นหาชื่อ/รหัส
   const nameFilterFn: FilterFn<PaginationTableType> = (row, columnId, filterValue) => {
     const searchTerm = filterValue.toLowerCase()
     const firstName = row.original.firstname?.toLowerCase() || ""
@@ -243,10 +251,16 @@ const BulkInternshipManagement = () => {
     return firstName.includes(searchTerm) || lastName.includes(searchTerm) || studentId.includes(searchTerm)
   }
 
+  // กรองข้อมูลนักศึกษา (แสดงเฉพาะคนที่มีที่ฝึกงานแล้ว)
   const filteredStudents = useMemo(() => {
     if (!data) return []
 
     return data.filter((student) => {
+      // ตรรกะสำคัญ: ต้องมีที่ฝึกงานแล้วเท่านั้น
+      const hasInternship = student.student.studentCompanies && student.student.studentCompanies.length > 0
+      if (!hasInternship) return false // ถ้าไม่มีที่ฝึกงาน ให้ข้ามไปเลย
+
+      // ตรรกะการกรองอื่นๆ (สาขา, ระดับชั้น, ห้อง)
       const matchesMajor = majorFilter === "all" || student.student.major.major_name === majorFilter
       const studentGradeCombo = `${student.student.education.name}.${student.student.gradeLevel}`
       const matchesGrade = gradeFilter === "all" || studentGradeCombo === gradeFilter
@@ -256,6 +270,7 @@ const BulkInternshipManagement = () => {
     })
   }, [data, majorFilter, gradeFilter, roomFilter])
 
+  // ดึงข้อมูล "ระดับชั้น" ที่ไม่ซ้ำกันสำหรับ Dropdown
   const availableGrades = useMemo(() => {
     if (!data) return []
     const gradesSet = new Set<string>()
@@ -266,6 +281,7 @@ const BulkInternshipManagement = () => {
     return Array.from(gradesSet).sort()
   }, [data])
 
+  // ดึงข้อมูล "ห้อง" ที่ไม่ซ้ำกันสำหรับ Dropdown
   const availableRooms = useMemo(() => {
     if (!data) return []
     const roomsSet = new Set<string>()
@@ -277,70 +293,68 @@ const BulkInternshipManagement = () => {
     return Array.from(roomsSet)
   }, [data, majorFilter])
 
+  // Handler เมื่อกด "เลือกทั้งหมด"
   const handleSelectAll = (checked: boolean) => {
-    setSelectedStudents(() => {
-      if (!checked) return new Set()
-
-      const selectableIds = table
-        .getFilteredRowModel()
-        .rows.filter(
-          (row) => !row.original.student.studentCompanies || row.original.student.studentCompanies.length === 0,
-        )
-        .map((row) => String(row.original.student.id))
-
-      return new Set(selectableIds)
-    })
-  }
-
-  const handleSelectStudent = (id: string, checked: boolean) => {
-    setSelectedStudents((prev) => {
-      const newSet = new Set(prev)
-      if (checked) newSet.add(id)
-      else newSet.delete(id)
-      return newSet
-    })
-  }
-  const handleDialogClose = () => {
-    setOpenAdd(false)
-    if (!loading) {
-      resetForm()
+    if (checked) {
+      const allStudentIds = new Set(filteredStudents.map((s) => String(s.student.id)))
+      setSelectedStudents(allStudentIds)
+    } else {
+      setSelectedStudents(new Set())
     }
   }
 
+  // Handler เมื่อเลือกนักศึกษาทีละคน
+  const handleSelectStudent = (studentId: string, checked: boolean) => {
+    const newSelected = new Set(selectedStudents)
+    if (checked) {
+      newSelected.add(studentId)
+    } else {
+      newSelected.delete(studentId)
+    }
+    setSelectedStudents(newSelected)
+  }
+
+  // Handler ปิด Dialog
+  const handleDialogClose = () => {
+    setOpenSupervisionDialog(false)
+    if (!loading) {
+      resetSupervisionForm()
+    }
+  }
+
+  // กำหนดคอลัมน์สำหรับตาราง
   const columns = [
-    columnHelper.display({
-      id: "select",
-      header: ({ table }) => {
-        const availableStudents = table
-          .getFilteredRowModel()
-          .rows.filter(
-            (row) => !row.original.student.studentCompanies || row.original.student.studentCompanies.length === 0,
-          )
-        const allSelected =
-          availableStudents.length > 0 &&
-          availableStudents.every((row) => selectedStudents.has(String(row.original.student.id)))
+  columnHelper.display({
+    id: "select",
+    header: ({ table }) => {
+      const totalRows = table.getFilteredRowModel().rows.length;
+      const isAllSelected = totalRows > 0 && selectedStudents.size === totalRows;
 
-        return (
-          <Checkbox
-            checked={allSelected}
-            onCheckedChange={(checked) => handleSelectAll(!!checked)}
-            disabled={availableStudents.length === 0}
-          />
-        )
-      },
-      cell: (info) => {
-        const hasInternship =
-          info.row.original.student.studentCompanies && info.row.original.student.studentCompanies.length > 0
-
-        return (
-          <Checkbox
-            checked={selectedStudents.has(String(info.row.original.student.id))}
-            onCheckedChange={(checked) => handleSelectStudent(String(info.row.original.student.id), !!checked)}
-            disabled={hasInternship}
-          />
-        )
-      },
-    }),
+      return (
+        <Checkbox
+          checked={isAllSelected}
+          onCheckedChange={(checked) => {
+        
+            if (checked) {
+              const allStudentIds = new Set(filteredStudents.map((s) => String(s.student.id)))
+              setSelectedStudents(allStudentIds)
+            } else {
+              setSelectedStudents(new Set())
+            }
+          }}
+          disabled={totalRows === 0}
+        />
+      )
+    },
+    cell: (info) => {
+      return (
+        <Checkbox
+          checked={selectedStudents.has(String(info.row.original.student.id))}
+          onCheckedChange={(checked) => handleSelectStudent(String(info.row.original.student.id), !!checked)}
+        />
+      )
+    },
+  }),
     columnHelper.display({
       id: "index",
       header: () => <span>#</span>,
@@ -392,7 +406,9 @@ const BulkInternshipManagement = () => {
       id: "education",
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${info.getValue()}.${info.row.original.student.gradeLevel}/${info.row.original.student.room}`}</h6>
+          <h6 className="text-base">{`${info.getValue()}.${
+            info.row.original.student.gradeLevel
+          }/${info.row.original.student.room}`}</h6>
           <p className="text-sm text-darklink dark:text-bodytext">
             ปีการศึกษา: {`${info.row.original.student.term}/${info.row.original.student.academicYear}`}
           </p>
@@ -400,18 +416,22 @@ const BulkInternshipManagement = () => {
       ),
       header: () => <span>ระดับชั้น</span>,
     }),
+    
     columnHelper.display({
-      id: "status",
+      id: "supervision-status",
       header: () => <span>สถานะ</span>,
       cell: (info) => {
         const internshipArray = info.row.original.student.studentCompanies
-        const hasInternship = internshipArray && internshipArray.length > 0
-        const companyName = hasInternship && internshipArray[0]?.company?.name
-
-        return hasInternship ? (
+        const hasSupervision =
+          internshipArray &&
+          internshipArray.length > 0 &&
+          internshipArray[0].supervisions &&
+          internshipArray[0].supervisions.length > 0
+        
+        return hasSupervision ? (
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <span className="text-sm text-green-700 font-medium">{companyName || "ไม่ระบุชื่อบริษัท"}</span>
+            <span className="text-sm text-green-700 font-medium">นิเทศแล้ว { internshipArray[0].supervisions.length } ครั้ง</span>
           </div>
         ) : (
           <span className="text-sm text-gray-500">ยังไม่มีข้อมูล</span>
@@ -420,8 +440,9 @@ const BulkInternshipManagement = () => {
     }),
   ]
 
+  // สร้างตาราง
   const table = useReactTable({
-    data: filteredStudents,
+    data: filteredStudents, // ใช้ data ที่กรองแล้ว (เฉพาะคนมีที่ฝึกงาน)
     columns,
     filterFns: {
       nameFilter: nameFilterFn,
@@ -443,6 +464,7 @@ const BulkInternshipManagement = () => {
     getPaginationRowModel: getPaginationRowModel(),
   })
 
+  // UI ขณะโหลดข้อมูลปีการศึกษา
   if (yearLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -452,6 +474,7 @@ const BulkInternshipManagement = () => {
     )
   }
 
+  // UI เมื่อเกิด Error
   if (yearError) {
     return (
       <div className="grid w-full max-w-xl items-center h-[80vh] my-auto mx-auto">
@@ -463,10 +486,7 @@ const BulkInternshipManagement = () => {
     )
   }
 
-  const studentsWithoutInternship = filteredStudents.filter(
-    (s) => !s.student.studentCompanies || s.student.studentCompanies.length === 0,
-  ).length
-
+  // UI หลัก
   return (
     <>
       <div className="mb-4">
@@ -476,16 +496,16 @@ const BulkInternshipManagement = () => {
         </Button>
       </div>
 
-      <TitleIconCard title="เพิ่มข้อมูลการฝึกงานหลายคน">
-        {/* Bulk Action Card */}
+      <TitleIconCard title="บันทึกการนิเทศนักศึกษา (เลือกหลายคน)">
+        {/* แถบ Action เมื่อมีการเลือกนักศึกษา */}
         {selectedStudents.size > 0 && (
           <Card className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Icon icon="tabler:users" className="text-blue-600" height={24} />
+                  <Icon icon="tabler:clipboard-check" className="text-blue-600" height={24} />
                   <span className="font-semibold text-blue-900 dark:text-blue-100">
-                    เลือกแล้ว {selectedStudents.size} คน
+                    เลือกแล้ว {selectedStudents.size} คน (พร้อมสำหรับการนิเทศ)
                   </span>
                 </div>
                 <Button size="sm" color="gray" onClick={() => setSelectedStudents(new Set())}>
@@ -493,128 +513,75 @@ const BulkInternshipManagement = () => {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Dialog open={openAdd} onOpenChange={setOpenAdd}>
+              {/* ปุ่มเปิด Dialog สำหรับบันทึกการนิเทศ */}
+              <div>
+                <Dialog open={openSupervisionDialog} onOpenChange={setOpenSupervisionDialog}>
                   <DialogTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                      <IconPlus size={16} className="mr-2" />
-                      เพิ่มสถานประกอบการ
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto">
+                      <IconClipboardText size={16} className="mr-2" />
+                      บันทึกการนิเทศ
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+                  <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
-                        <IconBuilding size={20} />
-                        เพิ่มข้อมูลสถานประกอบการใหม่
+                        <IconClipboardText size={20} />
+                        บันทึกข้อมูลการนิเทศ
                       </DialogTitle>
-                      <DialogDescription>กรอกข้อมูลสถานประกอบการใหม่ให้ครบถ้วน</DialogDescription>
+                      <DialogDescription>
+                        ข้อมูลนี้จะถูกบันทึกให้กับนักศึกษาที่เลือกทั้งหมด {selectedStudents.size} คน
+                      </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      {/* Company Information */}
-                      <div className="space-y-2">
-                        <Label htmlFor="name">ชื่อสถานประกอบการ *</Label>
-                        <Input
-                          id="name"
-                          value={formData.name}
-                          onChange={(e) => handleInputChange("name", e.target.value)}
-                          placeholder="ชื่อสถานประกอบการ"
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="address">ที่อยู่ *</Label>
-                        <Input
-                          id="address"
-                          value={formData.address}
-                          onChange={(e) => handleInputChange("address", e.target.value)}
-                          placeholder="ที่อยู่สถานประกอบการ"
-                          required
-                        />
-                      </div>
+                    {/* ฟอร์มสำหรับบันทึกการนิเทศ */}
+                    <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+                      {/* เลือกวันที่ และ ประเภท */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            วันที่เริ่มฝึกงาน
-                          </label>
-                          <input
-                            type="date"
-                            value={formData.startDate}
-                            onChange={(e) => handleInputChange("startDate", e.target.value)}
-                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            วันที่สิ้นสุดฝึกงาน
-                          </label>
-                          <input
-                            type="date"
-                            value={formData.endDate}
-                            onChange={(e) => handleInputChange("endDate", e.target.value)}
-                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Contact Person Information */}
-                      <div className="border-t pt-4">
-                        <h3 className="text-sm font-semibold mb-3">ข้อมูลผู้ติดต่อ</h3>
-
-                        <div className="space-y-2 mb-3">
-                          <Label htmlFor="citizenId">เลขบัตรประจำตัวประชาชน *</Label>
+                        <div className="space-y-2">
+                          <Label htmlFor="supervisionDate">วันที่นิเทศ *</Label>
                           <Input
-                            id="citizenId"
-                            value={formData.citizenId}
-                            onChange={(e) => handleInputChange("citizenId", e.target.value)}
-                            placeholder="เลขบัตรประจำตัวประชาชน"
-                            inputMode="numeric"
+                            id="supervisionDate"
+                            type="date"
+                            value={supervisionData.supervisionDate}
+                            onChange={(e) => handleSupervisionChange("supervisionDate", e.target.value)}
                             required
                           />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="firstname">ชื่อ *</Label>
-                            <Input
-                              id="firstname"
-                              value={formData.firstname}
-                              onChange={(e) => handleInputChange("firstname", e.target.value)}
-                              placeholder="ชื่อ"
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="lastname">นามสกุล *</Label>
-                            <Input
-                              id="lastname"
-                              value={formData.lastname}
-                              onChange={(e) => handleInputChange("lastname", e.target.value)}
-                              placeholder="นามสกุล"
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 mt-3">
-                          <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
-                          <Input
-                            id="phone"
-                            value={formData.phone}
-                            onChange={(e) => handleInputChange("phone", e.target.value)}
-                            placeholder="เบอร์โทรศัพท์"
-                          />
+                        <div className="space-y-2">
+                          <Label htmlFor="supervisionType">ประเภทการนิเทศ *</Label>
+                          <Select
+                            id="supervisionType"
+                            value={supervisionData.supervisionType}
+                            onChange={(e) => handleSupervisionChange("supervisionType", e.target.value)}
+                            required
+                          >
+                            <option value="ON_SITE">ไปนิเทศที่บริษัท (ON_SITE)</option>
+                            <option value="ONLINE">นิเทศออนไลน์ (ONLINE)</option>
+                            <option value="PHONE">โทรศัพท์ติดตามผล (PHONE)</option>
+                          </Select>
                         </div>
                       </div>
 
+                      {/* บันทึกข้อเสนอแนะ */}
+                      <div className="space-y-2">
+                        <Label htmlFor="notes">บันทึก/ข้อเสนอแนะ</Label>
+                        <Textarea
+                          id="notes"
+                          value={supervisionData.notes}
+                          onChange={(e) => handleSupervisionChange("notes", e.target.value)}
+                          placeholder="เช่น การปรับตัวของนักศึกษา, ปัญหาที่พบ, ข้อเสนอแนะจากพี่เลี้ยง..."
+                          rows={4}
+                          className="block w-full text-sm"
+                        />
+                      </div>
+
                       <DialogFooter className="gap-2">
-                        <Button type="button" onClick={handleDialogClose} disabled={loading}>
+                        <Button type="button" color="gray" onClick={handleDialogClose} disabled={loading}>
                           ยกเลิก
                         </Button>
-                        <Button type="submit" disabled={loading}>
-                          {loading ? "กำลังเพิ่มข้อมูล..." : "เพิ่มข้อมูล"}
+                        <Button type="submit" disabled={loading} color="primary">
+                          {loading ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
                         </Button>
                       </DialogFooter>
                     </form>
@@ -625,7 +592,7 @@ const BulkInternshipManagement = () => {
           </Card>
         )}
 
-        {/* Search and Filter Controls */}
+        {/* ส่วนควบคุมการค้นหาและ Filter */}
         <div className="flex flex-wrap gap-4 mb-4">
           <div className="flex-1 min-w-[200px]">
             <Input
@@ -698,26 +665,18 @@ const BulkInternshipManagement = () => {
           </Select>
         </div>
 
-        {/* Stats */}
+        {/* สถิติ (แสดงเฉพาะนักศึกษาที่มีที่ฝึกงาน) */}
         <div className="mb-4 flex gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <span className="text-gray-600 dark:text-gray-400">ทั้งหมด:</span>
-            <span className="font-semibold">{filteredStudents.length} คน</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-600 dark:text-gray-400">ยังไม่มีข้อมูลฝึกงาน:</span>
-            <span className="font-semibold text-orange-600">{studentsWithoutInternship} คน</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-600 dark:text-gray-400">มีข้อมูลแล้ว:</span>
-            <span className="font-semibold text-green-600">
-              {filteredStudents.length - studentsWithoutInternship} คน
-            </span>
+            <span className="text-gray-600 dark:text-gray-400">นักศึกษาที่มีที่ฝึกงาน (ตามตัวกรอง):</span>
+            <span className="font-semibold text-green-600">{filteredStudents.length} คน</span>
           </div>
         </div>
 
+        {/* ตารางข้อมูล */}
         <div className="border rounded-md border-ld overflow-hidden">
           {isLoading ? (
+            // UI ขณะโหลด
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
@@ -744,13 +703,16 @@ const BulkInternshipManagement = () => {
               </table>
             </div>
           ) : error ? (
+            // UI เมื่อ Error
             <div className="p-4 text-center text-red-500">Error loading student data</div>
           ) : !filteredStudents || filteredStudents.length === 0 ? (
+            // UI เมื่อไม่พบข้อมูล
             <div className="flex flex-col items-center justify-center py-8">
               <Icon icon="tabler:database-off" className="text-gray-400 text-4xl mb-2" />
-              <span className="text-gray-500">ไม่พบข้อมูลนักศึกษา</span>
+              <span className="text-gray-500">ไม่พบนักศึกษาที่มีที่ฝึกงาน (ตามตัวกรอง)</span>
             </div>
           ) : (
+            // UI เมื่อมีข้อมูล
             <>
               <div className="overflow-x-auto">
                 <table className="min-w-full">
@@ -772,14 +734,7 @@ const BulkInternshipManagement = () => {
                   </thead>
                   <tbody className="divide-y divide-border dark:divide-darkborder">
                     {table.getRowModel().rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        className={
-                          row.original.student.studentCompanies && row.original.student.studentCompanies.length > 0
-                            ? "bg-gray-50 dark:bg-gray-800/50"
-                            : ""
-                        }
-                      >
+                      <tr key={row.id}>
                         {row.getVisibleCells().map((cell) => (
                           <td key={cell.id} className="whitespace-nowrap border border-ld py-3 px-4">
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -791,6 +746,7 @@ const BulkInternshipManagement = () => {
                 </table>
               </div>
 
+              {/* ส่วนควบคุม Pagination */}
               <div className="sm:flex gap-2 p-3 items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Button color="primary" onClick={() => rerender()}>
@@ -875,4 +831,4 @@ const BulkInternshipManagement = () => {
     </>
   )
 }
-export default BulkInternshipManagement
+export default SuperviseTable

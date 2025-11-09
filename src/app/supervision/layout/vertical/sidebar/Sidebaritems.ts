@@ -47,10 +47,16 @@ const SidebarContent: MenuItem[] = [
         url: "/supervision/internship",
       },
       {
-        name: "ข้อมูลการนิเทศฝึกงาน",
+        name: "การนิเทศฝึกงาน",
         icon: 'tabler:user-check',
         id: uniqueId(),
-        url: "/supervision/internship",
+        url: "/supervision/students/supervise",
+      },
+      {
+        name: "ข้อมูลการนิเทศฝึกงาน",
+        icon: 'tabler:eye-check',
+        id: uniqueId(),
+        url: "/supervision/students/supervise/views",
       },
 
       // {

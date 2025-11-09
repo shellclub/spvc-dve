@@ -61,6 +61,7 @@ model Teacher {
   grade          String?
   userId         Int   @unique
   user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supervisions Supervision[]
 }
 
 model User {
@@ -91,18 +92,18 @@ model Student {
   education      education_levels @relation(fields: [educationLevel], references: [id])
   educationLevel Int     // เช่น ปวช., ปวส., ป.ตรี
   major_id      Int?
-  major         Major?  @relation(fields: [major_id], references: [id], onDelete: Cascade)
+  major         Major?  @relation(fields: [major_id], references: [id], onDelete: SetNull)
   academicYear   String     // เช่น 2566
   status         Int @default(1)
   term           String
   room           String
   inturnship     Inturnship?
-  department     Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  department     Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   departmentId   Int?
   report         InternshipReport[]
   gradeLevel     String?
-  @@map("students")
   studentCompanies studentCompanies[]
+  @@map("students")
 }
 model Inturnship{
   id Int @id() @default(autoincrement())
@@ -154,6 +155,38 @@ model studentCompanies {
   startDate DateTime
   endDate   DateTime
   assignedAt DateTime @default(now())
+  supervisions Supervision[]
   @@id([studentId, companyId])
   @@map("student_companies")
+}
+
+
+enum SupervisionType {
+  ON_SITE // ไปนิเทศที่บริษัท
+  ONLINE  // นิเทศผ่านระบบออนไลน์
+  PHONE   // โทรศัพท์ติดตามผล
+}
+
+model Supervision {
+  id              Int      @id @default(autoincrement())
+
+  // --- เชื่อมโยงไปยังการฝึกงานครั้งนั้นๆ ---
+  // (ใช้ Foreign Key ร่วมจาก studentCompanies)
+  studentId       Int
+  companyId       Int
+  internship      studentCompanies @relation(fields: [studentId, companyId], references: [studentId, companyId], onDelete: Cascade) // ถ้าลบข้อมูลการฝึกงาน ก็ลบ Log การนิเทศนี้ทิ้งไปเลย (เหมาะสม)
+
+  // --- เชื่อมโยงไปยังอาจารย์ผู้นิเทศ ---
+  teacherId       Int
+  supervisor      Teacher  @relation(fields: [teacherId], references: [id], onDelete: Restrict) // ห้ามลบอาจารย์ ถ้ายังมีประวัติการนิเทศอยู่
+
+  // --- รายละเอียดการนิเทศ ---
+  supervisionDate DateTime
+  notes           String?  @db.Text // @db.Text เหมาะสำหรับข้อความยาวๆ เช่น บันทึกข้อเสนอแนะ
+  type            SupervisionType @default(ON_SITE) // ประเภทการนิเทศ
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("supervisions")
 }
