@@ -30,7 +30,7 @@ export const { handlers, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 24,
+    maxAge: 60 * 60 * 24 * 1,
   },
   providers: [
     Credentials({
