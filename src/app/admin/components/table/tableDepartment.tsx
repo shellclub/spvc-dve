@@ -206,14 +206,23 @@ const handleSubmit = async (e: FormEvent) => {
             <tbody className="divide-y divide-border dark:divide-darkborder">
             {isLoading ? (
           <tr>
-            <td colSpan={2} className="text-center p-4">
+            <td colSpan={4} className="text-center p-4">
               กำลังโหลดข้อมูล...
             </td>
           </tr>
         ) : error ? (
           <tr>
-            <td colSpan={2} className="text-center p-4 text-red-500">
+            <td colSpan={4} className="text-center p-4 text-red-500">
               เกิดข้อผิดพลาดในการโหลดข้อมูล
+            </td>
+          </tr>
+        ) : table.getRowModel().rows.length === 0 ? (
+          <tr>
+            <td colSpan={4} className="text-center p-8">
+              <div className="flex flex-col items-center justify-center gap-3">
+                <Icon icon="tabler:database-off" className="text-gray-400" width={48} height={48} />
+                <p className="text-gray-500 text-base">ไม่พบข้อมูลแผนกวิชา</p>
+              </div>
             </td>
           </tr>
         ) : (

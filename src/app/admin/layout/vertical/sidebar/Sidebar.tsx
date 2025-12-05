@@ -81,7 +81,7 @@ const SidebarLayout = () => {
                     <div className="flex justify-between items-center">
                       <div className="flex gap-4 items-center">
                         <Image 
-                          src={`/uploads/${data.user_img}`} 
+                          src={`/uploads/${data.user_img ?? 'avatar.jpg'}`} 
                           alt="profile-image" 
                           width={40} 
                           height={40} 

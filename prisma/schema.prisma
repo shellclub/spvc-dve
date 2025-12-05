@@ -19,28 +19,70 @@ model Department {
   depname String @unique 
   createAt DateTime @default(now()) @map("create_at")
   updateAt DateTime @updatedAt() @map("update_at")
-  user    User[]
+  teacher  Teacher[]
+  marjors Major[]
+  student Student[]
   @@map("departments")
+}
+
+model Major {
+  id  Int @id @default(autoincrement())
+  major_name String @unique
+  department Department @relation(fields: [departmentId],references: [id])
+  departmentId  Int
+  students Student[]
+  teacher Teacher[]
+  createAt DateTime @default(now()) @map("create_at")
+  updateAt DateTime @updatedAt  @map("update_at")
+  @@map("major")
+}
+
+model Login {
+  id                Int   @id   @default(autoincrement())
+  username          String  @unique
+  password          String  
+  userId            Int     @unique
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  is_first_login  Boolean @default(true)
+  skip_password_change DateTime?
+  @@map("logins")
+}
+model Teacher {
+  id             Int @id @default(autoincrement())
+  department     Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  departmentId   Int?
+  majorId        Int?
+  major          Major? @relation(fields: [majorId], references: [id], onDelete: Cascade)
+  room           String?
+  educationId    Int?
+  education      education_levels? @relation(fields: [educationId], references: [id], onDelete: Cascade)
+  term           String?
+  years          String?
+  grade          String?
+  userId         Int   @unique
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supervisions Supervision[]
 }
 
 model User {
   id             Int              @id @default(autoincrement())
-  username       String?           @unique
   firstname      String
   lastname       String
   citizenId      String     @db.VarChar(13)     @unique
   phone          String     @db.VarChar(10)     @unique
-  role           Int        @default(3)
-  sex            Int
+  role           Int        @default(7)
+  sex            Int?
   createdAt      DateTime         @default(now())
   student        Student?         // ถ้าเป็นนักศึกษา
-  department     Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  departmentId  Int? 
-  birthday       DateTime
-  user_img      String?
-
+  birthday       DateTime?
+  user_img       String?
+  teacher        Teacher?
+  login          Login?   
+  company        companies?
   @@map("users")
 }
+
+
 
 model Student {
   id             Int        @id @default(autoincrement())
@@ -49,15 +91,18 @@ model Student {
   userId         Int        @unique
   education      education_levels @relation(fields: [educationLevel], references: [id])
   educationLevel Int     // เช่น ปวช., ปวส., ป.ตรี
-  companies      companies[]
-  major          String
+  major_id      Int?
+  major         Major?  @relation(fields: [major_id], references: [id], onDelete: SetNull)
   academicYear   String     // เช่น 2566
   status         Int @default(1)
   term           String
   room           String
   inturnship     Inturnship?
+  department     Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  departmentId   Int?
   report         InternshipReport[]
   gradeLevel     String?
+  studentCompanies studentCompanies[]
   @@map("students")
 }
 model Inturnship{
@@ -77,7 +122,7 @@ model InternshipReport {
   title String
   description String?
   reportDate DateTime
-  image String
+  image String?
   @@map("internship_report")
   
 }
@@ -87,19 +132,61 @@ model education_levels{
   name String @unique
   create_at DateTime @default(now())
   student Student[]
+  teacher Teacher[]
 }
 
 model companies {
   id Int @id @default(autoincrement())
-  name String
+  name String @unique
   address String
-  tel String
-  trainer String
-  position String
-  week Int
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId Int @unique
+  userId    Int @unique
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("companies")
+  studentCompanies studentCompanies[]
+}
+
+model studentCompanies {
+  studentId Int 
+  companyId Int 
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  company   companies @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  startDate DateTime
+  endDate   DateTime
+  assignedAt DateTime @default(now())
+  supervisions Supervision[]
+  @@id([studentId, companyId])
+  @@map("student_companies")
+}
+
+
+enum SupervisionType {
+  ON_SITE // ไปนิเทศที่บริษัท
+  ONLINE  // นิเทศผ่านระบบออนไลน์
+  PHONE   // โทรศัพท์ติดตามผล
+}
+
+model Supervision {
+  id              Int      @id @default(autoincrement())
+
+  // --- เชื่อมโยงไปยังการฝึกงานครั้งนั้นๆ ---
+  // (ใช้ Foreign Key ร่วมจาก studentCompanies)
+  studentId       Int
+  companyId       Int
+  internship      studentCompanies @relation(fields: [studentId, companyId], references: [studentId, companyId], onDelete: Cascade) // ถ้าลบข้อมูลการฝึกงาน ก็ลบ Log การนิเทศนี้ทิ้งไปเลย (เหมาะสม)
+
+  // --- เชื่อมโยงไปยังอาจารย์ผู้นิเทศ ---
+  teacherId       Int
+  supervisor      Teacher  @relation(fields: [teacherId], references: [id], onDelete: Restrict) // ห้ามลบอาจารย์ ถ้ายังมีประวัติการนิเทศอยู่
+
+  // --- รายละเอียดการนิเทศ ---
+  supervisionDate DateTime
+  notes           String?  @db.Text // @db.Text เหมาะสำหรับข้อความยาวๆ เช่น บันทึกข้อเสนอแนะ
+  type            SupervisionType @default(ON_SITE) // ประเภทการนิเทศ
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("supervisions")
 }

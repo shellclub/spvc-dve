@@ -40,6 +40,12 @@ const SidebarContent: MenuItem[] = [
         id: uniqueId(),
         url: "/departments",
       },
+      {
+        name: "ข้อมูลบุคคลากร",
+        icon: 'tabler:users',
+        id: uniqueId(),
+        url: "/departments/teacher",
+      },
       // {
       //   name: "eCommerce",
       //   icon: 'tabler:shopping-cart',

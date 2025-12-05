@@ -64,15 +64,12 @@ import { PaginationTableType } from "./studentTable";
 import { validateThaiID } from "@/lib/thaiIdVaildate";
 
 export type Student = {
-  id: string;
-  firstname: string;
-  lastname: string;
-  sex: number;
-  role: number;
-  user_img: string;
-  student: {
+    id: string;
     studentId: string;
-    major: string;
+    major: {
+      id: string
+      major_name: string
+    };
     room: string;
     term: string;
     academicYear: string;
@@ -80,6 +77,13 @@ export type Student = {
       name: string;
     };
     gradeLevel: string;
+  user: {
+    id: string;
+    firstname: string;
+    lastname: string;
+    sex: number;
+    role: number;
+    user_img: string;
   };
   department: {
     depname: string;
@@ -323,29 +327,29 @@ export function StudentsAllTable() {
     
     // เติมข้อมูลเดิมลงในฟอร์ม
     setFormData({
-      firstname: student.firstname || "",
-      lastname: student.lastname || "",
-      citizenId: student.citizenId || "",
-      sex: student.sex || "",
-      phone: student.phone || "",
+      firstname: student.user.firstname || "",
+      lastname: student.user.lastname || "",
+      citizenId: student.user.citizenId || "",
+      sex: student.user.sex || "",
+      phone: student.user.phone || "",
       department: String(student.department.id), // ต้องดึง department ID
-      studentId: student.student?.studentId || "",
-      major: student.student?.major || "",
-      educationLevel: String(student.student.education.id), // ต้องดึง education ID
-      gradeLevel: student.student?.gradeLevel || "",
-      room: student.student?.room || "",
-      term: student.student?.term || "",
-      academicYear: student.student?.academicYear || "",
+      studentId: student?.studentId || "",
+      major: String(student.major.id) || "",
+      educationLevel: String(student.education.id), // ต้องดึง education ID
+      gradeLevel: student?.gradeLevel || "",
+      room: student?.room || "",
+      term: student?.term || "",
+      academicYear: student?.academicYear || "",
     });
 
     // ตั้งค่ารูปภาพเดิม
-    if (student.user_img) {
-      setImagePreview(`/uploads/${student.user_img}`);
+    if (student.user.user_img) {
+      setImagePreview(`/uploads/${student.user.user_img}`);
     }
 
     // ตั้งค่าวันเกิด
-    if (student.birthday) {
-      setDate(new Date(student.birthday));
+    if (student.user.birthday) {
+      setDate(new Date(student.user.birthday));
     }
 
     setOpenEdit(true);
@@ -370,7 +374,7 @@ export function StudentsAllTable() {
       header: () => <span>รหัสนักศึกษา</span>,
       cell: ({ row }) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{row.original.student.studentId}</h6>
+          <h6 className="text-base">{row.original.studentId}</h6>
         </div>
       ),
     },
@@ -380,26 +384,26 @@ export function StudentsAllTable() {
       cell: ({ row }) => (
         <div className="flex gap-3 items-center">
           <Image
-            src={`/uploads/${row.original.user_img}`}
+            src={`/uploads/${row.original.user.user_img}`}
             width={50}
             height={50}
             alt="icon"
             className="h-10 w-10 rounded-xl"
           />
           <div className="truncate line-clamp-2 max-w-56">
-            <h6 className="text-base">{`${row.original.firstname} ${row.original.lastname}`}</h6>
+            <h6 className="text-base">{`${row.original.user.firstname} ${row.original.user.lastname}`}</h6>
             <p className="text-sm text-darklink dark:text-bodytext">
-              {userRole(Number(row.original.role))}
+              {userRole(Number(row.original.user.role))}
             </p>
           </div>
         </div>
       ),
     },
     {
-      accessorKey: "sex",
+      accessorKey: "user.sex",
       header: () => <span>เพศ</span>,
       cell: ({ row }) => (
-        <div className="text-base">{userSex(Number(row.getValue("sex")))}</div>
+        <div className="text-base">{userSex(Number(row.original.user.sex))}</div>
       ),
     },
     {
@@ -409,7 +413,7 @@ export function StudentsAllTable() {
         <div className="truncate line-clamp-2 max-w-56">
           <h6 className="text-base">{row.original.department.depname}</h6>
           <p className="text-sm text-darklink dark:text-bodytext">
-            {row.original.student.major}
+            {row.original.major.major_name}
           </p>
         </div>
       ),
@@ -419,10 +423,10 @@ export function StudentsAllTable() {
       header: () => <span>ระดับชั้น</span>,
       cell: ({ row }) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${row.original.student.education.name}.${row.original.student.gradeLevel}/${row.original.student.room}`}</h6>
+          <h6 className="text-base">{`${row.original.education.name}.${row.original.gradeLevel}/${row.original.room}`}</h6>
           <p className="text-sm text-darklink dark:text-bodytext">
             ปีการศึกษา:{" "}
-            {`${row.original.student.term}/${row.original.student.academicYear}`}
+            {`${row.original.term}/${row.original.academicYear}`}
           </p>
         </div>
       ),
@@ -470,8 +474,8 @@ export function StudentsAllTable() {
 
   const nameFilterFn: FilterFn<Student> = (row, columnId, filterValue) => {
     const searchTerm = filterValue.toLowerCase();
-    const firstName = row.original.firstname.toLowerCase();
-    const lastName = row.original.lastname.toLowerCase();
+    const firstName = row.original.user.firstname.toLowerCase();
+    const lastName = row.original.user.lastname.toLowerCase();
     return firstName.includes(searchTerm) || lastName.includes(searchTerm);
   };
 
@@ -513,7 +517,7 @@ export function StudentsAllTable() {
     const gradesSet = new Set<string>();
     allStudents.forEach((student) => {
       // สร้าง combination ของ education.name และ gradeLevel
-      const gradeCombo = `${student.student.education.name}.${student.student.gradeLevel}`;
+      const gradeCombo = `${student.education.name}.${student.gradeLevel}`;
       gradesSet.add(gradeCombo);
     });
     return Array.from(gradesSet).sort(); // เรียงลำดับ
@@ -526,15 +530,15 @@ export function StudentsAllTable() {
         departmentFilter === "all" ||
         student.department.depname === departmentFilter;
       const matchesMajor =
-        majorFileter === "all" || student.student.major === majorFileter;
+        majorFileter === "all" || student.major.major_name === majorFileter;
 
       // เปรียบเทียบกับ combination ของ education.name และ gradeLevel
-      const studentGradeCombo = `${student.student.education.name}.${student.student.gradeLevel}`;
+      const studentGradeCombo = `${student.education.name}.${student.gradeLevel}`;
       const matchesGrade =
         gradeFilter === "all" || studentGradeCombo === gradeFilter;
 
       const matchsGroup =
-        groupFilter === "all" || student.student.room === groupFilter;
+        groupFilter === "all" || student.room === groupFilter;
 
       return matchesDepartment && matchesMajor && matchesGrade && matchsGroup;
     });
@@ -548,7 +552,7 @@ export function StudentsAllTable() {
         departmentFilter === "all" ||
         student.department.depname === departmentFilter
       ) {
-        majorsSet.add(student.student.major);
+        majorsSet.add(student.major.major_name);
       }
     });
     return Array.from(majorsSet);
@@ -557,8 +561,8 @@ export function StudentsAllTable() {
   const availableGroup = React.useMemo(() => {
     const groupSet = new Set<string>();
     allStudents.forEach((student) => {
-      if (majorFileter === "all" || student.student.major === majorFileter) {
-        groupSet.add(student.student.room);
+      if (majorFileter === "all" || student.major.major_name === majorFileter) {
+        groupSet.add(student.room);
       }
     });
     return Array.from(groupSet);

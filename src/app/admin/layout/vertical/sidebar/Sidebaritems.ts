@@ -52,13 +52,23 @@ const SidebarContent: MenuItem[] = [
           },
           {
             id: uniqueId(),
+            name: "จัดการสาขาวิชา",
+            url: "/admin/majors",
+          },
+          {
+            id: uniqueId(),
             name: "จัดการข้อมูลนักศึกษา",
             url: "/admin/students",
           },
           {
             id: uniqueId(),
-            name: "จัดการผู้แลแผนกวิชา",
+            name: "จัดการข้อมูลบุคคลากร",
             url: "/admin/teachers",
+          },
+          {
+            id: uniqueId(),
+            name: "จัดการข้อมูลสถานประกอบการ",
+            url: "/admin/company",
           }
         ],
       },

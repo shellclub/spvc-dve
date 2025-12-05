@@ -10,15 +10,15 @@ type StudentRequestBody = {
       citizenId: string;
       sex: number;
       phone: string;
-      departmentId: number;
     };
     student: {
         id: string;
         studentId: string;
         educationLevel: number;
-        major: string;
+        major_id: string;
         academicYear: string;
         birthday: string;
+        department: number
     };
   };
 
@@ -34,10 +34,11 @@ export async function GET(request: NextRequest, {params}: {params: Promise<{ id:
                 include: {
                     education: true,
                     inturnship: true,
-                    report: true
+                    report: true,
+                    department: true,
+                    major: true
                 }
             },
-            department: true,
         }
     })
 
@@ -75,32 +76,34 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         citizenId: data.citizenId,
         sex: Number(data.sex),
         phone: data.phone,
-        departmentId: Number(data.department),
         birthday: new Date(data.birthday),
         user_img: userImgPath,
-        username: data.studentId,
       };
   
       const studentData = {
         studentId: data.studentId,
         educationLevel: Number(data.educationLevel),
-        major: data.major,
+        major_id: Number(data.major_id),
         academicYear: data.academicYear,
+        departmentId: Number(data.department),
         room: data.room,
         term: data.term,
         gradeLevel: data.gradeLevel,
       };
 
-    //   console.log("data:", userData, studentData);  ;
-      
-  
       const updated = await prisma.user.update({
         where: { id: Number(id) },
         data: {
           ...userData,
           student: { update: studentData },
+          login: { update: {
+            username: data.studentId
+          }}
         },
-        include: { student: true },
+        include: { 
+          student: true,
+          login: true
+        },
       });
         if (!updated) {
             return NextResponse.json({ message: "ไม่สามารถอัปเดตข้อมูลได้", type: "error" }, { status: 500 });
@@ -109,7 +112,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ message: "แก้ไขข้อมูลสำเร็จ", type: "success" }, { status: 200 });
   
     } catch (error) {
-    //   console.log("Update error:", error);
+      // console.log("Update error:", error);
       return NextResponse.json({ message: "เกิดข้อผิดพลาดในระบบ", type: "error" }, { status: 500 });
     }
   }

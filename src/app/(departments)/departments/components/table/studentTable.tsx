@@ -43,14 +43,17 @@ export interface PaginationTableType {
     inturnship: {
       selectedDays: string[];
     };
-    major: string;
+    major: {
+      id: string;
+      major_name: string;
+    };
     academicYear: string;
     room: string;
     gradeLevel: string;
-  };
-  department: {
-    id: string;
-    depname: string;
+    department: {
+      id: string;
+      depname: string;
+    };
   };
   firstname?: string;
   lastname?: string;
@@ -137,12 +140,13 @@ const StudentTable = () => {
     return firstName.includes(searchTerm) || lastName.includes(searchTerm) || studentId.includes(searchTerm);
   };
 
+  
   // Filter students based on selected filters
   const filteredStudents = React.useMemo(() => {
     if (!data) return [];
     
     return data.filter((student) => {
-      const matchesMajor = majorFilter === "all" || student.student.major === majorFilter;
+      const matchesMajor = majorFilter === "all" || student.student.major.major_name === majorFilter;
       const studentGradeCombo = `${student.student.education.name}.${student.student.gradeLevel}`;
       const matchesGrade = gradeFilter === "all" || studentGradeCombo === gradeFilter;
       const matchesRoom = roomFilter === "all" || student.student.room === roomFilter;
@@ -151,7 +155,7 @@ const StudentTable = () => {
     });
   }, [data, majorFilter, gradeFilter, roomFilter]);
 
-
+  
 
   // Generate available grades
   const availableGrades = React.useMemo(() => {
@@ -169,7 +173,7 @@ const StudentTable = () => {
     if (!data) return [];
     const roomsSet = new Set<string>();
     data.forEach((student) => {
-      if (majorFilter === "all" || student.student.major === majorFilter) {
+      if (majorFilter === "all" || student.student.major.major_name === majorFilter) {
         roomsSet.add(student.student.room);
       }
     });
@@ -177,15 +181,7 @@ const StudentTable = () => {
   }, [data, majorFilter]);
 
 
-        if (!data) {
-        return (
-          <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
-            <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
-              No data available
-            </p>
-          </div>
-        );
-    }
+       
 
   const columns = [
     columnHelper.display({
@@ -231,13 +227,13 @@ const StudentTable = () => {
       ),
       header: () => <span>ชื่อ-นามสกุล</span>,
     }),
-    columnHelper.accessor((row) => row.department.depname, {
+    columnHelper.accessor((row) => row.student.department.depname, {
       id: "department",
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
           <h6 className="text-base">{`${info.getValue()}`}</h6>
           <p className="text-sm text-darklink dark:text-bodytext">
-            {info.row.original.student.major}
+            {info.row.original.student.major.major_name}
           </p>
         </div>
       ),
@@ -284,7 +280,7 @@ const StudentTable = () => {
       header: () => <span></span>,
     }),
   ];
-
+ 
   const table = useReactTable({
     data: filteredStudents,
     columns,
@@ -356,7 +352,7 @@ const StudentTable = () => {
               }}
             >
               <option value="all">สาขาวิชาทั้งหมด</option>
-              {[...new Set(stdData.map((std) => std.student.major))].map((major, index) => (
+              {[...new Set(stdData.map((std) => std.student.major.major_name))].map((major, index) => (
                 <option key={index} value={major}>
                   {major}
                 </option>

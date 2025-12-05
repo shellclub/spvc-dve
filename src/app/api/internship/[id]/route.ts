@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -18,10 +17,6 @@ export async function GET(request: NextRequest, {params}: { params: Promise<{id:
             studentId: students.id
         }
     });
-    if(!internship) {
-        return NextResponse.json({}, { status: 401});
-    }
-    
     return NextResponse.json(internship, { status: 200});
     
 }

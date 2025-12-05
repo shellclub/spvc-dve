@@ -1,181 +1,149 @@
 'use client';
-import { Button, Label, TextInput, Select, Spinner } from 'flowbite-react';
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Card, Spinner, Badge } from 'flowbite-react';
 import useSWR from 'swr';
 import { Icon } from '@iconify/react/dist/iconify.js';
-import { showToast } from '@/app/components/sweetalert/sweetalert';
-import { m } from 'framer-motion';
+import { motion } from 'framer-motion';
 
-
-interface Company {
-    id?: number;
-    name: string;
-    address: string;
-    tel: string;
-    trainer: string;
-    position: string;
-    week: string;
-
+interface InternshipDetails {
+    companyName: string;
+    companyAddress: string;
+    companyTel: string;
+    mentorName: string;
+    mentorPosition: string;
+    startDate: string;
+    endDate: string;
+    duration: string;
 }
-const fetcher = async (url: string) => fetch(url).then(res => res.json());
+
+const fetcher = async (url: string) => {
+    const res = await fetch(url);
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to fetch');
+    }
+    return res.json();
+};
+
 export default function CompanyTable() {
+    const { data, isLoading, error } = useSWR<InternshipDetails>('/api/internship/me', fetcher);
 
-    const [formData, setFormData] = useState<Company>({
-        name: '',
-        address: '',
-        trainer: '',
-        tel: '',
-        position: '',
-        week: ''
-    });
-    const { data, isLoading, error, mutate} = useSWR<Company>(`/api/company/`, fetcher);
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Spinner size="xl" />
+                <span className="ml-3">กำลังโหลดข้อมูลการฝึกงาน...</span>
+            </div>
+        );
+    }
 
-if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Spinner size="xl" />
-        <span className="ml-3">กำลังโหลดข้อมูล...</span>
-      </div>
-    );
-  }
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+                <Icon icon="bxs:error-alt" className="text-red-500 text-6xl mb-4" />
+                <p className="text-xl text-gray-600 font-semibold mb-2">ไม่พบข้อมูลการฝึกงาน</p>
+                <p className="text-gray-500">{error.message === 'No internship found' ? 'คุณยังไม่มีข้อมูลการฝึกงานในระบบ' : 'เกิดข้อผิดพลาดในการโหลดข้อมูล'}</p>
+            </div>
+        );
+    }
 
-  if (error) {
-    return (
-      <div className="text-center py-8 text-red-500">
-        <Icon icon="tabler:alert-circle" className="inline-block mr-2" />
-        <p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
-        <Button color="gray" onClick={() => mutate()} className="mt-4">
-          ลองอีกครั้ง
-        </Button>
-      </div>
-    );
-  }
-
-  
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const url = '/api/company';
-            const method = 'POST';
-
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
-
-            if (response.ok) {
-                const res = await response.json();
-                showToast(res.message, 'success');
-                mutate(); // Refresh data after successful submission
-            }else {
-                const res = await response.json();
-                showToast(res.error, 'error');
-            }
-        } catch (error) {
-            console.error('Error saving company:', error);
-        }
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
+    if (!data) return null;
 
     return (
-        <div className="max-w-2xl mx-auto p-4">
-            <h2 className="text-lg font-bold mb-4">
-                {'เพิ่มสถานประกอบการ'}
-            </h2>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <div>
-                    <Label htmlFor="name" value="ชื่อสถานประกอบการ" />
-                    <TextInput
-                        id="name"
-                        name="name"
-                        value={formData.name || data?.name}
-                        onChange={handleChange}
-                        placeholder='กรอกชื่อสถานประกอบการที่นักศึกษาฝึกงาน'
-                        required
-                    />
-                </div>
+        <div className="max-w-4xl mx-auto p-4 space-y-6">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                    <Icon icon="mdi:office-building-marker" className="text-blue-600" />
+                    รายละเอียดการฝึกงาน
+                </h2>
 
-                <div>
-                    <Label htmlFor="address" value="ที่อยู่สถานประกอบการ" />
-                    <TextInput
-                        id="address"
-                        name="address"
-                        value={formData.address || data?.address}
-                        onChange={handleChange}
-                        placeholder='กรอกที่อยู่สถานประกอบการที่นักศึกษาฝึกงาน'
-                        required
-                    />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* ข้อมูลสถานประกอบการ */}
+                    <Card className="shadow-lg border-t-4 border-t-blue-500">
+                        <div className="flex flex-col space-y-4">
+                            <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
+                                <Icon icon="mdi:domain" />
+                                ข้อมูลสถานประกอบการ
+                            </h3>
 
-            
+                            <div className="space-y-3">
+                                <div>
+                                    <p className="text-sm text-gray-500">ชื่อสถานประกอบการ</p>
+                                    <p className="font-medium text-lg text-gray-900">{data.companyName}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">ที่อยู่</p>
+                                    <p className="text-gray-700">{data.companyAddress}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">เบอร์โทรศัพท์</p>
+                                    <div className="flex items-center gap-2">
+                                        <Icon icon="mdi:phone" className="text-gray-400" />
+                                        <span className="text-gray-700">{data.companyTel}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
 
-                <div>
-                    <Label htmlFor="tel" value="เบอร์โทรสถานประกอบการ" />
-                    <TextInput
-                        id="tel"
-                        name="tel"
-                        value={formData.tel || data?.tel}
-                        onChange={handleChange}
-                        placeholder='กรอกเบอร์โทรศัพท์สถานประกอบการที่นักศึกษาฝึกงาน'
-                        required
-                    />
-                </div>
+                    {/* ข้อมูลพี่เลี้ยง & ระยะเวลา */}
+                    <div className="space-y-6">
+                        <Card className="shadow-lg border-t-4 border-t-green-500">
+                            <div className="flex flex-col space-y-4">
+                                <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
+                                    <Icon icon="mdi:account-tie" />
+                                    ข้อมูลพี่เลี้ยง (Mentor)
+                                </h3>
 
-                <div>
-                    <Label htmlFor="trainer" value="ชื่อครูฝึก (หัวหน้าฝึกงาน)" />
-                    <TextInput
-                        id="trainer"
-                        name="trainer"
-                        type="text"
-                        value={formData.trainer || data?.trainer}
-                        onChange={handleChange}
-                        placeholder='กรอก ชื่อ-นามสกุล ครูฝึกที่รับผิดชอบดูแลนักศึกษาในสถานประกอบการ'
-                        required
-                    />
-                </div>
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-sm text-gray-500">ชื่อ-นามสกุล</p>
+                                            <p className="font-medium text-gray-900">{data.mentorName}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-gray-500">ตำแหน่ง</p>
+                                            <p className="text-gray-700">{data.mentorPosition}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
 
-                <div>
-                    <Label htmlFor="position" value="ตำแหน่งครูฝึก (หัวหน้าฝึกงาน)" />
-                    <TextInput
-                        id="position"
-                        name="position"
-                        type="text"
-                        value={formData.position || data?.position}
-                        onChange={handleChange}
-                        placeholder='กรอกตำแหน่งของครูฝึก เช่น ผู้จัดการ'
-                        required
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="week" value="จำนวนวันที่ฝึก / สัปดาห์" />
-                    <TextInput
-                        id="week"
-                        name="week"
-                        type="text"
-                        placeholder='กรอกจำนวนสัปดาห์ที่นักศึกษาเข้าฝึกงาน'
-                        value={formData.week || data?.week}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
+                        <Card className="shadow-lg border-t-4 border-t-purple-500">
+                            <div className="flex flex-col space-y-4">
+                                <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 flex items-center gap-2">
+                                    <Icon icon="mdi:calendar-clock" />
+                                    ระยะเวลาการฝึกงาน
+                                </h3>
 
-                <div className="flex gap-4">
-                    <Button type="submit">
-                        {'บันทึกข้อมูล'}
-                    </Button>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                                        <div>
+                                            <p className="text-sm text-gray-500 mb-1">ระยะเวลา</p>
+                                            <Badge color="purple" size="lg" className="text-base px-3 py-1">
+                                                {data.duration}
+                                            </Badge>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs text-gray-400">เริ่ม - สิ้นสุด</p>
+                                            <p className="text-sm font-medium text-gray-700">
+                                                {new Date(data.startDate).toLocaleDateString('th-TH', { dateStyle: 'long' })}
+                                            </p>
+                                            <p className="text-sm font-medium text-gray-700">
+                                                ถึง {new Date(data.endDate).toLocaleDateString('th-TH', { dateStyle: 'long' })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
                 </div>
-            </form>
+            </motion.div>
         </div>
     );
 }

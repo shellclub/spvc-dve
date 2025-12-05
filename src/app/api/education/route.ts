@@ -6,5 +6,5 @@ export async function GET() {
     if(!education) {
         return NextResponse.json({message: "ไม่พบข้อมูลระดับการศึกษา", data: ""}, {status: 500})
     }
-    return NextResponse.json({ data: education})
+    return NextResponse.json(education)
 }

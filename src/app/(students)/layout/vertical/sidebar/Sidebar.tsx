@@ -25,8 +25,7 @@ const SidebarLayout = () => {
   
   const { data, isLoading, error } = useSWR(swrKey, fetcher);
 
-  // แสดง loading หาก session ยังไม่โหลดเสร็จ
-  console.log(data, session);
+
   
   const isSessionLoading = status === "loading";
   if (isLoading || isSessionLoading) {

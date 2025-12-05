@@ -10,7 +10,7 @@ import useSWR from "swr"
 import { Spinner } from "flowbite-react"
 import { Icon } from "@iconify/react/dist/iconify.js"
 import CardBox from '@/app/components/shared/CardBox';
-const fether = (url: string) => fetch(url).then((res) => res.json());
+const fether: any = (url: string) => fetch(url).then((res) => res.json());
 const TopCards = () => {
     const { data , isLoading, error } = useSWR("/api/count/forStudent", fether);
 if (isLoading) {
@@ -25,7 +25,7 @@ if (isLoading) {
         {
             key:"card1",
             title:"จำนวนวันฝึกงาน/สัปดาห์",
-            desc: data.countDay,
+            desc: 0,
             img: "tabler:calendar",
             bgcolor:"bg-lightwarning dark:bg-lightwarning ",
             textclr:"text-warning dark:text-warning"
@@ -33,7 +33,7 @@ if (isLoading) {
         {
             key:"card2",
             title:"จำนวนที่รายงานผล",
-            desc: data.report,
+            desc:  0,
             img: "tabler:file-description",
             bgcolor:"bg-lightprimary dark:bg-lightprimary ",
             textclr:"text-primary dark:text-primary"
@@ -41,7 +41,7 @@ if (isLoading) {
         {
             key:"card3",
             title:"จำนวนสัปดาห์ที่ฝึกงาน",
-            desc: data.weekterm,
+            desc:  0,
             img: "tabler:calendar-stats",
             bgcolor:"bg-lightsuccess dark:bg-lightsuccess",
             textclr:"text-success dark:text-success"

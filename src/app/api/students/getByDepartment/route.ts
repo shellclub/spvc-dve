@@ -30,12 +30,13 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     
     // Validate session
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json(
         { message: "Unauthorized" }, 
         { status: 401 }
       );
     }
+    
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
@@ -47,35 +48,44 @@ export async function GET(request: NextRequest) {
       where: {
         id: Number(session.user.id)
       },
-      select: {
-        departmentId: true
+      include: {
+        teacher: {
+          select: { departmentId: true}
+        }
       }
     });
-
-    if (!user?.departmentId) {
+    
+    if (!user) {
       return NextResponse.json(
-        { message: "Department not found" }, 
+        { message: "User not found" }, 
         { status: 404 }
       );
     }
+    if (!user?.teacher?.departmentId) {
+      return NextResponse.json(
+        { message: "User is not associated with any department or majorId" }, 
+        { status: 403 }
+      );
+    }
+
 
     // Build query conditions
     const whereConditions: any = {
-      departmentId: user.departmentId,
-      role: 3, // Assuming 3 is student role
+      departmentId: user.teacher.departmentId || null,
+      // majorId: user?.teacher?.majorId || null,
     };
 
     // Add term/year filters if provided
     if (year && term) {
-      whereConditions.student = {
-        term: String(term),
-        academicYear: String(year)
-      };
+      whereConditions.term = String(term);
+      whereConditions.academicYear = String(year);
     }
 
     // Get students
     const students = await prisma.user.findMany({
-      where: whereConditions,
+      where: {
+        student: whereConditions
+      },
       orderBy: {
         id: "desc"
       },
@@ -83,20 +93,28 @@ export async function GET(request: NextRequest) {
         student: {
           include: {
             education: true,
-            inturnship: true
-          }
+            inturnship: true,
+            department: true,
+            major: true,
+            studentCompanies: {
+              include: {
+                company: true,
+                supervisions: {
+                  select: {
+                    studentId: true
+                  }
+                }
+              }
+            },
+          },
         },
-        department: true
+      
       }
     });
 
-    if (!students.length) {
-      return NextResponse.json([],
-        { status: 404 }
-      );
-    }
+  
 
-    // Transform response data
+
    
     return NextResponse.json(students);
 
