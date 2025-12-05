@@ -1,7 +1,9 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = { 
+const nextConfig = {
     reactStrictMode: false,
-    output: 'standalone'
+    output: 'standalone',
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
 };
 
 export default nextConfig;

@@ -68,7 +68,7 @@ const InternshipManagement = () => {
   const params = useParams();
   const router = useRouter();
   const studentId = params?.id as string;
-  
+
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     studentInternId: "",
@@ -98,7 +98,7 @@ const InternshipManagement = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.companyId) {
       showToast('กรุณาเลือกสถานประกอบการ', 'error');
       return;
@@ -226,6 +226,7 @@ const InternshipManagement = () => {
                 height={80}
                 alt="student"
                 className="object-cover"
+                unoptimized={true}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.src = '/default-user.png';
@@ -354,13 +355,12 @@ const InternshipManagement = () => {
                   <Icon icon="tabler:info-circle" className="h-5 w-5 text-gray-500 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-sm text-gray-500">สถานะ</p>
-                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                      hasInternship.status === 'active' ? 'bg-green-100 text-green-800' :
-                      hasInternship.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${hasInternship.status === 'active' ? 'bg-green-100 text-green-800' :
+                        hasInternship.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                      }`}>
                       {hasInternship.status === 'active' ? 'กำลังฝึกงาน' :
-                       hasInternship.status === 'completed' ? 'เสร็จสิ้น' : 'รอดำเนินการ'}
+                        hasInternship.status === 'completed' ? 'เสร็จสิ้น' : 'รอดำเนินการ'}
                     </span>
                   </div>
                 </div>

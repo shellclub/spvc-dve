@@ -20,10 +20,10 @@ export async function GET(req: NextRequest) {
             student: {
                 include: {
                     education: true,
-                    inturnship: true
+                    inturnship: true,
+                    department: true
                 }
             },
-            department: true
         }
     });
     if(!students) {

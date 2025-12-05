@@ -8,9 +8,9 @@ export async function GET(request: Request) {
         where: {
             userId: Number(session?.user.id),
         }
-        
+
     })
-    if(!student) {
+    if (!student) {
         return NextResponse.json("Unauthorized", { status: 401 });
 
     }
@@ -28,19 +28,28 @@ export async function GET(request: Request) {
             dayperweeks: true
         }
     })
-    const week = await prisma.companies.findUnique({
+
+    const studentCompany = await prisma.studentCompanies.findFirst({
         where: {
-            studentId: student.id,
+            studentId: student.id
         },
-        select: {
-            week: true,
-            name: true,
+        include: {
+            company: true
         }
     })
+
+    let weeks = 0;
+    if (studentCompany?.startDate && studentCompany?.endDate) {
+        const start = new Date(studentCompany.startDate);
+        const end = new Date(studentCompany.endDate);
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        weeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+    }
+
     return NextResponse.json({
         report: countReport,
         countDay: countDays?.dayperweeks,
-        weekterm: week?.week,
-        company: week?.name,
+        weekterm: weeks,
+        company: studentCompany?.company.name,
     })
 }

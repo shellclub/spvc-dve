@@ -40,6 +40,7 @@ const Profile = () => {
               height="35"
               width="35"
               className="rounded-full"
+              unoptimized={true}
             />
           </span>
         )}
@@ -53,6 +54,7 @@ const Profile = () => {
               height="80"
               width="80"
               className="rounded-full"
+              unoptimized={true}
             />
             <div>
               <h5 className="card-title text-sm  mb-0.5 font-medium">{`${data.firstname} ${data.lastname}`}</h5>

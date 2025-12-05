@@ -145,7 +145,7 @@ const SupervisionViewTable = () => {
       : `/api/students/withSupervisions?term=${selectedTerm}&year=${selectedYear}`,
     fetcher,
   )
-  
+
   const stdData = data ?? []
 
   // --- [เติมเต็ม] nameFilterFn ---
@@ -193,7 +193,7 @@ const SupervisionViewTable = () => {
       if (!user.student) return false // กรอง user ที่ไม่มีข้อมูล student ทิ้ง
 
       const hasInternship = user.student.studentCompanies && user.student.studentCompanies.length > 0
-      if (!hasInternship) return false 
+      if (!hasInternship) return false
 
       const matchesMajor = majorFilter === "all" || user.student.major.major_name === majorFilter
       const studentGradeCombo = `${user.student.education.name}.${user.student.gradeLevel}`
@@ -203,7 +203,7 @@ const SupervisionViewTable = () => {
       return matchesMajor && matchesGrade && matchesRoom // ◀◀◀ แก้ไข: คืนค่าให้ครบ
     })
   }, [stdData, majorFilter, gradeFilter, roomFilter])
-  
+
 
   // คอลัมน์ (ถูกต้องแล้ว)
   const columns = [
@@ -219,6 +219,7 @@ const SupervisionViewTable = () => {
             <Image
               src={info.row.original.user_img ? `/uploads/${info.row.original.user_img}` : "/default-user.png"}
               width={50} height={50} alt="user" className="object-cover"
+              unoptimized={true}
               onError={(e) => { (e.target as HTMLImageElement).src = "/default-user.png" }}
             />
           </div>
@@ -241,16 +242,16 @@ const SupervisionViewTable = () => {
       header: () => <span>แผนกวิชา</span>,
     }),
     columnHelper.accessor((row) => row.student.studentCompanies?.[0]?.company.name, {
-        id: "company",
-        header: () => <span>สถานประกอบการ</span>,
-        cell: (info) => (
-            <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-green-700 font-medium">
-                    {info.getValue() || "N/A"}
-                </span>
-            </div>
-        )
+      id: "company",
+      header: () => <span>สถานประกอบการ</span>,
+      cell: (info) => (
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <span className="text-sm text-green-700 font-medium">
+            {info.getValue() || "N/A"}
+          </span>
+        </div>
+      )
     }),
     columnHelper.display({
       id: "supervision-count",
@@ -268,9 +269,9 @@ const SupervisionViewTable = () => {
       id: "actions",
       header: () => <span>รายละเอียด</span>,
       cell: (info) => (
-        <Button 
-          color="gray" 
-          size="sm" 
+        <Button
+          color="gray"
+          size="sm"
           onClick={() => setViewingStudent(info.row.original)}
         >
           <IconEye className="h-4 w-4 mr-1" />
@@ -282,7 +283,7 @@ const SupervisionViewTable = () => {
 
   // สร้างตาราง
   const table = useReactTable({
-    data: filteredStudents, 
+    data: filteredStudents,
     columns,
     filterFns: {
       nameFilter: nameFilterFn,
@@ -336,7 +337,7 @@ const SupervisionViewTable = () => {
       </div>
 
       <TitleIconCard title="ข้อมูลการนิเทศนักศึกษา">
-        
+
         {/* --- [เติมเต็ม] ส่วนควบคุมการค้นหาและ Filter --- */}
         <div className="flex flex-wrap gap-4 mb-4">
           <div className="flex-1 min-w-[200px]">
@@ -490,7 +491,7 @@ const SupervisionViewTable = () => {
                   </tbody>
                 </table>
               </div>
-              
+
               {/* --- [เติมเต็ม] Pagination Controls --- */}
               <div className="sm:flex gap-2 p-3 items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -540,41 +541,41 @@ const SupervisionViewTable = () => {
                       ))}
                     </select>
                   </div>
-                    <div className="flex gap-1">
-                        <Button
-                            color="gray"
-                            size="sm"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
-                        >   
+                  <div className="flex gap-1">
+                    <Button
+                      color="gray"
+                      size="sm"
+                      onClick={() => table.setPageIndex(0)}
+                      disabled={!table.getCanPreviousPage()}
+                    >
 
-                            <IconChevronsLeft className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            color="gray"
-                            size="sm"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
-                        >
-                            <IconChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            color="gray"   
-                            size="sm"
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
-                        >
-                            <IconChevronRight className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            color="gray"
-                            size="sm"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
-                        >
-                            <IconChevronsRight className="h-4 w-4" />
-                        </Button>
-                    </div>
+                      <IconChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      color="gray"
+                      size="sm"
+                      onClick={() => table.previousPage()}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      <IconChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      color="gray"
+                      size="sm"
+                      onClick={() => table.nextPage()}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      <IconChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      color="gray"
+                      size="sm"
+                      onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      <IconChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </>
@@ -586,15 +587,15 @@ const SupervisionViewTable = () => {
       {/* Dialog สำหรับแสดงรายละเอียด (ถูกต้องแล้ว) */}
       <Dialog open={!!viewingStudent} onOpenChange={(isOpen) => !isOpen && setViewingStudent(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
-          {viewingStudent && ( 
+          {viewingStudent && (
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                    <IconListDetails size={20} />
-                    ประวัติการนิเทศ
+                  <IconListDetails size={20} />
+                  ประวัติการนิเทศ
                 </DialogTitle>
                 <DialogDescription>
-                  {viewingStudent.firstname} {viewingStudent.lastname} ({viewingStudent.student.studentId})<br/>
+                  {viewingStudent.firstname} {viewingStudent.lastname} ({viewingStudent.student.studentId})<br />
                   สถานประกอบการ: {viewingStudent.student.studentCompanies?.[0]?.company.name || "N/A"}
                 </DialogDescription>
               </DialogHeader>

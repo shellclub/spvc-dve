@@ -7,10 +7,10 @@ const page = () => {
     <>
       <div className="grid grid-cols-4 gap-6">
         <div className="col-span-12">
-          <TopCards/>
+          <TopCards />
         </div>
       </div>
-     
+
     </>
   );
 };

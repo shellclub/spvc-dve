@@ -12,8 +12,8 @@ import { Icon } from "@iconify/react/dist/iconify.js"
 import CardBox from '@/app/components/shared/CardBox';
 const fether: any = (url: string) => fetch(url).then((res) => res.json());
 const TopCards = () => {
-    const { data , isLoading, error } = useSWR("/api/count/forStudent", fether);
-if (isLoading) {
+  const { data, isLoading, error } = useSWR("/api/count/forStudent", fether);
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Spinner size="xl" />
@@ -21,46 +21,46 @@ if (isLoading) {
       </div>
     );
   }
-      const TopCardInfo = [
-        {
-            key:"card1",
-            title:"จำนวนวันฝึกงาน/สัปดาห์",
-            desc: 0,
-            img: "tabler:calendar",
-            bgcolor:"bg-lightwarning dark:bg-lightwarning ",
-            textclr:"text-warning dark:text-warning"
-        },
-        {
-            key:"card2",
-            title:"จำนวนที่รายงานผล",
-            desc:  0,
-            img: "tabler:file-description",
-            bgcolor:"bg-lightprimary dark:bg-lightprimary ",
-            textclr:"text-primary dark:text-primary"
-        },
-        {
-            key:"card3",
-            title:"จำนวนสัปดาห์ที่ฝึกงาน",
-            desc:  0,
-            img: "tabler:calendar-stats",
-            bgcolor:"bg-lightsuccess dark:bg-lightsuccess",
-            textclr:"text-success dark:text-success"
-        },
-        
-    ]
+  const TopCardInfo = [
+    {
+      key: "card1",
+      title: "จำนวนวันฝึกงาน/สัปดาห์",
+      desc: data?.countDay || "-",
+      img: "tabler:calendar",
+      bgcolor: "bg-lightwarning dark:bg-lightwarning ",
+      textclr: "text-warning dark:text-warning"
+    },
+    {
+      key: "card2",
+      title: "จำนวนที่รายงานผล",
+      desc: data?.report || 0,
+      img: "tabler:file-description",
+      bgcolor: "bg-lightprimary dark:bg-lightprimary ",
+      textclr: "text-primary dark:text-primary"
+    },
+    {
+      key: "card3",
+      title: "จำนวนสัปดาห์ที่ฝึกงาน",
+      desc: data?.weekterm || 0,
+      img: "tabler:calendar-stats",
+      bgcolor: "bg-lightsuccess dark:bg-lightsuccess",
+      textclr: "text-success dark:text-success"
+    },
+
+  ]
 
 
-    return (
-        <>
-          <div>
-          <Swiper
-        slidesPerView={3}
-        spaceBetween={24}
-        loop={true}
-        dir="ltr"
-        grabCursor={true}
-        breakpoints={{
-            0 : {
+  return (
+    <>
+      <div>
+        <Swiper
+          slidesPerView={3}
+          spaceBetween={24}
+          loop={true}
+          dir="ltr"
+          grabCursor={true}
+          breakpoints={{
+            0: {
               slidesPerView: 1,
               spaceBetween: 10,
             },
@@ -81,34 +81,34 @@ if (isLoading) {
               spaceBetween: 24,
             },
           }}
-        pagination={{
-          clickable: true,
-        }}
-        className="mySwiper"
-      >
-     {
-        TopCardInfo.map((item)=>{
-            return(
+          pagination={{
+            clickable: true,
+          }}
+          className="mySwiper"
+        >
+          {
+            TopCardInfo.map((item) => {
+              return (
                 <SwiperSlide key={item.key} >
-                <CardBox className={`shadow-none ${item.bgcolor} w-full`}>
+                  <CardBox className={`shadow-none ${item.bgcolor} w-full`}>
                     <div className="text-center">
-                        <div className="flex justify-center">
-                            <Icon icon={item.img} height={50} />
-                        </div>
-                        <p className={`font-semibold ${item.textclr} mb-1`}>
-                            {item.title}
-                        </p>
-                        <h5 className={`text-lg font-semibold ${item.textclr} mb-0`}>{item.desc}</h5>
+                      <div className="flex justify-center">
+                        <Icon icon={item.img} height={50} />
+                      </div>
+                      <p className={`font-semibold ${item.textclr} mb-1`}>
+                        {item.title}
+                      </p>
+                      <h5 className={`text-lg font-semibold ${item.textclr} mb-0`}>{item.desc}</h5>
                     </div>
-                </CardBox>
+                  </CardBox>
                 </SwiperSlide>
-            )
-        })
-     }
+              )
+            })
+          }
 
-      </Swiper>
-          </div>
-        </>
-    )
+        </Swiper>
+      </div>
+    </>
+  )
 }
 export { TopCards }

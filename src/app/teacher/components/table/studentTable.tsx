@@ -14,7 +14,7 @@ import {
   FilterFn,
 } from "@tanstack/react-table";
 
-import {  Button, Dropdown, Select, Spinner } from "flowbite-react";
+import { Button, Dropdown, Select, Spinner } from "flowbite-react";
 import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight, IconDots } from "@tabler/icons-react";
 import { Icon } from "@iconify/react";
 import TitleIconCard from "@/app/components/shared/TitleIconCard";
@@ -124,10 +124,10 @@ const StudentTable = () => {
   const [roomFilter, setRoomFilter] = useState<string>("all");
   const router = useRouter();
   const rerender = React.useReducer(() => ({}), {})[1];
-  
+
   const { data: academicYears, error: yearError, isLoading: yearLoading } = useSWR<TermYear[]>('/api/academic_year', fetcher);
   const { data, error, isLoading, mutate } = useSWR<PaginationTableType[]>(
-    !selected ? '/api/students/getByDepartment' : `/api/students/getByDepartment?term=${selectedTerm}&year=${selectedYear}`, 
+    !selected ? '/api/students/getByDepartment' : `/api/students/getByDepartment?term=${selectedTerm}&year=${selectedYear}`,
     fetcher
   );
   const stdData = data ?? [];
@@ -143,14 +143,14 @@ const StudentTable = () => {
   // Filter students based on selected filters
   const filteredStudents = React.useMemo(() => {
     if (!data) return [];
-    
+
     return data.filter((student) => {
       const matchesMajor = majorFilter === "all" || student.student.major.major_name === majorFilter;
       const studentGradeCombo = `${student.student.education.name}.${student.student.gradeLevel}`;
       const matchesGrade = gradeFilter === "all" || studentGradeCombo === gradeFilter;
       const matchesRoom = roomFilter === "all" || student.student.room === roomFilter;
 
-      return  matchesMajor && matchesGrade && matchesRoom;
+      return matchesMajor && matchesGrade && matchesRoom;
     });
   }, [data, majorFilter, gradeFilter, roomFilter]);
 
@@ -180,7 +180,7 @@ const StudentTable = () => {
   }, [data, majorFilter]);
 
 
-       
+
 
   const columns = [
     columnHelper.display({
@@ -210,6 +210,7 @@ const StudentTable = () => {
               height={50}
               alt="user"
               className="object-cover"
+              unoptimized={true}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.src = '/default-user.png';
@@ -263,9 +264,9 @@ const StudentTable = () => {
           )}
         >
           {[
-            { 
-              icon: "tabler:eye", 
-              listtitle: "รายละเอียด", 
+            {
+              icon: "tabler:eye",
+              listtitle: "รายละเอียด",
               onclick: () => router.push(`/departments/students/${info.row.original.id as string}`)
             },
           ].map((item, index) => (
@@ -279,7 +280,7 @@ const StudentTable = () => {
       header: () => <span></span>,
     }),
   ];
- 
+
   const table = useReactTable({
     data: filteredStudents,
     columns,
@@ -341,79 +342,79 @@ const StudentTable = () => {
               className="max-w-sm"
             />
           </div>
-          
 
-            <Select
-              value={majorFilter}
-              onChange={(e) => {
-                setMajorFilter(e.target.value);
-                setRoomFilter("all");
-              }}
-            >
-              <option value="all">สาขาวิชาทั้งหมด</option>
-              {[...new Set(stdData.map((std) => std.student.major.major_name))].map((major, index) => (
-                <option key={index} value={major}>
-                  {major}
-                </option>
-              ))}
-            </Select>
 
-            <Select
-              value={gradeFilter}
-              onChange={(e) => setGradeFilter(e.target.value)}
-            >
-              <option value="all">ระดับชั้นทั้งหมด</option>
-              {availableGrades.map((grade, index) => (
-                <option key={index} value={grade}>
-                  {grade}
-                </option>
-              ))}
-            </Select>
+          <Select
+            value={majorFilter}
+            onChange={(e) => {
+              setMajorFilter(e.target.value);
+              setRoomFilter("all");
+            }}
+          >
+            <option value="all">สาขาวิชาทั้งหมด</option>
+            {[...new Set(stdData.map((std) => std.student.major.major_name))].map((major, index) => (
+              <option key={index} value={major}>
+                {major}
+              </option>
+            ))}
+          </Select>
 
-            <Select
-              value={roomFilter}
-              onChange={(e) => setRoomFilter(e.target.value)}
-            >
-              <option value="all">ห้องทั้งหมด</option>
-              {availableRooms.map((room, index) => (
-                <option key={index} value={room}>
-                  {room}
-                </option>
-              ))}
-            </Select>
-            <Select
-                value={`${selectedTerm}/${selectedYear}`}
-                onChange={(e) => {
-                  if (e.target.value === "all") {
-                    setSelectedTerm('');
-                    setSelectedYear('');
-                    setSelected(false);
-                    mutate();
-                  } else {
-                    const [term, academicYear] = e.target.value.split('/');
-                    setSelectedTerm(term);
-                    setSelectedYear(academicYear);
-                    setSelected(true);
-                    mutate();
-                  }
-                }}
+          <Select
+            value={gradeFilter}
+            onChange={(e) => setGradeFilter(e.target.value)}
+          >
+            <option value="all">ระดับชั้นทั้งหมด</option>
+            {availableGrades.map((grade, index) => (
+              <option key={index} value={grade}>
+                {grade}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            value={roomFilter}
+            onChange={(e) => setRoomFilter(e.target.value)}
+          >
+            <option value="all">ห้องทั้งหมด</option>
+            {availableRooms.map((room, index) => (
+              <option key={index} value={room}>
+                {room}
+              </option>
+            ))}
+          </Select>
+          <Select
+            value={`${selectedTerm}/${selectedYear}`}
+            onChange={(e) => {
+              if (e.target.value === "all") {
+                setSelectedTerm('');
+                setSelectedYear('');
+                setSelected(false);
+                mutate();
+              } else {
+                const [term, academicYear] = e.target.value.split('/');
+                setSelectedTerm(term);
+                setSelectedYear(academicYear);
+                setSelected(true);
+                mutate();
+              }
+            }}
+          >
+            <option value="" hidden>เลือกปีการศึกษา</option>
+            <option value="all">ทั้งหมด</option>
+            {academicYears?.map((year, index) => (
+              <option
+                key={index}
+                value={`${year.term}/${year.academicYear}`}
               >
-                <option value="" hidden>เลือกปีการศึกษา</option>
-                <option value="all">ทั้งหมด</option>
-                {academicYears?.map((year, index) => (
-                  <option 
-                    key={index} 
-                    value={`${year.term}/${year.academicYear}`}
-                  >
-                    {`${year.term}/${year.academicYear}`}
-                  </option>
-                ))}
-              </Select>
-          </div>
+                {`${year.term}/${year.academicYear}`}
+              </option>
+            ))}
+          </Select>
+        </div>
 
         {/* Academic Year Selection */}
         <div className="flex justify-start mb-3">
-          
+
           <div className="mx-2 flex items-center">
             <p className="text-md">
               ปีการศึกษา: {!selected ? "ทั้งหมด" : `${selectedTerm}/${selectedYear}`}
@@ -424,7 +425,7 @@ const StudentTable = () => {
         {/* Filter Summary */}
         <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
           แสดง {table.getFilteredRowModel().rows.length} จาก {data?.length || 0} รายการ
-         
+
           {majorFilter !== "all" && (
             <span className="ml-2 text-blue-600 dark:text-blue-400">
               (กรองตามสาขา: {majorFilter})
@@ -441,7 +442,7 @@ const StudentTable = () => {
             </span>
           )}
         </div>
-        
+
         <div className="border rounded-md border-ld overflow-hidden">
           {isLoading ? (
             <div className="overflow-x-auto">
@@ -507,7 +508,7 @@ const StudentTable = () => {
                   </tbody>
                 </table>
               </div>
-              
+
               <div className="sm:flex gap-2 p-3 items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Button color="primary" onClick={() => rerender()}>
@@ -517,7 +518,7 @@ const StudentTable = () => {
                     {table.getPrePaginationRowModel().rows.length} แถว
                   </h1>
                 </div>
-                
+
                 <div className="sm:flex items-center gap-2 sm:mt-0 mt-3">
                   <div className="flex">
                     <h2 className="text-gray-700 pe-1">หน้า</h2>
@@ -525,7 +526,7 @@ const StudentTable = () => {
                       {table.getState().pagination.pageIndex + 1} จาก {table.getPageCount()}
                     </h2>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     | ไปที่หน้า:
                     <input
@@ -540,7 +541,7 @@ const StudentTable = () => {
                       className="w-16 form-control-input border rounded px-2 py-1"
                     />
                   </div>
-                  
+
                   <div className="select-md sm:mt-0 mt-3">
                     <select
                       value={table.getState().pagination.pageSize}
@@ -556,7 +557,7 @@ const StudentTable = () => {
                       ))}
                     </select>
                   </div>
-                  
+
                   <div className="flex gap-2 sm:mt-0 mt-3">
                     <Button
                       size="small"

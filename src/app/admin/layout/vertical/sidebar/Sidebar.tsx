@@ -86,6 +86,7 @@ const SidebarLayout = () => {
                           width={40} 
                           height={40} 
                           className="rounded-full" 
+                          unoptimized={true}
                         />
                         <div>
                           <h3 className="text-base font-semibold">{data.firstname}</h3>

@@ -1,35 +1,17 @@
 
-
 FROM node:18-alpine AS base
-# ARG API_URL
-# ARG NEXTAUTH_URL
-# ARG NEXTAUTH_SECRET
-# ARG NEXT_PUBLIC_API_URL
-# ARG NEXT_PUBLIC_PDF_URL
 
-# Set environment variables for the Docker image
-# ENV API_URL=$API_URL
-# ENV NEXTAUTH_URL=$NEXTAUTH_URL
-# ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
-# ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-# ENV NEXT_PUBLIC_PDF_URL=$NEXT_PUBLIC_PDF_URL
 # Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
-# COPY src/assets/iconify-icons ./src/assets/iconify-icons
-# RUN \
-#   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-#   elif [ -f package-lock.json ]; then npm ci; \
-#   elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i --frozen-lockfile; \
-#   else echo "Lockfile not found." && exit 1; \
-#   fi
-
-RUN npm ci --legacy-peer-deps
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm ci --legacy-peer-deps
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -41,13 +23,9 @@ COPY . .
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED 1
-# RUN yarn build:icons
+COPY prisma ./prisma/
 RUN npx prisma generate
-
-RUN yarn build
-
-# If using npm comment out above and use below instead
-# RUN npm run build
+RUN npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -79,6 +57,4 @@ ENV PORT 3000
 # set hostname to localhost
 ENV HOSTNAME "0.0.0.0"
 
-# server.js is created by next build from the standalone output
-# https://nextjs.org/docs/pages/api-reference/next-config-js/output
 CMD ["node", "server.js"]

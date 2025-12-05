@@ -324,37 +324,37 @@ const SuperviseTable = () => {
 
   // กำหนดคอลัมน์สำหรับตาราง
   const columns = [
-  columnHelper.display({
-    id: "select",
-    header: ({ table }) => {
-      const totalRows = table.getFilteredRowModel().rows.length;
-      const isAllSelected = totalRows > 0 && selectedStudents.size === totalRows;
+    columnHelper.display({
+      id: "select",
+      header: ({ table }) => {
+        const totalRows = table.getFilteredRowModel().rows.length;
+        const isAllSelected = totalRows > 0 && selectedStudents.size === totalRows;
 
-      return (
-        <Checkbox
-          checked={isAllSelected}
-          onCheckedChange={(checked) => {
-        
-            if (checked) {
-              const allStudentIds = new Set(filteredStudents.map((s) => String(s.student.id)))
-              setSelectedStudents(allStudentIds)
-            } else {
-              setSelectedStudents(new Set())
-            }
-          }}
-          disabled={totalRows === 0}
-        />
-      )
-    },
-    cell: (info) => {
-      return (
-        <Checkbox
-          checked={selectedStudents.has(String(info.row.original.student.id))}
-          onCheckedChange={(checked) => handleSelectStudent(String(info.row.original.student.id), !!checked)}
-        />
-      )
-    },
-  }),
+        return (
+          <Checkbox
+            checked={isAllSelected}
+            onCheckedChange={(checked) => {
+
+              if (checked) {
+                const allStudentIds = new Set(filteredStudents.map((s) => String(s.student.id)))
+                setSelectedStudents(allStudentIds)
+              } else {
+                setSelectedStudents(new Set())
+              }
+            }}
+            disabled={totalRows === 0}
+          />
+        )
+      },
+      cell: (info) => {
+        return (
+          <Checkbox
+            checked={selectedStudents.has(String(info.row.original.student.id))}
+            onCheckedChange={(checked) => handleSelectStudent(String(info.row.original.student.id), !!checked)}
+          />
+        )
+      },
+    }),
     columnHelper.display({
       id: "index",
       header: () => <span>#</span>,
@@ -378,6 +378,7 @@ const SuperviseTable = () => {
               height={50}
               alt="user"
               className="object-cover"
+              unoptimized={true}
               onError={(e) => {
                 const target = e.target as HTMLImageElement
                 target.src = "/default-user.png"
@@ -406,9 +407,8 @@ const SuperviseTable = () => {
       id: "education",
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${info.getValue()}.${
-            info.row.original.student.gradeLevel
-          }/${info.row.original.student.room}`}</h6>
+          <h6 className="text-base">{`${info.getValue()}.${info.row.original.student.gradeLevel
+            }/${info.row.original.student.room}`}</h6>
           <p className="text-sm text-darklink dark:text-bodytext">
             ปีการศึกษา: {`${info.row.original.student.term}/${info.row.original.student.academicYear}`}
           </p>
@@ -416,7 +416,7 @@ const SuperviseTable = () => {
       ),
       header: () => <span>ระดับชั้น</span>,
     }),
-    
+
     columnHelper.display({
       id: "supervision-status",
       header: () => <span>สถานะ</span>,
@@ -427,11 +427,11 @@ const SuperviseTable = () => {
           internshipArray.length > 0 &&
           internshipArray[0].supervisions &&
           internshipArray[0].supervisions.length > 0
-        
+
         return hasSupervision ? (
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <span className="text-sm text-green-700 font-medium">นิเทศแล้ว { internshipArray[0].supervisions.length } ครั้ง</span>
+            <span className="text-sm text-green-700 font-medium">นิเทศแล้ว {internshipArray[0].supervisions.length} ครั้ง</span>
           </div>
         ) : (
           <span className="text-sm text-gray-500">ยังไม่มีข้อมูล</span>
