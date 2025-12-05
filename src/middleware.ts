@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
       3: "/departments",
       4: "/teacher",
       5: "/supervision",
-      6: "/company",
+      // 6: "/company",
       7: "/",
     };
     
@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
       3: "/departments",
       4: "/teacher",
       5: "/supervision",
-      6: "/company",
+      // 6: "/company",
       7: "/",
     };
     
@@ -75,7 +75,7 @@ export async function middleware(request: NextRequest) {
     { prefix: "/departments", role: 3 },
     { prefix: "/teacher", role: 4 },
     { prefix: "/supervision", role: 5 },
-    { prefix: "/company", role: 6 },
+    // { prefix: "/company", role: 6 },
   ];
 
   // ตรวจสอบ specific routes ก่อน
@@ -92,7 +92,7 @@ export async function middleware(request: NextRequest) {
 
   // 🔹 role 7 ห้ามเข้า protected routes
   if (user?.role === 7) {
-    const protectedPaths = ["/admin", "/board", "/departments", "/teacher", "/supervision", "/company"];
+    const protectedPaths = ["/admin", "/board", "/departments", "/teacher", "/supervision"];
     const isAccessingProtected = protectedPaths.some(path => pathname.startsWith(path));
     
     if (isAccessingProtected) {
@@ -111,7 +111,7 @@ export const config = {
     "/departments/:path*",
     "/teacher/:path*",
     "/supervision/:path*",
-    "/company/:path*",
+    // "/company/:path*",
     "/protected",
     "/change-password",
     "/signin",

@@ -246,11 +246,10 @@ export async function POST(req: Request) {
     
     for (let i = 0; i < processedData.length; i += batchSize) {
       const batch = processedData.slice(i, i + batchSize);
-      
+
       await prisma.$transaction(async (tx) => {
         for (const row of batch) {
           try {
-            // Check if user already exists
             const existingUser = await tx.user.findUnique({
               where: { citizenId: String(row.citizenId) }
             });
@@ -289,7 +288,7 @@ export async function POST(req: Request) {
                   birthday = tempDate.toDate();
                 }
               }
-          
+                    
               // (เพิ่มการตรวจสอบ Invalid Date หลังการแปลงค่า)
               if (isNaN(birthday.getTime())) {
                 throw new Error("Invalid date after processing");
@@ -300,6 +299,7 @@ export async function POST(req: Request) {
               errorCount++;
               continue;
             }
+            const passwordString = dayjs(birthday).add(543, 'year').format('DD/MM/YYYY')
             
             // Create user with student
             await tx.user.create({
@@ -332,8 +332,8 @@ export async function POST(req: Request) {
                 },
                 login: {
                   create: {
-                    username: row.citizenId,
-                    password: bcrypt.hashSync(formatThaiDateFixed(row.birthday), 10),
+                    username: row.studentId,
+                    password: bcrypt.hashSync(passwordString, 10),
                   }
                 }
               }

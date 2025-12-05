@@ -28,13 +28,13 @@ export async function PUT(
       }
   
       const formData = await request.formData();
-      const oldPassword = formData.get("oldPassword") as string;
+      const confirmPassword = formData.get("confirmPassword") as string;
       const newPassword = formData.get("newPassword") as string;
   
       // Validate input
-      if (!oldPassword || !newPassword) {
+      if (newPassword !== confirmPassword) {
         return NextResponse.json(
-          { message: "กรุณากรอกข้อมูลให้ครบถ้วน", type: "error" },
+          { message: "กรุณากรอกรหัสผ่านให้ตรงกัน", type: "error" },
           { status: 400 }
         );
       }
@@ -81,15 +81,6 @@ export async function PUT(
         );
       }
   
-      // ตรวจสอบรหัสผ่านเดิม
-      const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
-  
-      if (!isPasswordValid) {
-        return NextResponse.json(
-          { message: "รหัสผ่านปัจจุบันไม่ถูกต้อง", type: "error" },
-          { status: 400 }
-        );
-      }
   
       // เช็คว่ารหัสผ่านใหม่ไม่ซ้ำกับรหัสผ่านเดิม
       const isSamePassword = await bcrypt.compare(newPassword, user.password);
@@ -128,30 +119,3 @@ export async function PUT(
       );
     }
 }
-
-export async function POST(request: NextRequest,{ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params;
-    const { password } = await request.json();
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    
-
-    const updatePassword = await prisma.user.update({
-        where: { id: Number(id) },
-        data: {
-            login: {
-                update: {
-                    password: hashedPassword
-                }
-            }
-        },
-        include: {
-            login: true
-        }
-    });
-    if (!updatePassword) {
-        return NextResponse.json({ message: "โปรดลองใหม่ภายหลัง", type: "error" }, { status: 400 });
-    }
-    return NextResponse.json({ message: "รีเซ็ตรหัสผ่านสำเร็จ", type: "success" }, { status: 200 });
-}   

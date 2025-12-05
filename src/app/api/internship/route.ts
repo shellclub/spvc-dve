@@ -2,60 +2,46 @@ import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-   const { id, companyId } = await request.json();
-
-   const student = await prisma.student.findUnique({
-       where: { id: Number(id) }
+   const { id, selectedDays,dayperweeks } = await request.json();
+    
+   const user = await prisma.user.findUnique({
+       where: { id: Number(id) },
+       include: { student: true}
    });
 
-   if (!student) {
+   if (!user || !user.student) {
        return NextResponse.json(
            { message: "ไม่พบข้อมูลนักศึกษา", type: "error" },
            { status: 404 }
        );
    }
 
-   // ตรวจสอบว่า Company มีอยู่จริงหรือไม่
-   const company = await prisma.companies.findUnique({
-       where: { id: Number(companyId) }
+
+   // ตรวจสอบว่ามีข้อมูลอยู่แล้วหรือไม่
+   const company = await prisma.studentCompanies.findFirst({
+       where: {
+           studentId: Number(user.student.id)
+       }
    });
 
    if (!company) {
        return NextResponse.json(
-           { message: "ไม่พบข้อมูลบริษัท", type: "error" },
+           { message: "ไม่พบข้อมูลการฝึกงานของนักศึกษา ติดครูนิเทศ", type: "error" },
            { status: 404 }
        );
    }
 
-   // ตรวจสอบว่ามีข้อมูลอยู่แล้วหรือไม่
-   const existing = await prisma.studentCompanies.findUnique({
-       where: {
-           studentId_companyId: {
-               studentId: Number(id),
-               companyId: Number(companyId)
-           }
-       }
-   });
-
-   if (existing) {
-       return NextResponse.json(
-           { message: "นักศึกษามีข้อมูลการฝึกงานแล้ว", type: "error" },
-           { status: 400 }
-       );
-   }
-
    try {
-       const internshipCompany = await prisma.studentCompanies.create({
-           data: {
-               studentId: Number(id),
-               companyId: Number(companyId),
-               startDate: new Date(),
-               endDate: new Date(),
-           }
-       });
 
+        const internship = await prisma.inturnship.create({
+            data: {
+                studentId: Number(user.student.id),
+                selectedDays: selectedDays,
+                dayperweeks: String(dayperweeks)
+            }
+        })
        return NextResponse.json(
-           { message: "ดำเนินการสำเร็จ", type: "success", data: internshipCompany },
+           { message: "ดำเนินการสำเร็จ", type: "success", data: internship },
            { status: 201 }
        );
    } catch (error) {

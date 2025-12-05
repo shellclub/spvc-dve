@@ -15,7 +15,7 @@ const profileDD: ProfileType[] = [
     img: acccountIcon,
     title: "แก้ไขข้อมูลส่วนตัว",
     subtitle: "จัดการข้อมูลส่วนตัว",
-    url: "/teacher/profile",
+    url: "/supervision/profile",
   },
 
 ];

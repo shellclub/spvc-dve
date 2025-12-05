@@ -11,7 +11,7 @@ const Students = () => {
     <>
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12">
-          <TopCards/>
+          {/* <TopCards/> */}
         </div>
         <div className="col-span-12">
           <InternshipReportForm/> 

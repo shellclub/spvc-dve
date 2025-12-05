@@ -41,7 +41,7 @@ const SidebarContent: MenuItem[] = [
         url: "/departments",
       },
       {
-        name: "ข้อมูลยบุคคลากร",
+        name: "ข้อมูลบุคคลากร",
         icon: 'tabler:users',
         id: uniqueId(),
         url: "/departments/teacher",

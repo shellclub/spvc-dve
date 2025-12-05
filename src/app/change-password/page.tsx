@@ -100,8 +100,8 @@ export default function FirstLoginChangePasswordPage() {
         try {
             const formdata = new FormData();
             formdata.append('newPassword', newPassword);
-
-            const res = await fetch(`/api/users/${session?.user.id}/change-password`, {
+            formdata.append('confirmPassword', confirmPassword)
+            const res = await fetch(`/api/users/${session?.user.id}/first-changepassword`, {
                 method: "PUT",
                 body: formdata
             });
@@ -123,6 +123,7 @@ export default function FirstLoginChangePasswordPage() {
 
             } else {
                 showToast(data.message, data.type);
+                // router.push("/protected")
             }
         } catch (error) {
             showToast('เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน', 'error');

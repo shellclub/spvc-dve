@@ -34,9 +34,20 @@ export async function PUT(request: NextRequest, { params }: {params: Promise<{id
     const { id } = await params;
     const formdata = await request.formData();
     const file = formdata.get("image") as File;
-    const filename = await parseForm(file, "report");
+    const oldData = await prisma.internshipReport.findUnique({
+        where: {
+            id: Number(id)
+        }
+    })
+    if(!oldData) {
+        return NextResponse.json({ error: "ไม่พบข้อมูลการฝึกงาน"}, { status: 400})
+    }
+    let filename = oldData.image;
+      if (file && file.size > 0) {
+         filename = await parseForm(file, "report");
+        }
+        formdata.append('image', filename);
     const thaidate = formdata.get("reportDate");
-    formdata.append('image', filename);
     if (thaidate) {
         const englishDate = new Date(convertThaiDateToEnglishFormat(String(thaidate)));
         formdata.append('reportDate',String(englishDate));
@@ -55,7 +66,7 @@ export async function PUT(request: NextRequest, { params }: {params: Promise<{id
         title: data.title,
         description: data.description,
         reportDate: new Date(String(data.reportDate)),
-        image: data.image
+        image: String(data.image) ?? null
       }
     });
   

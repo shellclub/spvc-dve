@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
-import { formatThaiDateFixed } from "@/lib/thaiDateConvert";
 import { parseForm } from "@/lib/uploadFile";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from 'bcryptjs'
+import dayjs from "dayjs";
 export async function GET() {
   try {
     const students = await prisma.student.findMany({
@@ -88,6 +88,8 @@ export async function POST(req: NextRequest) {
 
     // Upload file
     const userImgPath = await parseForm(file);
+    const passwordString = dayjs(data.birthday).add(543, 'year').format('DD/MM/YYYY')
+    console.log("password:",passwordString);
     
     const user = await prisma.user.create({
       data: {
@@ -114,7 +116,7 @@ export async function POST(req: NextRequest) {
         login:{
           create: {
             username: data.studentId,
-            password: bcrypt.hashSync(formatThaiDateFixed(data.birthday), 10),
+            password: bcrypt.hashSync(passwordString, 10),
           }
         }
       },

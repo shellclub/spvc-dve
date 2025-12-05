@@ -34,7 +34,7 @@ model Major {
   teacher Teacher[]
   createAt DateTime @default(now()) @map("create_at")
   updateAt DateTime @updatedAt  @map("update_at")
-
+  @@map("major")
 }
 
 model Login {
@@ -122,7 +122,7 @@ model InternshipReport {
   title String
   description String?
   reportDate DateTime
-  image String
+  image String?
   @@map("internship_report")
   
 }
