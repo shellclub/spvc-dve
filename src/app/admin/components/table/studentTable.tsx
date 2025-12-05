@@ -473,6 +473,7 @@ const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
             height={50}
             alt="icon"
             className="h-10 w-10 rounded-xl"
+            unoptimized={true}
           />
           <div className="truncate line-clamp-2 max-w-56">
             <h6 className="text-base">{`${gender_options[Number(info.getValue().sex) ?? 0] || "ไม่ทราบเพศ"}${info.getValue().firstname} ${

@@ -104,8 +104,8 @@ const StudentDetailTable = ({ id }: StudentProps) => {
             name: `${data.user.firstname || ''} ${data.user.lastname || ''}`.trim(),
             department: data.department?.depname || 'ไม่มีข้อมูล',
             major: data.major?.major_name || 'ไม่มีข้อมูล',
-            academicYear: data 
-              ? `${data.term}/${data.academicYear}` 
+            academicYear: data
+              ? `${data.term}/${data.academicYear}`
               : 'ไม่มีข้อมูล',
             internshipDays: data.inturnship?.selectedDays?.join(', ') || 'ไม่มีข้อมูล'
           });
@@ -120,7 +120,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
 
 
   const exportToPDF = async () => {
-    
+
     const input = document.getElementById('reportContent');
     if (!input) return;
 
@@ -132,7 +132,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
     const pageHeight = pdf.internal.pageSize.getHeight();
 
 
-    const headerText = `รายงานการฝึกงาน \n ${data?.studentId}  ${data?.user?.sex === 1 ? "นาย" : data?.user?.sex === 2 ? "นางสาว": ""} ${data?.user?.firstname} ${data?.user?.lastname} ระดับชั้น ${data?.gradeLevel} กลุ่ม ${data?.room} สาขาวิชา ${data?.major?.major_name}`;
+    const headerText = `รายงานการฝึกงาน \n ${data?.studentId}  ${data?.user?.sex === 1 ? "นาย" : data?.user?.sex === 2 ? "นางสาว" : ""} ${data?.user?.firstname} ${data?.user?.lastname} ระดับชั้น ${data?.gradeLevel} กลุ่ม ${data?.room} สาขาวิชา ${data?.major?.major_name}`;
     pdf.setFont('THSarabunNew');
     pdf.setFontSize(18);
     pdf.text(headerText, pageWidth / 2, 15, { align: 'center' });
@@ -147,7 +147,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
     const blob = pdf.output('blob');
     const blobURL = URL.createObjectURL(blob);
     window.open(blobURL)
-};
+  };
   const columns = [
     columnHelper.display({
       id: "index",
@@ -173,6 +173,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
               alt="รายงานภาพ"
               className="object-contain h-20"
               priority={false}
+              unoptimized={true}
             />
           ) : (
             <span className="text-gray-400">ไม่มีภาพ</span>
@@ -193,7 +194,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
       ),
       header: "รายละเอียด",
     }),
-   
+
   ];
 
   const table = useReactTable({
@@ -236,7 +237,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
 
   return (
     <TitleIconCard title="ข้อมูลนักศึกษา">
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-6 p-4 rounded-lg">
         <div>
           <p className="text-sm text-gray-500">รหัสนักศึกษา</p>
@@ -264,11 +265,11 @@ const StudentDetailTable = ({ id }: StudentProps) => {
         </div>
       </div>
       <div className="flex justify-end items-center my-6">
-          <Button onClick={exportToPDF}>
-              <Icon icon="tabler:printer" height={20} />
-            </Button>
-            
-            </div>
+        <Button onClick={exportToPDF}>
+          <Icon icon="tabler:printer" height={20} />
+        </Button>
+
+      </div>
       <div className="border rounded-md border-ld overflow-hidden">
         {!data?.report || data.report.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8">
@@ -306,14 +307,14 @@ const StudentDetailTable = ({ id }: StudentProps) => {
                 </tbody>
               </table>
             </div>
-            
+
             <div className="sm:flex gap-2 p-3 items-center justify-between">
               <div className="flex items-center gap-2">
                 <h1 className="text-gray-700">
                   {table.getPrePaginationRowModel().rows.length} รายการ
                 </h1>
               </div>
-              
+
               <div className="sm:flex items-center gap-2 sm:mt-0 mt-3">
                 <div className="flex">
                   <h2 className="text-gray-700 pe-1">หน้า</h2>
@@ -321,7 +322,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
                     {table.getState().pagination.pageIndex + 1} จาก {table.getPageCount()}
                   </h2>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   | ไปที่หน้า:
                   <input
@@ -336,7 +337,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
                     className="w-16 form-control-input border rounded px-2 py-1"
                   />
                 </div>
-                
+
                 <div className="select-md sm:mt-0 mt-3">
                   <select
                     value={table.getState().pagination.pageSize}
@@ -352,7 +353,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div className="flex gap-2 sm:mt-0 mt-3">
                   <Button
                     size="small"

@@ -1,8 +1,6 @@
-import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
 import { convertThaiDateToEnglishFormat } from "@/lib/utils";
 import { parseForm } from "@/lib/uploadFile";
 
@@ -42,7 +40,7 @@ export async function PUT(request: NextRequest, { params }: {params: Promise<{id
     if(!oldData) {
         return NextResponse.json({ error: "ไม่พบข้อมูลการฝึกงาน"}, { status: 400})
     }
-    let filename = oldData.image;
+    let filename = oldData.image ?? '';
       if (file && file.size > 0) {
          filename = await parseForm(file, "report");
         }

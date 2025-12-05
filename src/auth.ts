@@ -27,7 +27,7 @@ declare module "next-auth" {
 dayjs.extend(customParseFormat);
 
 export const { handlers, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as any,
   session: {
     strategy: "jwt",
     maxAge: 60 * 60 * 24 * 1,
@@ -86,12 +86,12 @@ export const { handlers, auth } = NextAuth({
         token.is_first_login = user.is_first_login;
         token.skip_password_change = user.skip_password_change;
       }
-        if( trigger === "update" && session) {
-          token.skip_password_change = session.user.skip_password_change ?? token.skip_password_change;
-          token.is_first_login = session.user.is_first_login ?? token.is_first_login;
-          token.role = session.user.role ?? token.role;
-          token.id = session.user.id ?? token.id;
-        }
+      if (trigger === "update" && session) {
+        token.skip_password_change = session.user.skip_password_change ?? token.skip_password_change;
+        token.is_first_login = session.user.is_first_login ?? token.is_first_login;
+        token.role = session.user.role ?? token.role;
+        token.id = session.user.id ?? token.id;
+      }
       return token;
     },
     async session({ session, token }) {

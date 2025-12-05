@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation";
 import { maskCitizenId, userRole, userSex } from "@/lib/utils";
 import Image from "next/image";
 export interface PaginationTableType {
-  id?:  string;
+  id?: string;
   citizenId: string;
   user_img: string;
   department: {
@@ -53,7 +53,7 @@ const TeacherTable = () => {
       cancelButtonColor: "#d33",
       confirmButtonText: "ต้องการ",
       cancelButtonText: "ไม่ต้องการ"
-    }).then( async (result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
         const res = await fetch(`/api/users/${id}`, {
           method: "DELETE",
@@ -61,10 +61,10 @@ const TeacherTable = () => {
             "Content-Type": "application/json"
           }
         })
-        if(!res.ok) {
+        if (!res.ok) {
           const err = await res.json();
           showToast(err.message, err.type);
-        }else {
+        } else {
           const data = await res.json();
           showToast(data.message, data.type);
           router.refresh();
@@ -77,13 +77,13 @@ const TeacherTable = () => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const hooks = await fetch("/api/teachers",{
+      const hooks = await fetch("/api/teachers", {
         cache: "no-store",
         headers: {
           "Content-Type": "application/json"
         }
       })
-      if(!hooks.ok) {
+      if (!hooks.ok) {
         const res = await hooks.json();
         console.log(res);
       }
@@ -92,7 +92,7 @@ const TeacherTable = () => {
       setData(res);
     }
     fetchUser();
-  },[])
+  }, [])
 
 
   const columns = [
@@ -108,41 +108,42 @@ const TeacherTable = () => {
     columnHelper.accessor("citizenId", {
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
-            <h6 className="text-base">{`${maskCitizenId(info.getValue())}`}</h6>
+          <h6 className="text-base">{`${maskCitizenId(info.getValue())}`}</h6>
         </div>
-        
+
       ),
       header: () => <span>เลขบัตรประชาชน</span>,
     }),
     columnHelper.accessor("firstname", {
       cell: (info) => (
         <div className="flex gap-3 items-center">
-                    <Image
-                    src={`/uploads/${info.row.original.user_img}`}
-                    width={50}
-                    height={50}
-                    alt="icon"
-                    className="h-10 w-10 rounded-xl"
-                  />
-                  <div className="truncate line-clamp-2 max-w-56">
-                    <h6 className="text-base">{`${info.getValue()} ${info.row.original.lastname}`}</h6>
-                    <p className="text-sm text-darklink dark:text-bodytext">
-                      {userRole(Number(info.row.original.role))}
-                    </p>
-                  </div>
-                  
-                </div>
-        
+          <Image
+            src={`/uploads/${info.row.original.user_img}`}
+            width={50}
+            height={50}
+            alt="icon"
+            className="h-10 w-10 rounded-xl"
+            unoptimized={true}
+          />
+          <div className="truncate line-clamp-2 max-w-56">
+            <h6 className="text-base">{`${info.getValue()} ${info.row.original.lastname}`}</h6>
+            <p className="text-sm text-darklink dark:text-bodytext">
+              {userRole(Number(info.row.original.role))}
+            </p>
+          </div>
+
+        </div>
+
       ),
       header: () => <span>ผู้ใช้</span>,
     }),
     columnHelper.accessor("sex", {
       cell: (info) => (
-        
+
         <div className="text-base">
-        {userSex(Number(info.getValue()))}
-      </div>
-        
+          {userSex(Number(info.getValue()))}
+        </div>
+
       ),
       header: () => <span>เพศ</span>,
     }),
@@ -150,14 +151,14 @@ const TeacherTable = () => {
       id: "department",
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
-            <h6 className="text-base">{`${info.getValue()}`}</h6>
-          
+          <h6 className="text-base">{`${info.getValue()}`}</h6>
+
         </div>
-        
+
       ),
       header: () => <span>แผนกวิชา</span>,
     }),
-   
+
 
     columnHelper.display({
       id: "actions",
@@ -172,7 +173,7 @@ const TeacherTable = () => {
           )}
         >
           {[
-            { icon: "tabler:edit", listtitle: "Edit", onclick: () => router.push(`/admin/addteacher/${info.row.original.id as string}`)},
+            { icon: "tabler:edit", listtitle: "Edit", onclick: () => router.push(`/admin/addteacher/${info.row.original.id as string}`) },
             { icon: "tabler:trash", listtitle: "Delete", onclick: () => handleDelete(info.row.original.id as string) },
           ].map((item, index) => (
             <Dropdown.Item key={index} onClick={item.onclick} className="flex gap-3">
@@ -206,7 +207,7 @@ const TeacherTable = () => {
   return (
     <TitleIconCard title="ข้อมูลผู้อาจารย์ประจำแผนกวิชา">
       <div className=" flex justify-end items-center my-6">
-      <Button href="/admin/addteacher" color={`primary`}>เพิ่ม</Button>
+        <Button href="/admin/addteacher" color={`primary`}>เพิ่ม</Button>
       </div>
       <div className="border rounded-md border-ld overflow-hidden">
         <div className="overflow-x-auto">

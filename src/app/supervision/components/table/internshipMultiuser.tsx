@@ -167,7 +167,7 @@ const BulkInternshipManagement = () => {
     })
   }
 
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -364,6 +364,7 @@ const BulkInternshipManagement = () => {
               height={50}
               alt="user"
               className="object-cover"
+              unoptimized={true}
               onError={(e) => {
                 const target = e.target as HTMLImageElement
                 target.src = "/default-user.png"

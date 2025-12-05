@@ -64,19 +64,19 @@ import { PaginationTableType } from "./studentTable";
 import { validateThaiID } from "@/lib/thaiIdVaildate";
 
 export type Student = {
-    id: string;
-    studentId: string;
-    major: {
-      id: string
-      major_name: string
-    };
-    room: string;
-    term: string;
-    academicYear: string;
-    education: {
-      name: string;
-    };
-    gradeLevel: string;
+  id: string;
+  studentId: string;
+  major: {
+    id: string
+    major_name: string
+  };
+  room: string;
+  term: string;
+  academicYear: string;
+  education: {
+    name: string;
+  };
+  gradeLevel: string;
   user: {
     id: string;
     firstname: string;
@@ -173,31 +173,31 @@ export function StudentsAllTable() {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [departmentFilter, setDepartmentFilter] = React.useState<string>("all");
-  
+
   const [majorFileter, setMajorFileter] = React.useState<string>("all");
   const [gradeFilter, setGradeFilter] = React.useState<string>("all"); // เปลี่ยนชื่อจาก yearFiler เป็น gradeFilter
   const [groupFilter, setGroupFilter] = React.useState<string>("all");
-    const [date, setDate] = React.useState<Date | null>(null);
-    const [openEdit, setOpenEdit] = React.useState(false);
-    const [loading, setLoading] = React.useState(false);
-    const [imageFile, setImageFile] = React.useState<File | null>(null);
-    const [imagePreview, setImagePreview] = React.useState<string>("");
-    const [editingStudent, setEditingStudent] = React.useState<PaginationTableType | null>(null);
-    const [formData, setFormData] = React.useState({
-      firstname: "",
-      lastname: "",
-      citizenId: "",
-      sex: "",
-      phone: "",
-      department: "",
-      studentId: "",
-      major: "",
-      educationLevel: "", // เปลี่ยนจาก education เป็น educationLevel
-      gradeLevel: "",
-      room: "",
-      term: "",
-      academicYear: "",
-    });
+  const [date, setDate] = React.useState<Date | null>(null);
+  const [openEdit, setOpenEdit] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [imageFile, setImageFile] = React.useState<File | null>(null);
+  const [imagePreview, setImagePreview] = React.useState<string>("");
+  const [editingStudent, setEditingStudent] = React.useState<PaginationTableType | null>(null);
+  const [formData, setFormData] = React.useState({
+    firstname: "",
+    lastname: "",
+    citizenId: "",
+    sex: "",
+    phone: "",
+    department: "",
+    studentId: "",
+    major: "",
+    educationLevel: "", // เปลี่ยนจาก education เป็น educationLevel
+    gradeLevel: "",
+    room: "",
+    term: "",
+    academicYear: "",
+  });
   const router = useRouter();
   const handleDelete = async (id: string) => {
     Swal.fire({
@@ -322,9 +322,9 @@ export function StudentsAllTable() {
     setImageFile(null);
     setImagePreview("");
   };
- const handleEdit = (student: PaginationTableType) => {
+  const handleEdit = (student: PaginationTableType) => {
     setEditingStudent(student);
-    
+
     // เติมข้อมูลเดิมลงในฟอร์ม
     setFormData({
       firstname: student.user.firstname || "",
@@ -389,6 +389,7 @@ export function StudentsAllTable() {
             height={50}
             alt="icon"
             className="h-10 w-10 rounded-xl"
+            unoptimized={true}
           />
           <div className="truncate line-clamp-2 max-w-56">
             <h6 className="text-base">{`${row.original.user.firstname} ${row.original.user.lastname}`}</h6>
@@ -498,16 +499,16 @@ export function StudentsAllTable() {
   );
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        setImageFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setImagePreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   const departments: Department[] = deptData ?? [];
   const allStudents: Student[] = stdData ?? [];
   const educations: Education[] = edctData?.data ?? [];
@@ -739,30 +740,29 @@ export function StudentsAllTable() {
                   return (
                     <TableHead
                       key={header.id}
-                      className={`text-gray-900 dark:text-gray-100 ${
-                        header.id === "select"
+                      className={`text-gray-900 dark:text-gray-100 ${header.id === "select"
                           ? "w-12"
                           : header.id === "index"
-                          ? "w-16"
-                          : header.id === "student_studentId"
-                          ? "w-40"
-                          : header.id === "sex"
-                          ? "w-20"
-                          : header.id === "actions"
-                          ? "w-20"
-                          : header.id === "student_education_name"
-                          ? "w-30"
-                          : header.id === "department_depname"
-                          ? "w-50"
-                          : ""
-                      }`}
+                            ? "w-16"
+                            : header.id === "student_studentId"
+                              ? "w-40"
+                              : header.id === "sex"
+                                ? "w-20"
+                                : header.id === "actions"
+                                  ? "w-20"
+                                  : header.id === "student_education_name"
+                                    ? "w-30"
+                                    : header.id === "department_depname"
+                                      ? "w-50"
+                                      : ""
+                        }`}
                     >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}
@@ -796,8 +796,8 @@ export function StudentsAllTable() {
                   className="h-24 text-center"
                 >
                   {departmentFilter === "all" &&
-                  majorFileter === "all" &&
-                  gradeFilter === "all"
+                    majorFileter === "all" &&
+                    gradeFilter === "all"
                     ? "ไม่พบข้อมูลนักศึกษา"
                     : "ไม่พบข้อมูลนักศึกษาตามเงื่อนไขที่เลือก"}
                 </TableCell>
@@ -827,7 +827,7 @@ export function StudentsAllTable() {
             </span>
           )}
         </div>
-       
+
       </div>
     </div>
   );

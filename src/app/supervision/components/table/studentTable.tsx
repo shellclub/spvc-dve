@@ -119,16 +119,16 @@ const StudentTable = () => {
   const [roomFilter, setRoomFilter] = React.useState<string>("all");
   const router = useRouter();
   const rerender = React.useReducer(() => ({}), {})[1];
-  
+
   const { data: academicYears, error: yearError, isLoading: yearLoading } = useSWR<TermYear[]>('/api/academic_year', fetcher);
   const { data, error, isLoading, mutate } = useSWR<PaginationTableType[]>(
-    !selected ? '/api/students/getByDepartment' : `/api/students/getByDepartment?term=${selectedTerm}&year=${selectedYear}`, 
+    !selected ? '/api/students/getByDepartment' : `/api/students/getByDepartment?term=${selectedTerm}&year=${selectedYear}`,
     fetcher
   );
 
   const stdData = data ?? [];
 
-  
+
   // Filter function for name search
   const nameFilterFn: FilterFn<PaginationTableType> = (row, columnId, filterValue) => {
     const searchTerm = filterValue.toLowerCase();
@@ -141,7 +141,7 @@ const StudentTable = () => {
   // Filter students based on selected filters
   const filteredStudents = React.useMemo(() => {
     if (!data) return [];
-    
+
     return data.filter((student) => {
       const matchesMajor = majorFilter === "all" || student.student.major.major_name === majorFilter;
       const studentGradeCombo = `${student.student.education.name}.${student.student.gradeLevel}`;
@@ -203,6 +203,7 @@ const StudentTable = () => {
               height={50}
               alt="user"
               className="object-cover"
+              unoptimized={true}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.src = '/default-user.png';
@@ -255,20 +256,20 @@ const StudentTable = () => {
             </span>
           )}
         >
-          <Dropdown.Item 
-            onClick={() => router.push(`/supervision/students/${info.row.original.student.id as string}`)} 
+          <Dropdown.Item
+            onClick={() => router.push(`/supervision/students/${info.row.original.student.id as string}`)}
             className="flex gap-3"
           >
             <Icon icon="tabler:eye" height={18} />
             <span>รายละเอียด</span>
           </Dropdown.Item>
-          
+
         </Dropdown>
       ),
       header: () => <span></span>,
     }),
   ];
- 
+
   const table = useReactTable({
     data: filteredStudents,
     columns,
@@ -330,7 +331,7 @@ const StudentTable = () => {
               className="max-w-sm"
             />
           </div>
-          
+
           <Select
             value={majorFilter}
             onChange={(e) => {
@@ -390,8 +391,8 @@ const StudentTable = () => {
             <option value="" hidden>เลือกปีการศึกษา</option>
             <option value="all">ทั้งหมด</option>
             {academicYears?.map((year, index) => (
-              <option 
-                key={index} 
+              <option
+                key={index}
                 value={`${year.term}/${year.academicYear}`}
               >
                 {`${year.term}/${year.academicYear}`}
@@ -412,7 +413,7 @@ const StudentTable = () => {
         {/* Filter Summary */}
         <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
           แสดง {table.getFilteredRowModel().rows.length} จาก {data?.length || 0} รายการ
-         
+
           {majorFilter !== "all" && (
             <span className="ml-2 text-blue-600 dark:text-blue-400">
               (กรองตามสาขา: {majorFilter})
@@ -429,7 +430,7 @@ const StudentTable = () => {
             </span>
           )}
         </div>
-        
+
         <div className="border rounded-md border-ld overflow-hidden">
           {isLoading ? (
             <div className="overflow-x-auto">
@@ -495,7 +496,7 @@ const StudentTable = () => {
                   </tbody>
                 </table>
               </div>
-              
+
               <div className="sm:flex gap-2 p-3 items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Button color="primary" onClick={() => rerender()}>
@@ -505,7 +506,7 @@ const StudentTable = () => {
                     {table.getPrePaginationRowModel().rows.length} แถว
                   </h1>
                 </div>
-                
+
                 <div className="sm:flex items-center gap-2 sm:mt-0 mt-3">
                   <div className="flex">
                     <h2 className="text-gray-700 pe-1">หน้า</h2>
@@ -513,7 +514,7 @@ const StudentTable = () => {
                       {table.getState().pagination.pageIndex + 1} จาก {table.getPageCount()}
                     </h2>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     | ไปที่หน้า:
                     <input
@@ -528,7 +529,7 @@ const StudentTable = () => {
                       className="w-16 form-control-input border rounded px-2 py-1"
                     />
                   </div>
-                  
+
                   <div className="select-md sm:mt-0 mt-3">
                     <select
                       value={table.getState().pagination.pageSize}
@@ -544,7 +545,7 @@ const StudentTable = () => {
                       ))}
                     </select>
                   </div>
-                  
+
                   <div className="flex gap-2 sm:mt-0 mt-3">
                     <Button
                       size="small"
