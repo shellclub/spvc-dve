@@ -1,0 +1,20 @@
+.env
+.env.local
+.env.*.local
+.env.*
+
+# Next.js
+.next
+
+# Logs
+logs
+
+# Editor directories and files
+.idea
+.vscode
+cache
+
+# Node.js
+node_modules
+
+.gitignore

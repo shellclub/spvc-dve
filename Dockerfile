@@ -1,5 +1,5 @@
 
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -56,5 +56,10 @@ EXPOSE 3000
 ENV PORT 3000
 # set hostname to localhost
 ENV HOSTNAME "0.0.0.0"
+
+ENV DATABASE_URL="mysql://spvc:spvc2025@mysql:3306/db_dvt_prod"
+ENV AUTH_SECRET="JuyjNwDC6DpiQz0CDpKYr9dN3icTYsynEAnZ7vqZOx8="
+ENV AUTH_TRUST_HOST=true
+ENV NEXTAUTH_URL="http://localhost:3000"
 
 CMD ["node", "server.js"]

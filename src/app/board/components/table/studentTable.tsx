@@ -134,18 +134,7 @@ type Education = {
 };
 
 // Helper functions
-const userRole = (role: number) => {
-  switch (role) {
-    case 3:
-      return "นักศึกษา";
-    case 2:
-      return "อาจารย์";
-    case 1:
-      return "ผู้ดูแลระบบ";
-    default:
-      return "ไม่ระบุ";
-  }
-};
+
 
 const userSex = (sex: number) => {
   switch (sex) {
@@ -424,11 +413,8 @@ export function StudentsAllTable() {
             alt="icon"
             className="h-10 w-10 rounded-xl"
           />
-          <div className="truncate line-clamp-2 max-w-56">
+          <div className="truncate line-clamp-2 max-w-full">
             <h6 className="text-base">{`${row.original.user.firstname} ${row.original.user.lastname}`}</h6>
-            <p className="text-sm text-darklink dark:text-bodytext">
-              {userRole(Number(row.original.user.role))}
-            </p>
           </div>
         </div>
       ),
