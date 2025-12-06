@@ -13,14 +13,24 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(majors);
-    
+
 }
 
 export async function POST(request: NextRequest) {
     const body = await request.json() as Prisma.MajorCreateInput;
-    
-    if(!body.major_name || !body.department) {
-        return NextResponse.json({message: 'กรุณาตรวจสอบข้อมูลอีกครั้ง', type: "error"}, { status: 400})
+
+    if (!body.major_name || !body.department) {
+        return NextResponse.json({ message: 'กรุณาตรวจสอบข้อมูลอีกครั้ง', type: "error" }, { status: 400 })
+    }
+
+    const exisingMajor = await prisma.major.findUnique({
+        where: {
+            major_name: String(body.major_name)
+        }
+    })
+
+    if (exisingMajor) {
+        return NextResponse.json({ message: "ชื่อสาขานี้มีอยู่ในระบบแล้ว", type: "error" }, { status: 400 })
     }
 
     const store = await prisma.major.create({
@@ -30,9 +40,9 @@ export async function POST(request: NextRequest) {
         }
     })
 
-    if(!store) {
-        return NextResponse.json({ message: "เกิดข้อผิดพลาด ลองใหม่ภายหลัง!", type: "error"}, { status: 500})
+    if (!store) {
+        return NextResponse.json({ message: "เกิดข้อผิดพลาด ลองใหม่ภายหลัง!", type: "error" }, { status: 500 })
     }
 
-    return NextResponse.json({ message: "ดำเนินการสำเร็จ", type: "success"}, { status: 201})
+    return NextResponse.json({ message: "ดำเนินการสำเร็จ", type: "success" }, { status: 201 })
 }

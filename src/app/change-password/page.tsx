@@ -2,7 +2,7 @@
 'use client'
 
 import { showToast } from '@/app/components/sweetalert/sweetalert';
-import { Button, Label, TextInput, Card } from 'flowbite-react';
+import { Button, Label, TextInput, Card, Spinner } from 'flowbite-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
@@ -17,8 +17,17 @@ export default function FirstLoginChangePasswordPage() {
         newPassword: '',
         confirmPassword: ''
     });
-    const { data: session, update } = useSession();
+    const { data: session, update, status } = useSession();
     const router = useRouter();
+
+    if (status === 'loading' || !session) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+                <Spinner size="xl" />
+            </div>
+        );
+    }
+
 
     // Password validation function
     const validatePassword = (password: string): string => {
@@ -41,7 +50,7 @@ export default function FirstLoginChangePasswordPage() {
     // Check password strength
     const getPasswordStrength = (password: string) => {
         if (password.length === 0) return { strength: 0, text: '', color: '' };
-        
+
         let strength = 0;
         if (password.length >= 8) strength++;
         if (password.length >= 12) strength++;
@@ -60,7 +69,7 @@ export default function FirstLoginChangePasswordPage() {
         setNewPassword(value);
         const error = validatePassword(value);
         setPasswordErrors(prev => ({ ...prev, newPassword: error }));
-        
+
         if (confirmPassword) {
             if (value !== confirmPassword) {
                 setPasswordErrors(prev => ({ ...prev, confirmPassword: 'รหัสผ่านไม่ตรงกัน' }));
@@ -101,13 +110,13 @@ export default function FirstLoginChangePasswordPage() {
             const formdata = new FormData();
             formdata.append('newPassword', newPassword);
             formdata.append('confirmPassword', confirmPassword)
-            const res = await fetch(`/api/users/${session?.user.id}/first-changepassword`, {
+            const res = await fetch(`/api/users/${session.user.id}/first-changepassword`, {
                 method: "PUT",
                 body: formdata
             });
 
             const data = await res.json();
-            
+
             if (res.ok) {
                 showToast(data.message, data.type);
                 // อัพเดท session
@@ -119,7 +128,7 @@ export default function FirstLoginChangePasswordPage() {
                         skip_password_change: null,
                     }
                 });
-                
+
 
             } else {
                 showToast(data.message, data.type);
@@ -133,7 +142,7 @@ export default function FirstLoginChangePasswordPage() {
     };
 
     const handleSkip = async () => {
-           Swal.fire({
+        Swal.fire({
             title: 'คุณแน่ใจหรือไม่?',
             text: "คุณต้องการข้ามการเปลี่ยนรหัสผ่านในครั้งนี้หรือไม่",
             icon: 'warning',
@@ -145,7 +154,7 @@ export default function FirstLoginChangePasswordPage() {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    const res = await fetch(`/api/users/${session?.user.id}/skip-password`, {
+                    const res = await fetch(`/api/users/${session.user.id}/skip-password`, {
                         method: "PUT",
                     });
                     const data = await res.json();
@@ -157,17 +166,17 @@ export default function FirstLoginChangePasswordPage() {
                                 skip_password_change: data.skipUntil,
                             }
                         });
-                        router.push('/protected');
+                        window.location.href = '/protected';
 
                     } else {
                         showToast(data.message, data.type);
-                    }   
+                    }
                 } catch (error) {
                     showToast('เกิดข้อผิดพลาดในการข้ามการเปลี่ยนรหัสผ่าน', 'error');
                 }
             }
         });
-                        
+
     };
 
     const passwordStrength = getPasswordStrength(newPassword);
@@ -221,21 +230,20 @@ export default function FirstLoginChangePasswordPage() {
                                 color={passwordErrors.newPassword ? 'failure' : undefined}
                                 sizing="lg"
                             />
-                            
+
                             {/* Password Strength Indicator */}
                             {newPassword && (
                                 <div className="mt-2">
                                     <div className="flex items-center justify-between mb-1">
                                         <span className="text-xs text-gray-600">ความแข็งแรงของรหัสผ่าน</span>
-                                        <span className={`text-xs font-medium ${
-                                            passwordStrength.strength === 100 ? 'text-green-600' :
+                                        <span className={`text-xs font-medium ${passwordStrength.strength === 100 ? 'text-green-600' :
                                             passwordStrength.strength === 66 ? 'text-yellow-600' : 'text-red-600'
-                                        }`}>
+                                            }`}>
                                             {passwordStrength.text}
                                         </span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-2">
-                                        <div 
+                                        <div
                                             className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
                                             style={{ width: `${passwordStrength.strength}%` }}
                                         ></div>
@@ -286,21 +294,21 @@ export default function FirstLoginChangePasswordPage() {
                                 รหัสผ่านต้องประกอบด้วย:
                             </p>
                             <ul className="space-y-2">
-                                <PasswordRequirement 
-                                    met={newPassword.length >= 8} 
-                                    text="อย่างน้อย 8 ตัวอักษร" 
+                                <PasswordRequirement
+                                    met={newPassword.length >= 8}
+                                    text="อย่างน้อย 8 ตัวอักษร"
                                 />
-                                <PasswordRequirement 
-                                    met={/[A-Z]/.test(newPassword)} 
-                                    text="ตัวอักษรพิมพ์ใหญ่ (A-Z)" 
+                                <PasswordRequirement
+                                    met={/[A-Z]/.test(newPassword)}
+                                    text="ตัวอักษรพิมพ์ใหญ่ (A-Z)"
                                 />
-                                <PasswordRequirement 
-                                    met={/[a-z]/.test(newPassword)} 
-                                    text="ตัวอักษรพิมพ์เล็ก (a-z)" 
+                                <PasswordRequirement
+                                    met={/[a-z]/.test(newPassword)}
+                                    text="ตัวอักษรพิมพ์เล็ก (a-z)"
                                 />
-                                <PasswordRequirement 
-                                    met={/[0-9]/.test(newPassword)} 
-                                    text="ตัวเลข (0-9)" 
+                                <PasswordRequirement
+                                    met={/[0-9]/.test(newPassword)}
+                                    text="ตัวเลข (0-9)"
                                 />
                             </ul>
                         </div>

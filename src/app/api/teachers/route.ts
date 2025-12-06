@@ -20,12 +20,20 @@ export async function POST(request: NextRequest) {
     const file = formData.get('user_img') as File;
     
     try {
+        const havePhone = await prisma.user.findUnique({
+            where: {
+                phone: data.phone
+            }
+        });
+        if(havePhone) {
+            return NextResponse.json({ message: "เบอร์โทรศัพท์นี้มีผู้ใช้แล้ว", type: "error"}, { status: 400})
+        }
         const haveTeacher = await prisma.user.findUnique({
             where: {
                 citizenId: data.citizenId
             }
         });
-        
+
         if(haveTeacher) {
             return NextResponse.json({ message: "ผู้ใช้นี้มีข้อมูลอยู่ในระบบแล้ว", type: "error"}, { status: 400})
         } else {
@@ -81,7 +89,7 @@ export async function POST(request: NextRequest) {
         }
          
     } catch (error) {
-        return NextResponse.json({ message: error, type: "error"}, { status: 500})
+        return NextResponse.json({ message: "เกิดข้อผิดพลาด", type: "error"}, { status: 500})
     }
 }
 

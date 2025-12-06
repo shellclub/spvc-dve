@@ -99,19 +99,7 @@ type Education = {
   name: string;
 };
 
-// Helper functions
-const userRole = (role: number) => {
-  switch (role) {
-    case 3:
-      return "นักศึกษา";
-    case 2:
-      return "อาจารย์";
-    case 1:
-      return "ผู้ดูแลระบบ";
-    default:
-      return "ไม่ระบุ";
-  }
-};
+
 
 const userSex = (sex: number) => {
   switch (sex) {
@@ -355,13 +343,6 @@ export function StudentsAllTable() {
     setOpenEdit(true);
   };
 
-  const handleInputChange = (name: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   const columns: ColumnDef<Student>[] = [
     {
       id: "index",
@@ -391,11 +372,8 @@ export function StudentsAllTable() {
             className="h-10 w-10 rounded-xl"
             unoptimized={true}
           />
-          <div className="truncate line-clamp-2 max-w-56">
+          <div className="truncate line-clamp-2 max-w-full">
             <h6 className="text-base">{`${row.original.user.firstname} ${row.original.user.lastname}`}</h6>
-            <p className="text-sm text-darklink dark:text-bodytext">
-              {userRole(Number(row.original.user.role))}
-            </p>
           </div>
         </div>
       ),

@@ -1,30 +1,94 @@
-version: "3"
+# version: "3"
+# services:
+#   spvc-internship:
+#     container_name: spvc-internship
+#     # deploy:
+#     #   replicas: 1
+#       # resources:
+#       #   limits:
+#       #     cpus: '0.256'
+#       #     memory: 512M
+#       #   reservations:
+#       #     cpus: '0.128'
+#       #     memory: 128M
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     # image: 211125430268.dkr.ecr.ap-southeast-1.amazonaws.com/npk-front-sit:latest
+#     restart: always
+#     ports:
+#       - 3099:3000
+#     env_file:
+#       - .env
+#     networks:
+#       - database-networks
+
+# networks:
+#   database-networks:
+#     external: true
+
+
 services:
-  spvc-internship:
-    container_name: spvc-internship
-    # deploy:
-    #   replicas: 1
-      # resources:
-      #   limits:
-      #     cpus: '0.256'
-      #     memory: 512M
-      #   reservations:
-      #     cpus: '0.128'
-      #     memory: 128M
-    build:
-      context: .
-      dockerfile: Dockerfile
-    # image: 211125430268.dkr.ecr.ap-southeast-1.amazonaws.com/npk-front-sit:latest
-    restart: always
-    ports:
-      - 3099:3000
-    env_file:
-      - .env
+  spvc:
+    image: thanawatkky/dvt:release
+    container_name: spvc
+    restart: unless-stopped
     networks:
       - database-networks
-
+    depends_on:
+      - mysql
+    volumes:
+      # รูปแบบ: Pathในเครื่องจริง : PathในContainer
+      - ./uploads_data:/app/public/uploads
+      - ./report_data:/app/public/report
+    environment:
+      - DATABASE_URL=mysql://spvc:spvc2025@mysql:3306/db_dvt_prod
+      - AUTH_SECRET=JuyjNwDC6DpiQz0CDpKYr9dN3icTYsynEAnZ7vqZOx8=
+      - AUTH_TRUST_HOST=true
+      - NEXTAUTH_URL=http://localhost
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80" # เข้าเว็บผ่าน Port 80 (ไม่ต้องพิมพ์ :3000)
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf # ใส่ config
+      # สำคัญ! ต้อง Map volume ตัวเดียวกับ Next.js เพื่อให้เห็นไฟล์เดียวกัน
+      - ./uploads_data:/usr/share/nginx/html/uploads
+      - ./report_data:/usr/share/nginx/html/report
+    depends_on:
+      - spvc
+    networks:
+      - database-networks
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: Local@1234
+      MYSQL_USER: spvc
+      MYSQL_PASSWORD: spvc2025
+      MYSQL_DATABASE: db_dvt
+    volumes:
+      - "./mysql_data:/var/lib/mysql"
+    ports:
+      - "3306:3306"
+    networks:
+      - database-networks
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: Local@1234
+    ports:
+      - "8080:80"
+    networks:
+      - database-networks
+    depends_on:
+      - mysql
 networks:
   database-networks:
     external: true
-
-
+volumes:
+  mysql_data:
