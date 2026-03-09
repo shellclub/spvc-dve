@@ -49,17 +49,19 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# สำหรับรัน prisma migrate ก่อน start server
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+RUN chown -R nextjs:nodejs /app/prisma /app/node_modules
+
 USER nextjs
 
 EXPOSE 3000
 
 ENV PORT 3000
-# set hostname to localhost
 ENV HOSTNAME "0.0.0.0"
+# ค่าเหล่านี้ให้ส่งจาก .env.production / docker-compose
+# DATABASE_URL, AUTH_SECRET, AUTH_TRUST_HOST, NEXTAUTH_URL
 
-ENV DATABASE_URL="mysql://spvc:spvc2025@mysql:3306/db_dvt_prod"
-ENV AUTH_SECRET="JuyjNwDC6DpiQz0CDpKYr9dN3icTYsynEAnZ7vqZOx8="
-ENV AUTH_TRUST_HOST=true
-ENV NEXTAUTH_URL="http://localhost:3000"
-
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node server.js"]

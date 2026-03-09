@@ -8,8 +8,8 @@
 
 ## สิ่งที่ต้องมีบนเซิร์ฟเวอร์ (122.154.74.196)
 
-1. **เปิด SSH** และมี user ที่ใช้ key ได้ (มักเป็น `root` หรือ user ที่สร้างไว้)
-2. **ติดตั้ง Docker** (และ Docker Compose ถ้าต้องการ)
+1. **เปิด SSH** และมี user ที่ใช้ key ได้
+2. **ติดตั้ง Docker + Docker Compose** (แอปและ MySQL รันในชุด container เดียวกัน ไม่ต้องใช้ DB เก่าบนเซิร์ฟเวอร์)
 3. **โฟลเดอร์ที่เก็บโปรเจกต์** เช่น `/var/www/spvc-dve`
 
 ### ขั้นตอนบนเซิร์ฟเวอร์ (ทำครั้งเดียว)
@@ -19,24 +19,26 @@
 sudo mkdir -p /var/www/spvc-dve
 cd /var/www/spvc-dve
 
-# Clone repo (ใช้ HTTPS หรือ SSH ตามที่ตั้งค่า)
+# Clone repo
 sudo git clone https://github.com/shellclub/spvc-dve.git .
 
-# สร้างไฟล์ .env.production (ค่าจริงไม่ใส่ใน repo)
-sudo nano .env.production
+# สร้าง .env สำหรับ docker-compose (รหัส MySQL)
+cp .env.example .env
+nano .env   # แก้ MYSQL_ROOT_PASSWORD, MYSQL_PASSWORD ตามต้องการ
+
+# สร้าง .env.production สำหรับแอป (DATABASE_URL ถูก compose ตั้งให้อัตโนมัติ)
+nano .env.production
 ```
 
-เนื้อหาใน `.env.production` ตัวอย่าง (แก้ตาม DB จริง):
+เนื้อหาใน `.env.production` (อย่างน้อยต้องมี):
 
 ```env
-DATABASE_URL="mysql://dvtspvc:dvt@spvc2026!@127.0.0.1:3306/db_dvt_prod"
-AUTH_SECRET="สร้างค่าใหม่ยาวๆ เช่น openssl rand -base64 32"
+AUTH_SECRET="สร้างค่าใหม่ เช่น รัน: openssl rand -base64 32"
 AUTH_TRUST_HOST=true
 NEXTAUTH_URL="http://122.154.74.196"
 ```
 
-- ถ้า MySQL อยู่คนละเครื่อง/พอร์ต แก้ `DATABASE_URL` ให้ชี้ไปที่นั้น
-- `NEXTAUTH_URL` ควรเป็น URL ที่ user เข้าเว็บจริง (ถ้ามี domain ใช้ domain แทน IP)
+- **ไม่ต้องใส่ DATABASE_URL** ใน .env.production — docker-compose จะตั้งให้ชี้ไปที่ container MySQL อัตโนมัติ
 
 ```bash
 # ตั้งสิทธิ์โฟลเดอร์ให้ user ที่ใช้ SSH deploy
@@ -93,4 +95,6 @@ ssh-keygen -t ed25519 -C "github-deploy" -f ~/.ssh/spvc_deploy -N ""
 ## เช็กว่า deploy สำเร็จ
 
 - แท็บ **Actions** ใน repo ต้องไม่มี error
-- บนเซิร์ฟเวอร์: `docker ps` ควรเห็น container ชื่อ `spvc-app` และเข้าเว็บได้ที่ `http://122.154.74.196:3000` (หรือตามที่ตั้ง reverse proxy)
+- บนเซิร์ฟเวอร์: `docker ps` ควรเห็น container **spvc-dve-app-1** และ **spvc-dve-mysql-1** (หรือชื่อโฟลเดอร์-project)
+- เข้าเว็บได้ที่ `http://122.154.74.196:3000`
+- ครั้งแรกแอปจะรัน `prisma migrate deploy` ให้เอง (สร้างตารางใน MySQL)
