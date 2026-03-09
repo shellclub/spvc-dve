@@ -1,0 +1,38 @@
+# Auto Deploy ไปเซิร์ฟเวอร์เมื่อ push ขึ้น main
+# ต้องตั้งค่า GitHub Secrets ก่อนใช้ (ดู DEPLOY.md)
+
+name: Deploy to Server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # ให้กด deploy เองได้จาก Actions tab
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          script: |
+            set -e
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH || '/var/www/spvc-dve' }}"
+            cd "$DEPLOY_PATH"
+            git fetch origin main
+            git reset --hard origin/main
+            docker build -t spvc-app:latest .
+            docker stop spvc-app 2>/dev/null || true
+            docker rm spvc-app 2>/dev/null || true
+            docker run -d \
+              --name spvc-app \
+              -p 3000:3000 \
+              --restart unless-stopped \
+              --env-file .env.production \
+              spvc-app:latest
+            docker image prune -f
+            echo "Deploy done. App running on port 3000."
