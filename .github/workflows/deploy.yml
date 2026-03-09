@@ -22,12 +22,16 @@ jobs:
           script: |
             set -e
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH || '/var/www/spvc-dve' }}"
-            cd "$DEPLOY_PATH"
+            echo "→ cd $DEPLOY_PATH"
+            cd "$DEPLOY_PATH" || { echo "ERROR: ไม่มีโฟลเดอร์ $DEPLOY_PATH บนเซิร์ฟเวอร์ (ต้องสร้างและ clone repo เองก่อน)"; exit 1; }
+            echo "→ git pull"
             git fetch origin main
             git reset --hard origin/main
-            # ปิด container เก่า (ถ้ามี) แล้วรันชุดใหม่ (app + MySQL)
-            docker compose down --remove-orphans 2>/dev/null || true
-            docker compose build --no-cache
-            docker compose up -d
+            echo "→ docker compose"
+            COMPOSE_CMD="docker compose"
+            if ! $COMPOSE_CMD version 2>/dev/null; then COMPOSE_CMD="docker-compose"; fi
+            $COMPOSE_CMD down --remove-orphans 2>/dev/null || true
+            $COMPOSE_CMD build --no-cache
+            $COMPOSE_CMD up -d
             docker image prune -f
-            echo "Deploy done. App + MySQL running (port 3000, 3306)."
+            echo "Deploy done. App + MySQL (port 3000, 3306)."

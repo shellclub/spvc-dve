@@ -98,3 +98,14 @@ ssh-keygen -t ed25519 -C "github-deploy" -f ~/.ssh/spvc_deploy -N ""
 - บนเซิร์ฟเวอร์: `docker ps` ควรเห็น container **spvc-dve-app-1** และ **spvc-dve-mysql-1** (หรือชื่อโฟลเดอร์-project)
 - เข้าเว็บได้ที่ `http://122.154.74.196:3000`
 - ครั้งแรกแอปจะรัน `prisma migrate deploy` ให้เอง (สร้างตารางใน MySQL)
+
+---
+
+## ถ้า Deploy ไม่สำเร็จ
+
+1. **ดู error จริง:** ไปที่ **Actions** → คลิกที่ run ที่แดง (failed) → คลิก job **deploy** → ดูข้อความใน **Deploy via SSH** (บรรทัดที่แดงคือจุดที่ล้ม)
+2. **กรณีที่พบบ่อย:**
+   - **Permission denied (publickey)** → เช็กว่า `SSH_PRIVATE_KEY` ครบ (รวมบรรทัด BEGIN/END), และ public key ใส่ในเซิร์ฟเวอร์แล้ว (`~/.ssh/authorized_keys` ของ DEPLOY_USER)
+   - **ไม่มีโฟลเดอร์ ... บนเซิร์ฟเวอร์** → ต้องเข้า SSH ไปสร้างโฟลเดอร์และ clone เองก่อน เช่น `mkdir -p /var/www/spvc-dve && git clone https://github.com/shellclub/spvc-dve.git /var/www/spvc-dve` แล้วสร้างไฟล์ `.env` และ `.env.production`
+   - **docker: command not found** หรือ **docker compose: command not found** → บนเซิร์ฟเวอร์ต้องติดตั้ง Docker (และ Docker Compose) ให้ DEPLOY_USER รันได้
+   - **Permission denied** ตอนรัน docker → ให้ user นั้นอยู่ในกลุ่ม docker: `sudo usermod -aG docker DEPLOY_USER` แล้ว logout/login ใหม่
