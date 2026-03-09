@@ -2,8 +2,6 @@
 
 เมื่อ push ขึ้น branch `main` ระบบจะ deploy ไปที่เซิร์ฟเวอร์โดยอัตโนมัติ (หรือกด Run workflow เองจากแท็บ Actions)
 
-<!-- workflow ทดสอบ deploy -->
-
 ---
 
 ## สิ่งที่ต้องมีบนเซิร์ฟเวอร์ (122.154.74.196)
@@ -61,19 +59,41 @@ sudo chown -R YOUR_DEPLOY_USER:YOUR_DEPLOY_USER /var/www/spvc-dve
 
 ### สร้าง SSH Key (ถ้ายังไม่มี)
 
-บนเครื่องตัวเอง:
+รันบน **เครื่องคุณ (Mac)** ไม่ใช่บนเซิร์ฟเวอร์:
 
 ```bash
-ssh-keygen -t ed25519 -C "github-deploy" -f ~/.ssh/spvc_deploy -N ""
+# 1) สร้าง key (ไฟล์จะอยู่ที่ ~/.ssh/spvc_deploy และ ~/.ssh/spvc_deploy.pub)
+ssh-keygen -t ed25519 -C "github-deploy-spvc" -f ~/.ssh/spvc_deploy -N ""
 ```
 
-- ใส่ **public key** (`~/.ssh/spvc_deploy.pub`) ลงในเซิร์ฟเวอร์:
+```bash
+# 2) ใส่ public key ลงเซิร์ฟเวอร์ (แทน user ด้วย user ที่ใช้ SSH จริง เช่น root หรือ tavispvc)
+ssh-copy-id -i ~/.ssh/spvc_deploy.pub user@122.154.74.196
+# ถ้าใช้ user tavispvc:
+# ssh-copy-id -i ~/.ssh/spvc_deploy.pub tavispvc@122.154.74.196
+```
 
-  ```bash
-  ssh-copy-id -i ~/.ssh/spvc_deploy.pub user@122.154.74.196
-  ```
+```bash
+# 3) ดู private key เพื่อ copy ไปใส่ใน GitHub Secret ชื่อ SSH_PRIVATE_KEY
+cat ~/.ssh/spvc_deploy
+```
 
-- เนื้อหา **private key** (`~/.ssh/spvc_deploy`) ใส่ทั้งหมดใน Secret ชื่อ `SSH_PRIVATE_KEY` (รวมบรรทัด `-----BEGIN ... KEY-----` และ `-----END ... KEY-----`)
+- คัดลอกผลลัพธ์จาก `cat` ทั้งหมด (จาก `-----BEGIN` ถึง `-----END ... KEY-----`) ไปวางใน **Settings → Secrets → SSH_PRIVATE_KEY**
+
+#### ถ้า Deploy ขึ้น error `ssh: no key found` หรือ `unable to authenticate`
+
+หมายความว่า GitHub อ่านค่า `SSH_PRIVATE_KEY` ไม่ได้ (มักเพราะ copy วาง key ผิดรูปแบบ):
+
+1. **เปิดไฟล์ private key** บนเครื่องคุณ (ไม่ใช่ใน repo):
+   ```bash
+   cat ~/.ssh/spvc_deploy
+   ```
+2. **คัดลอกทั้งหมด** จากบรรทัด `-----BEGIN OPENSSH PRIVATE KEY-----` ถึง `-----END OPENSSH PRIVATE KEY-----` (รวม 2 บรรทัดนี้)
+3. **อย่าเพิ่ม/ตัดช่องว่างหรือบรรทัด** — วางตรงๆ ในช่อง Value ของ Secret
+4. ไปที่ **Settings → Secrets and variables → Actions** → กด **แก้ไข (ปากกา)** ที่ `SSH_PRIVATE_KEY` → **ลบค่าเก่า** แล้ววาง key ใหม่ทั้งหมด → Save
+5. ลอง **Run workflow** อีกครั้ง
+
+ถ้า key เป็นแบบ RSA (เก่า) จะขึ้นต้นด้วย `-----BEGIN RSA PRIVATE KEY-----` ก็ใช้ได้ แค่ต้องครบทุกบรรทัด
 
 ---
 
@@ -105,6 +125,7 @@ ssh-keygen -t ed25519 -C "github-deploy" -f ~/.ssh/spvc_deploy -N ""
 
 1. **ดู error จริง:** ไปที่ **Actions** → คลิกที่ run ที่แดง (failed) → คลิก job **deploy** → ดูข้อความใน **Deploy via SSH** (บรรทัดที่แดงคือจุดที่ล้ม)
 2. **กรณีที่พบบ่อย:**
+   - **ssh: no key found** / **unable to authenticate** → ค่า `SSH_PRIVATE_KEY` ผิดรูปแบบ (ดูหัวข้อ "ถ้า Deploy ขึ้น error ssh: no key found" ด้านบน)
    - **Permission denied (publickey)** → เช็กว่า `SSH_PRIVATE_KEY` ครบ (รวมบรรทัด BEGIN/END), และ public key ใส่ในเซิร์ฟเวอร์แล้ว (`~/.ssh/authorized_keys` ของ DEPLOY_USER)
    - **ไม่มีโฟลเดอร์ ... บนเซิร์ฟเวอร์** → ต้องเข้า SSH ไปสร้างโฟลเดอร์และ clone เองก่อน เช่น `mkdir -p /var/www/spvc-dve && git clone https://github.com/shellclub/spvc-dve.git /var/www/spvc-dve` แล้วสร้างไฟล์ `.env` และ `.env.production`
    - **docker: command not found** หรือ **docker compose: command not found** → บนเซิร์ฟเวอร์ต้องติดตั้ง Docker (และ Docker Compose) ให้ DEPLOY_USER รันได้
