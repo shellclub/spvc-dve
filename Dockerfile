@@ -6,8 +6,8 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies (ใช้ npm install เพื่อให้เลือก @next/swc ตามแพลตฟอร์ม Linux ได้ ไม่ล็อกแค่ darwin-arm64 จาก lockfile)
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+# ไม่ copy package-lock.json เพื่อให้ npm resolve ใหม่บน Linux (หลีกเลี่ยง @next/swc-darwin-arm64 ใน lockfile)
+COPY package.json yarn.lock* pnpm-lock.yaml* ./
 RUN npm config set fetch-retries 5 \
     && npm config set fetch-retry-mintimeout 20000 \
     && npm config set fetch-retry-maxtimeout 120000 \
