@@ -34,4 +34,7 @@ jobs:
             $COMPOSE_CMD build --no-cache
             $COMPOSE_CMD up -d
             docker image prune -f
-            echo "Deploy done. App + MySQL (port 3000, 3306)."
+            echo "Waiting for app to start..."
+            sleep 10
+            $COMPOSE_CMD logs app
+            echo "Deploy done. App + MySQL (port 3000, 3307)."
