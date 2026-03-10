@@ -19,6 +19,8 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          timeout: 30m
+          command_timeout: 30m
           script: |
             set -e
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH || '/var/www/spvc-dve' }}"
