@@ -15,7 +15,7 @@ services:
     ports:
       - "3307:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD:-spvc_root_2026} || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 10
