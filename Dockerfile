@@ -68,4 +68,4 @@ ENV HOSTNAME "0.0.0.0"
 # ค่าเหล่านี้ให้ส่งจาก .env.production / docker-compose
 # DATABASE_URL, AUTH_SECRET, AUTH_TRUST_HOST, NEXTAUTH_URL
 
-CMD ["sh", "-c", "npx prisma migrate deploy && exec node server.js"]
+CMD ["sh", "-c", "npx prisma migrate resolve --applied 20251023122901_init || true && npx prisma migrate deploy && exec node server.js"]
