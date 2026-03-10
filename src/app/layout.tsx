@@ -1,7 +1,8 @@
 import React from "react";
 import type { Metadata } from "next";
-import {Plus_Jakarta_Sans } from "next/font/google";
-const plus_jakarta_sans = Plus_Jakarta_Sans({ subsets: ["latin"] });
+import { Kanit } from "next/font/google";
+import "@/lib/dateConfig";
+const kanit = Kanit({ subsets: ["latin", "thai"], weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"] });
 import "./css/globals.css";
 import { Flowbite, ThemeModeScript } from "flowbite-react";
 import customTheme from "@/utils/theme/custom-theme";
@@ -26,12 +27,12 @@ export default async function RootLayout({
   
   return (
 
-    <html lang="en">
+    <html lang="th">
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <ThemeModeScript />
       </head>
-      <body className={`${plus_jakarta_sans.className}`}>
+      <body className={`${kanit.className}`}>
       
         <Flowbite theme={{ theme: customTheme }}>
           <CustomizerContextProvider>

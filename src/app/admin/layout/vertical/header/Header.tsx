@@ -60,7 +60,7 @@ const Header = ({ layoutType }: HeaderPropsType) => {
     <>
       <header
         className={`sticky top-0 z-[5] ${isSticky
-          ? "bg-white dark:bg-dark shadow-md fixed w-full"
+          ? "bg-white/95 dark:bg-dark backdrop-blur-md shadow-[0_2px_15px_rgba(46,125,50,0.08)] fixed w-full"
           : "bg-transparent"
           }`}
       >

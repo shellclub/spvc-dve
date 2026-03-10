@@ -1,1411 +1,856 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-  createColumnHelper,
-  ColumnFiltersState,
-} from "@tanstack/react-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/app/components/shadcn-ui/Default-Ui/dialog";
-import { Badge, Datepicker, Dropdown, Spinner } from "flowbite-react";
-import {
-  IconChevronLeft,
-  IconChevronRight,
-  IconChevronsLeft,
-  IconChevronsRight,
-  IconDots,
-  IconPlus,
-  IconUpload,
-  IconUser,
-  IconEdit,
-} from "@tabler/icons-react";
+import React, { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
-import TitleIconCard from "@/app/components/shared/TitleIconCard";
 import Swal from "sweetalert2";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
-import { useRouter } from "next/navigation";
-import { userRole, userSex } from "@/lib/utils";
-import Image from "next/image";
+import { ThaiDatePicker } from "@/app/components/ThaiDatePicker";
 import useSWR from "swr";
-import { Input } from "@/app/components/shadcn-ui/Default-Ui/input";
-import { Label } from "@/app/components/shadcn-ui/Default-Ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/shadcn-ui/Default-Ui/select";
-import { validateThaiID } from "@/lib/thaiIdVaildate";
+import Image from "next/image";
+import * as XLSX from "xlsx";
 
-import { Button } from "@/app/components/shadcn-ui/Default-Ui/button";
-
-export interface PaginationTableType {
-  id: number;
-  studentId: string;
-    term: string;
-    education: {
-      id: number;
-      name: string;
-    };
-    major: {
-      id: number;
-      major_name: string;
-    };
-    academicYear: string;
-    gradeLevel: string;
-    room: string;
-    department: {
-      id: number;
-      depname: string;
-    };
-  user: {
-  id?: string;
-  citizenId: string;
-  user_img: string;
-  phone?: string;
-  birthday?: string;
-    
-  
-  firstname?: string;
-  lastname?: string;
-  role?: string;
-  sex?: string;
-};
-  actions?: any;
-}
-
-interface AddStudentDialogProps {
-  onSuccess?: () => void;
-}
-const gender_options: {[key: number]: string} = {
-  1: "นาย",
-  2: "นางสาว",
-}
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
-const columnHelper = createColumnHelper<PaginationTableType>();
-const StudentTable = ({ onSuccess }: AddStudentDialogProps) => {
-  
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+
+// ──── Utility ────
+function maskCitizenId(id: string) {
+  if (!id || id.length < 13) return id || "-";
+  return id.substring(0, 3) + "-xxxx-xxxxx-" + id.substring(11);
+}
+
+// Generate academic year options (current BE year going back 10 years)
+function getAcademicYears(): string[] {
+  const currentYear = new Date().getFullYear() + 543; // พ.ศ.
+  const years: string[] = [];
+  for (let i = 0; i <= 10; i++) {
+    years.push(String(currentYear - i));
+  }
+  return years;
+}
+
+const ACADEMIC_YEARS = getAcademicYears();
+const LAST_ACADEMIC_YEAR_KEY = "lastAcademicYear";
+
+// ──── Sub-components ────
+function FormField({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm font-semibold text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {children}
+      {error && <span className="text-xs text-red-500 mt-0.5">{error}</span>}
+    </div>
   );
+}
 
+// ──── Types ────
+interface FormData {
+  studentId: string;
+  prefix: string;
+  prefixCustom: string;
+  firstname: string;
+  lastname: string;
+  birthday: string;
+  phone: string;
+  departmentId: number | null;
+  majorId: number | null;
+  educationLevel: number | null;
+  curriculum: string;
+  gradeLevel: string;
+  room: string;
+  term: string;
+  academicYear: string;
+  user_img: File | null;
+}
+interface Errors { [key: string]: string; }
 
-  const router = useRouter();  
-  const { data: majorData, isLoading: ismajorsLoading } = useSWR(
-    "/api/major",
-    fetcher
-  );
+function validateField(name: string, value: any): string {
+  switch (name) {
+    case "studentId": return !value?.trim() ? "กรุณากรอกรหัสนักศึกษา" : "";
+    case "prefix": return !value ? "กรุณาเลือกคำนำหน้า" : "";
+    case "firstname": return !value?.trim() ? "กรุณากรอกชื่อ" : "";
+    case "lastname": return !value?.trim() ? "กรุณากรอกนามสกุล" : "";
+    case "birthday": return !value ? "กรุณาเลือกวันเกิด" : "";
+    case "phone":
+      if (!value) return "กรุณากรอกเบอร์โทร";
+      if (!/^0\d{9}$/.test(value)) return "เบอร์โทรต้องเริ่มด้วย 0 ตามด้วยตัวเลข 9 หลัก";
+      return "";
+    case "educationLevel": return !value ? "กรุณาเลือกระดับชั้น" : "";
+    case "departmentId": return !value ? "กรุณาเลือกแผนกวิชา" : "";
+    case "term": return !value ? "กรุณาเลือกเทอม" : "";
+    case "academicYear": return !value?.trim() ? "กรุณาเลือกปีการศึกษา" : "";
+    default: return "";
+  }
+}
 
-  const { data: deptData, isLoading: isDeptLoading } = useSWR( 
-    "/api/departments",
-    fetcher
-  );
-  const { data: edctData, isLoading: isEdctLoading } = useSWR(
-    "/api/education",
-    fetcher
-  );
+function getEmptyForm(): FormData {
+  // Retrieve last used academic year from localStorage
+  let lastYear = "";
+  if (typeof window !== "undefined") {
+    lastYear = localStorage.getItem(LAST_ACADEMIC_YEAR_KEY) || "";
+  }
+  return {
+    studentId: "", prefix: "", prefixCustom: "", firstname: "", lastname: "",
+    birthday: "", phone: "", departmentId: null, majorId: null,
+    educationLevel: null, curriculum: "", gradeLevel: "", room: "", term: "",
+    academicYear: lastYear, user_img: null,
+  };
+}
 
+// ═══════════════════════════════════════════
+//  MAIN COMPONENT
+// ═══════════════════════════════════════════
+export default function StudentTable() {
+  // ─ Data ─
+  const { data: students, isLoading, mutate } = useSWR("/api/students", fetcher);
+  const { data: deptData } = useSWR("/api/departments", fetcher);
+  const { data: majorData } = useSWR("/api/major", fetcher);
+  const { data: edctData } = useSWR("/api/education", fetcher);
 
-  const majors = majorData ?? [];
   const departments = deptData ?? [];
-  const educations = edctData ?? [];
+  const allMajors = majorData ?? [];
+  const educations = edctData?.data ?? edctData ?? [];
 
-  const [open, setOpen] = useState(false);
-  const [date, setDate] = useState<Date | null>(null);
-  const [openAdd, setOpenAdd] = React.useState(false);
-  const [openEdit, setOpenEdit] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
-  const [imageFile, setImageFile] = React.useState<File | null>(null);
-  const [imagePreview, setImagePreview] = React.useState<string>("");
-  const [editingStudent, setEditingStudent] = React.useState<PaginationTableType | null>(null);
-  const [filteredMajors, setFilteredMajors] = useState(majors);
-  const [formData, setFormData] = React.useState({
-    firstname: "",
-    lastname: "",
-    citizenId: "",
-    sex: "",
-    phone: "",
-    department: "",
-    studentId: "",
-    major_id: "",
-    educationLevel: "", // เปลี่ยนจาก education เป็น educationLevel
-    gradeLevel: "",
-    room: "",
-    term: "",
-    academicYear: "",
-  });
+  // ─ State ─
+  const [search, setSearch] = useState("");
+  const [filterDept, setFilterDept] = useState<number | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [formData, setFormData] = useState<FormData>(getEmptyForm());
+  const [errors, setErrors] = useState<Errors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  // Fetch departments and education data
+  // Import state
+  const [formMode, setFormMode] = useState<"single" | "import">("single");
+  const [importData, setImportData] = useState<any[]>([]);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
 
+  // ─ Filtered majors ─
+  const filteredMajors = useMemo(() => {
+    if (!formData.departmentId) return allMajors;
+    return allMajors.filter((m: any) => m.departmentId === formData.departmentId);
+  }, [formData.departmentId, allMajors]);
 
-  const { data, isLoading, error, mutate } = useSWR(
-    "/api/students",
-    fetcher
-  );
-
-  useEffect(() => {
-   if(ismajorsLoading || isDeptLoading) return; 
-    if (!formData.department) {
-      // ยังไม่ได้เลือก department → แสดงทุก major
-      setFilteredMajors(majors);
-    } else {
-      // กรองตาม department_id
-      const filtered = majors.filter(
-        (major: any) => String(major.departmentId) === String(formData.department)
-      );
-      setFilteredMajors(filtered);
+  // ─ Filtered students ─
+  const filtered = useMemo(() => {
+    if (!students) return [];
+    let list = students;
+    if (filterDept) list = list.filter((s: any) => s.departmentId === filterDept);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((s: any) => {
+        const name = `${s.user?.prefix ?? ""} ${s.user?.firstname ?? ""} ${s.user?.lastname ?? ""}`.toLowerCase();
+        return name.includes(q) || s.studentId?.toLowerCase().includes(q);
+      });
     }
-   
-  }, [formData.department, majors]);
+    return list;
+  }, [students, filterDept, search]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ─ CSS helper ─
+  const inputClass = (err?: string) =>
+    `w-full px-4 py-3 rounded-xl border-2 text-base transition-all duration-200 outline-none bg-white
+     ${err ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-gray-200 focus:border-[#2E7D32] focus:ring-2 focus:ring-green-100"}`;
+
+  // ─ Handlers ─
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    const newVal = ["departmentId", "majorId", "educationLevel"].includes(name)
+      ? (value === "" ? null : Number(value))
+      : value;
+    const newForm = { ...formData, [name]: newVal };
+    // Reset major when department changes
+    if (name === "departmentId") newForm.majorId = null;
+    // Save academicYear to localStorage
+    if (name === "academicYear" && value) {
+      localStorage.setItem(LAST_ACADEMIC_YEAR_KEY, value);
+    }
+    setFormData(newForm);
+    if (errors[name]) {
+      const err = validateField(name, newVal);
+      setErrors((prev) => ({ ...prev, [name]: err }));
+    }
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setFormData((prev) => ({ ...prev, user_img: file }));
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
+      reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    if (!validateThaiID(formData.citizenId)) {
-      showToast("เลขบัตรประจำตัวประชาชนไม่ถูกต้อง", "warning");
-      setLoading(false);
-      return;
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.type === "image/jpeg" || file.type === "image/png")) {
+      setFormData((prev) => ({ ...prev, user_img: file }));
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
     }
+  };
 
+  const validateAll = (): boolean => {
+    const fields = ["studentId", "prefix", "firstname", "lastname", "birthday", "phone", "educationLevel", "departmentId", "term", "academicYear"];
+    const newErrors: Errors = {};
+    let valid = true;
+    for (const f of fields) {
+      const err = validateField(f, (formData as any)[f]);
+      if (err) { newErrors[f] = err; valid = false; }
+    }
+    if (formData.prefix === "อื่นๆ" && !formData.prefixCustom?.trim()) {
+      newErrors.prefixCustom = "กรุณาระบุคำนำหน้า";
+      valid = false;
+    }
+    setErrors(newErrors);
+    return valid;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateAll()) return;
+    setIsSubmitting(true);
     try {
-      // Create FormData for file upload
-      const submitData = new FormData();
+      const fd = new window.FormData();
+      fd.append("studentId", formData.studentId);
+      const prefix = formData.prefix === "อื่นๆ" ? formData.prefixCustom : formData.prefix;
+      fd.append("prefix", prefix);
+      fd.append("firstname", formData.firstname);
+      fd.append("lastname", formData.lastname);
+      fd.append("birthday", formData.birthday ? new Date(formData.birthday).toISOString() : "");
+      fd.append("phone", formData.phone);
+      fd.append("department", String(formData.departmentId ?? ""));
+      fd.append("major_id", String(formData.majorId ?? ""));
+      fd.append("educationLevel", String(formData.educationLevel ?? ""));
+      fd.append("curriculum", formData.curriculum);
+      fd.append("gradeLevel", formData.gradeLevel);
+      fd.append("room", formData.room);
+      fd.append("term", formData.term);
+      fd.append("academicYear", formData.academicYear);
+      if (formData.user_img) fd.append("user_img", formData.user_img);
 
-      // Add form fields with proper naming and data types
-      submitData.append("firstname", formData.firstname);
-      submitData.append("lastname", formData.lastname);
-      submitData.append("citizenId", formData.citizenId);
-      submitData.append("sex", formData.sex);
-      submitData.append("phone", formData.phone);
-      submitData.append("department", formData.department); // จะส่งเป็น departmentId
-      submitData.append("birthday", String(date?.toISOString()))
-      submitData.append("studentId", formData.studentId); // จะใช้เป็น username ด้วย
-      submitData.append("major_id", formData.major_id);
-      submitData.append("educationLevel", formData.educationLevel);
-      submitData.append('gradeLevel',formData.gradeLevel)
-      submitData.append("room", formData.room);
-      submitData.append("term", formData.term);
-      submitData.append("academicYear", formData.academicYear);
-
-      // Add image file if selected
-      if (imageFile) {
-        submitData.append("user_img", imageFile);
-      }
-
-      // Set role as student (3)
-      submitData.append("role", "3");
-
-      const response = await fetch("/api/students", {
-        method: "POST",
-        body: submitData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "เกิดข้อผิดพลาดในการเพิ่มข้อมูล");
-      }
-
-      showToast("เพิ่มข้อมูลนักศึกษาเรียบร้อยแล้ว", "success");
-      setOpenAdd(false); // เปลี่ยนจาก setOpen เป็น setOpenAdd
-      resetForm();
-      onSuccess?.();
-      mutate(); // รีเฟรชข้อมูลนักศึกษา
-    } catch (error) {
-      showToast(
-        error instanceof Error
-          ? error.message
-          : "เกิดข้อผิดพลาดในการเพิ่มข้อมูล",
-        "error"
-      );
+      const url = editId ? `/api/students/${editId}` : "/api/students";
+      const method = editId ? "PUT" : "POST";
+      const res = await fetch(url, { method, body: fd });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "เกิดข้อผิดพลาด");
+      showToast(result.message || (editId ? "แก้ไขข้อมูลสำเร็จ" : "เพิ่มข้อมูลสำเร็จ"), "success");
+      setShowForm(false);
+      setEditId(null);
+      setFormData(getEmptyForm());
+      setErrors({});
+      setImagePreview(null);
+      mutate();
+    } catch (err: any) {
+      showToast(err.message || "เกิดข้อผิดพลาด", "error");
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    if (!editingStudent?.id) {
-      showToast("ไม่พบข้อมูลนักศึกษาที่ต้องการแก้ไข", "error");
-      setLoading(false);
-      return;
-    }
-
-    if (!validateThaiID(formData.citizenId)) {
-      showToast("เลขบัตรประจำตัวประชาชนไม่ถูกต้อง", "warning");
-      setLoading(false);
-      return;
-    }
-
+  const handleEdit = async (userId: number) => {
+    setShowForm(true);
+    setFormMode("single");
+    setEditId(userId);
+    setIsLoadingEdit(true);
     try {
-      // Create FormData for file upload
-      const submitData = new FormData();
-
-      // Add form fields
-      submitData.append("firstname", formData.firstname);
-      submitData.append("lastname", formData.lastname);
-      submitData.append("citizenId", formData.citizenId);
-      submitData.append("sex", formData.sex);
-      submitData.append("phone", formData.phone);
-      submitData.append("department", formData.department);
-      submitData.append("birthday", String(date?.toISOString()));
-      submitData.append("studentId", formData.studentId);
-      submitData.append("major_id", String(formData.major_id));
-      submitData.append("educationLevel", formData.educationLevel);
-      submitData.append("gradeLevel", formData.gradeLevel);
-      submitData.append("room", formData.room);
-      submitData.append("term", formData.term);
-      submitData.append("academicYear", formData.academicYear);
-
-      // Add image file if selected
-      if (imageFile) {
-        submitData.append("user_img", imageFile);
-      }
-      
-      const response = await fetch(`/api/students/${editingStudent.user.id}`, {
-        method: "PUT",
-        body: submitData,
+      const res = await fetch(`/api/students/${userId}`, { cache: "no-store" });
+      const data = await res.json();
+      const prefixVal = data.prefix || "";
+      const isCustomPrefix = !["นาย", "นาง", "นางสาว"].includes(prefixVal);
+      setFormData({
+        studentId: data.student?.studentId || "",
+        prefix: isCustomPrefix && prefixVal ? "อื่นๆ" : prefixVal,
+        prefixCustom: isCustomPrefix ? prefixVal : "",
+        firstname: data.firstname || "",
+        lastname: data.lastname || "",
+        birthday: data.birthday ? new Date(data.birthday).toISOString().split("T")[0] : "",
+        phone: data.phone || "",
+        departmentId: data.student?.departmentId ?? null,
+        majorId: data.student?.major_id ?? null,
+        educationLevel: data.student?.educationLevel ?? null,
+        curriculum: data.student?.curriculum || "",
+        gradeLevel: data.student?.gradeLevel || "",
+        room: data.student?.room || "",
+        term: data.student?.term || "",
+        academicYear: data.student?.academicYear || "",
+        user_img: null,
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
-      }
-
-      showToast("แก้ไขข้อมูลนักศึกษาเรียบร้อยแล้ว", "success");
-      setOpenEdit(false);
-      resetForm();
-      setEditingStudent(null);
-      onSuccess?.();
-      mutate(); // รีเฟรชข้อมูลนักศึกษา
-    } catch (error) {
-      showToast(
-        error instanceof Error
-          ? error.message
-          : "เกิดข้อผิดพลาดในการแก้ไขข้อมูล",
-        "error"
-      );
-    } finally {
-      setLoading(false);
-    }
+      if (data.user_img) setImagePreview(`/uploads/${data.user_img}`);
+    } catch { showToast("โหลดข้อมูลไม่สำเร็จ", "error"); }
+    finally { setIsLoadingEdit(false); }
   };
 
-  const resetForm = () => {
-    setFormData({
-      firstname: "",
-      lastname: "",
-      citizenId: "",
-      sex: "",
-      phone: "",
-      department: "",
-      studentId: "",
-      major_id: "",
-      educationLevel: "", // เปลี่ยนจาก education เป็น educationLevel
-      gradeLevel: "",
-      room: "",
-      term: "",
-      academicYear: "",
-    });
-    setDate(null);
-    setImageFile(null);
-    setImagePreview("");
-  };
-
-  const handleDialogClose = () => {
-    setOpenAdd(false);
-    if (!loading) {
-      resetForm();
-    }
-  };
-
-  const handleEditDialogClose = () => {
-    setOpenEdit(false);
-    if (!loading) {
-      resetForm();
-      setEditingStudent(null);
-    }
-  };
-
-  const handleEdit = (student: PaginationTableType) => {
-    setEditingStudent(student);
-    
-    // เติมข้อมูลเดิมลงในฟอร์ม
-    setFormData({
-      firstname: student.user.firstname || "",
-      lastname: student.user.lastname || "",
-      citizenId: student.user.citizenId || "",
-      sex: student.user.sex || "",
-      phone: student.user.phone || "",
-      department: String(student.department.id), // ต้องดึง department ID
-      studentId: student.studentId || "",
-      major_id: String(student.major.id) || "",
-      educationLevel: String(student.education.id), // ต้องดึง education ID
-      gradeLevel: student?.gradeLevel || "",
-      room: student.room || "",
-      term: student.term || "",
-      academicYear: student.academicYear || "",
-    });
-
-    // ตั้งค่ารูปภาพเดิม
-    if (student.user.user_img) {
-      setImagePreview(`/uploads/${student.user.user_img}`);
-    }
-
-    // ตั้งค่าวันเกิด
-    if (student.user.birthday) {
-      setDate(new Date(student.user.birthday));
-    }
-
-    setOpenEdit(true);
-  };
-
-  const handleInputChange = (name: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // old code
-  const rerender = () => {
-    setColumnFilters([]);
-    mutate(); // Refresh data
-  }
-  const handleDelete = async (id: string) => {
+  const handleResetPassword = (userId: number) => {
     Swal.fire({
-      title: "แจ้งเตือน!",
-      text: "คุณต้องการลบข้อมูลนักศึกษานี้หรือไม่?",
-      icon: "warning",
+      title: 'ยืนยันการรีเซ็ตรหัสผ่าน?',
+      text: "รหัสผ่านจะถูกตั้งเป็นวันเดือนปีเกิด (DDMMYYYY) หรือ รหัสบัตรประชาชน หากไม่มีวันเกิดและบังคับเปลี่ยนเมื่อเข้าระบบครั้งแรก",
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "ต้องการ",
-      cancelButtonText: "ไม่ต้องการ",
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'ตกลง',
+      cancelButtonText: 'ยกเลิก'
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const res = await fetch(`/api/users/${id}`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        if (!res.ok) {
-          const err = await res.json();
-          showToast(err.message, err.type);
-        } else {
+        try {
+          const res = await fetch(`/api/users/${userId}/reset-password`, { method: "PUT" });
           const data = await res.json();
-          showToast(data.message, data.type);
-          mutate(); // Refresh data after deletion
-          router.refresh();
+          if (res.ok) {
+            showToast(data.message, 'success');
+          } else {
+            showToast(data.message, 'error');
+          }
+        } catch (e) {
+          console.error(e);
+          showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", "error");
         }
       }
     });
   };
 
-  async function handleSubmitUpload(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-
-    const res = await fetch("/api/upload-excel", {
-      method: "POST",
-      body: formData,
+  const handleDelete = (userId: string) => {
+    Swal.fire({
+      title: "ยืนยันการลบ", text: "ข้อมูลนักศึกษาจะถูกลบออกจากระบบ",
+      icon: "warning", showCancelButton: true,
+      confirmButtonColor: "#d33", cancelButtonColor: "#aaa",
+      confirmButtonText: "ลบข้อมูล", cancelButtonText: "ยกเลิก",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const res = await fetch(`/api/users/${userId}`, { method: "DELETE" });
+        const data = await res.json();
+        showToast(data.message, data.type || (res.ok ? "success" : "error"));
+        if (res.ok) mutate();
+      }
     });
-    if (res.ok) {
-      setOpen(false);
-      setTimeout(() => {
-        mutate(); // Refresh data after upload
-        showToast("อัปโหลดไฟล์ Excel สำเร็จ", "success");
-      }, 1500);
+  };
+
+  // ─ Import functions ─
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["รหัสนักศึกษา", "คำนำหน้า", "ชื่อ", "นามสกุล", "เบอร์โทร"],
+      ["65001", "นาย", "สมชาย", "ใจดี", "0812345678"],
+    ]);
+    ws["!cols"] = [{ wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 14 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "นักศึกษา");
+    XLSX.writeFile(wb, "template_import_students.xlsx");
+  };
+
+  const handleImportFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json: any[] = XLSX.utils.sheet_to_json(ws);
+
+        const errs: string[] = [];
+        const parsed = json.map((row, i) => {
+          const studentId = String(row["รหัสนักศึกษา"] || "").trim();
+          const prefix = String(row["คำนำหน้า"] || "").trim();
+          const firstname = String(row["ชื่อ"] || "").trim();
+          const lastname = String(row["นามสกุล"] || "").trim();
+          const phone = String(row["เบอร์โทร"] || "").trim();
+          if (!studentId) errs.push(`แถว ${i + 2}: ไม่มีรหัสนักศึกษา`);
+          if (!firstname) errs.push(`แถว ${i + 2}: ไม่มีชื่อ`);
+          if (!lastname) errs.push(`แถว ${i + 2}: ไม่มีนามสกุล`);
+          return { studentId, prefix, firstname, lastname, phone };
+        });
+
+        setImportErrors(errs);
+        setImportData(parsed);
+      } catch {
+        showToast("ไม่สามารถอ่านไฟล์ Excel ได้", "error");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleImportDropFile = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleImportFile(file);
+  };
+
+  const handleImportSubmit = async () => {
+    if (importErrors.length > 0) {
+      showToast("กรุณาแก้ไขข้อผิดพลาดก่อนนำเข้า", "error");
+      return;
     }
-    const data = await res.json();
-    showToast(data.message || data.error, data.type || "error"); // Show error message if any
-  }
+    if (importData.length === 0) return;
+    setIsImporting(true);
+    try {
+      const res = await fetch("/api/students/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ students: importData }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "เกิดข้อผิดพลาด");
+      showToast(result.message || `นำเข้าข้อมูลสำเร็จ ${importData.length} รายการ`, "success");
+      setShowForm(false);
+      setImportData([]);
+      setImportErrors([]);
+      mutate();
+    } catch (err: any) {
+      showToast(err.message || "เกิดข้อผิดพลาด", "error");
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
-  const columns = [
-    columnHelper.display({
-      id: "index",
-      header: () => <span>#</span>,
-      cell: (info) => <div className="text-base">{info.row.index + 1}</div>,
-    }),
-    columnHelper.accessor("studentId", {
-      cell: (info) => (
-        <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${info.getValue()}`}</h6>
-        </div>
-      ),
-      header: () => <span>รหัสนักศึกษา</span>,
-    }),
-    columnHelper.accessor("user", {
-      cell: (info) => (
-        <div className="flex gap-3 items-center">
-          <Image
-            src={`/uploads/${info.getValue().user_img}`}
-            width={50}
-            height={50}
-            alt="icon"
-            className="h-10 w-10 rounded-xl"
-            unoptimized={true}
-          />
-          <div className="truncate line-clamp-2 max-w-56">
-            <h6 className="text-base">{`${gender_options[Number(info.getValue().sex) ?? 0] || "ไม่ทราบเพศ"}${info.getValue().firstname} ${
-              info.getValue().lastname
-            }`}</h6>
-            <p className="text-sm text-darklink dark:text-bodytext">
-              {userRole(Number(info.getValue().role))}
-            </p>
-          </div>
-        </div>
-      ),
-      header: () => <span>ชื่อ-นามสกุล</span>,
-    }),
-    columnHelper.accessor("user.sex", {
-      cell: (info) => (
-        <div className="text-base">{userSex(Number(info.getValue()))}</div>
-      ),
-      header: () => <span>เพศ</span>,
-    }),
-    columnHelper.accessor('department', {
-      cell: (info) => (
-        <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${info.getValue()?.depname}`}</h6>
-          <p className="text-sm text-darklink dark:text-bodytext">
-            {info.row.original.major?.major_name}
-          </p>
-        </div>
-      ),
-      header: () => <span>แผนกวิชา</span>,
-    }),
-    columnHelper.accessor("education", {
-      cell: (info) => (
-        <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${info.getValue().name}`}</h6>
-          <p className="text-sm text-darklink dark:text-bodytext">
-            ปีการศึกษา:{" "}
-            {`${info.row.original.term}/${info.row.original.academicYear}`}
-          </p>
-        </div>
-      ),
-      header: () => <span>ระดับชั้น</span>,
-    }),
-
-    columnHelper.display({
-      id: "actions",
-      cell: (info) => (
-        <Dropdown
-          label=""
-          dismissOnClick={false}
-          renderTrigger={() => (
-            <span className="h-9 w-9 flex justify-center items-center rounded-full hover:bg-lightprimary hover:text-primary cursor-pointer">
-              <IconDots size={22} />
-            </span>
-          )}
-        >
-          {[
-            {
-              icon: "tabler:eye",
-              listtitle: "รายละเอียด",
-              onclick: () =>
-                router.push(`/admin/students/${info.row.original.id}`),
-            },
-            {
-              icon: "tabler:edit",
-              listtitle: "แก้ไขข้อมูล",
-              onclick: () => handleEdit(info.row.original),
-            },
-            {
-              icon: "tabler:trash",
-              listtitle: "ลบข้อมูล",
-              onclick: () => handleDelete(String(info.row.original.user.id)),
-            },
-          ].map((item, index) => (
-            <Dropdown.Item
-              key={index}
-              onClick={item.onclick}
-              className="flex gap-3"
-            >
-              <Icon icon={item.icon} height={18} />
-              <span>{item.listtitle}</span>
-            </Dropdown.Item>
-          ))}
-        </Dropdown>
-      ),
-      header: () => <span></span>,
-    }),
-  ];
-
-  const table = useReactTable({
-    data: data || [],
-    columns,
-    filterFns: {},
-    state: {
-      columnFilters,
-    },
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    debugTable: true,
-    debugHeaders: true,
-    debugColumns: false,
-  });
-
-  if(isLoading) {
+  // ─ Loading ─
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
-        <Spinner 
-          size="xl" 
-          color="primary" 
-          aria-label="Loading..." 
-          className="text-blue-600 dark:text-blue-500"
-        />
-        <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
-          กำลังโหลดข้อมูลนักศึกษา โปรดรอสักครู่...
-        </p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-10 h-10 border-4 border-green-100 border-t-[#2E7D32] rounded-full animate-spin" />
+        <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
       </div>
     );
   }
- 
-  
-  if(error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
-        <p className="text-lg font-medium text-red-600 dark:text-red-500">
-          เกิดข้อผิดพลาดในการโหลดข้อมูลนักศึกษา: {error.message}
-        </p>
-      </div>
-    );  
 
-  }
+  const deptCounts = departments.reduce((acc: any, d: any) => {
+    acc[d.id] = (students ?? []).filter((s: any) => s.departmentId === d.id).length;
+    return acc;
+  }, {});
 
   return (
-    <>
-      <TitleIconCard title="ข้อมูลนักศึกษา">
-        <div className=" flex justify-end items-center my-6 ">
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button color={`success`} className="mx-2">
-                Import Excel
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>อัปโหลดไฟล์ Excel</DialogTitle>
-                <DialogDescription>
-                  กรุณาอัปโหลดไฟล์ .xlsx ที่มีข้อมูลนักศึกษา
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleSubmitUpload} encType="multipart/form-data">
-                <input
-                  type="file"
-                  name="excel"
-                  accept=".xlsx"
-                  required
-                  className="mb-4 border rounded p-2 w-full"
-                />
-                <Button type="submit" className="w-full">
-                  อัปโหลด
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          {/* Add Student Dialog */}
-          <Dialog open={openAdd} onOpenChange={setOpenAdd}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                <IconPlus size={16} className="mr-2" />
-                เพิ่มนักศึกษา
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <IconUser size={20} />
-                  เพิ่มข้อมูลนักศึกษาใหม่
-                </DialogTitle>
-                <DialogDescription>
-                  กรอกข้อมูลนักศึกษาใหม่ให้ครบถ้วน
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Profile Image */}
-                <div className="space-y-2">
-                  <Label htmlFor="image">รูปโปรไฟล์</Label>
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <div className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
-                        {imagePreview ? (
-                          <img
-                            src={imagePreview}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <IconUser size={32} className="text-gray-400" />
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <Input
-                        id="image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                      <Label
-                        htmlFor="image"
-                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
-                      >
-                        <IconUpload size={16} />
-                        เลือกรูปภาพ
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Personal Information */}
-                <div className="space-y-2">
-                  <Label htmlFor="firstname">เลขบัตรประจำตัวประชาชน *</Label>
-                  <Input
-                    id="citizenId"
-                    value={formData.citizenId}
-                    onChange={(e) =>
-                      handleInputChange("citizenId", e.target.value)
-                    }
-                    placeholder="เลขบัตรประจำตัวประชาชน"
-                    inputMode="numeric"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstname">ชื่อ *</Label>
-                    <Input
-                      id="firstname"
-                      value={formData.firstname}
-                      onChange={(e) =>
-                        handleInputChange("firstname", e.target.value)
-                      }
-                      placeholder="ชื่อ"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastname">นามสกุล *</Label>
-                    <Input
-                      id="lastname"
-                      value={formData.lastname}
-                      onChange={(e) =>
-                        handleInputChange("lastname", e.target.value)
-                      }
-                      placeholder="นามสกุล"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="birthday">วันเกิด *</Label>
-                    <Datepicker
-                        language="th"
-                        onSelectedDateChanged={(date) => setDate(date)}
-                      />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="studentId">รหัสนักศึกษา *</Label>
-                    <Input
-                      id="studentId"
-                      value={formData.studentId}
-                      onChange={(e) =>
-                        handleInputChange("studentId", e.target.value)
-                      }
-                      placeholder="รหัสนักศึกษา"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Contact Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sex">เพศ *</Label>
-                    <Select
-                      value={formData.sex}
-                      onValueChange={(value) => handleInputChange("sex", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกเพศ" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">ชาย</SelectItem>
-                        <SelectItem value="2">หญิง</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        handleInputChange("phone", e.target.value)
-                      }
-                      placeholder="เบอร์โทรศัพท์"
-                    />
-                  </div>
-                </div>
-
-                {/* Academic Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="department">แผนกวิชา *</Label>
-                    <Select
-                      value={formData.department}
-                      onValueChange={(value) =>
-                        handleInputChange("department", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกแผนกวิชา" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isDeptLoading ? (
-                          <SelectItem value="loading" disabled>
-                            กำลังโหลด...
-                          </SelectItem>
-                        ) : (
-                          departments.map((dept: any) => (
-                            <SelectItem key={dept.id} value={String(dept.id)}>
-                              {dept.depname}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="major">สาขาวิชา *</Label>
-                    <Select
-                      value={formData.major_id}
-                      onValueChange={(value) =>
-                        handleInputChange("major_id", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกสาขาวิชา" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ismajorsLoading ? (
-                          <SelectItem value="loading" disabled>
-                            กำลังโหลด...
-                          </SelectItem>
-                        ) : filteredMajors.length > 0 ? (
-                          filteredMajors.map((major: any) => (
-                            <SelectItem key={major.id} value={String(major.id)}>
-                              {major.major_name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="none" disabled>
-                            ไม่มีสาขาในแผนกนี้
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="education">ระดับการศึกษา *</Label>
-                    <Select
-                      value={formData.educationLevel}
-                      onValueChange={(value) =>
-                        handleInputChange("educationLevel", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกระดับการศึกษา" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isEdctLoading ? (
-                          <SelectItem value="loading" disabled>
-                            กำลังโหลด...
-                          </SelectItem>
-                        ) : (
-                          educations.map((edu: any) => (
-                            <SelectItem key={edu.id} value={String(edu.id)}>
-                              {edu.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gradeLevel">ชั้นปี *</Label>
-                    <Select
-                      value={formData.gradeLevel}
-                      onValueChange={(value) =>
-                        handleInputChange("gradeLevel", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกชั้นปี" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                        <SelectItem value="4">4</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="room">ห้อง *</Label>
-                    <Input
-                      id="room"
-                      value={formData.room}
-                      onChange={(e) =>
-                        handleInputChange("room", e.target.value)
-                      }
-                      placeholder="ห้อง"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="term">เทอม *</Label>
-                    <Select
-                      value={formData.term}
-                      onValueChange={(value) =>
-                        handleInputChange("term", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกเทอม" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="academicYear">ปีการศึกษา *</Label>
-                    <Input
-                      id="academicYear"
-                      value={formData.academicYear}
-                      onChange={(e) =>
-                        handleInputChange("academicYear", e.target.value)
-                      }
-                      placeholder="2567"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <DialogFooter className="gap-2">
-                  <Button
-                    type="button"
-                    onClick={handleDialogClose}
-                    disabled={loading}
-                  >
-                    ยกเลิก
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "กำลังเพิ่มข้อมูล..." : "เพิ่มข้อมูล"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          {/* Edit Student Dialog */}
-          <Dialog open={openEdit} onOpenChange={(open) => {
-            if (!open) {
-              handleEditDialogClose();
-
-            }
-          }}>
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <IconEdit size={20} />
-                  แก้ไขข้อมูลนักศึกษา
-                </DialogTitle>
-                <DialogDescription>
-                  แก้ไขข้อมูลนักศึกษา {editingStudent?.user.firstname} {editingStudent?.user.lastname}
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleEditSubmit} className="space-y-4">
-                {/* Profile Image */}
-                <div className="space-y-2">
-                  <Label htmlFor="edit-image">รูปโปรไฟล์</Label>
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <div className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
-                        {imagePreview ? (
-                          <img
-                            src={imagePreview}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <IconUser size={32} className="text-gray-400" />
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <Input
-                        id="edit-image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                      <Label
-                        htmlFor="edit-image"
-                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
-                      >
-                        <IconUpload size={16} />
-                        เปลี่ยนรูปภาพ
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Personal Information */}
-                <div className="space-y-2">
-                  <Label htmlFor="edit-citizenId">เลขบัตรประจำตัวประชาชน *</Label>
-                  <Input
-                    id="edit-citizenId"
-                    value={formData.citizenId}
-                    onChange={(e) =>
-                      handleInputChange("citizenId", e.target.value)
-                    }
-                    placeholder="เลขบัตรประจำตัวประชาชน"
-                    inputMode="numeric"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-firstname">ชื่อ *</Label>
-                    <Input
-                      id="edit-firstname"
-                      value={formData.firstname}
-                      onChange={(e) =>
-                        handleInputChange("firstname", e.target.value)
-                      }
-                      placeholder="ชื่อ"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-lastname">นามสกุล *</Label>
-                    <Input
-                      id="edit-lastname"
-                      value={formData.lastname}
-                      onChange={(e) =>
-                        handleInputChange("lastname", e.target.value)
-                      }
-                      placeholder="นามสกุล"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-birthday">วันเกิด *</Label>
-                    <Datepicker
-                        language="th"
-                        onSelectedDateChanged={(date) => setDate(date)}                      />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-studentId">รหัสนักศึกษา *</Label>
-                    <Input
-                      id="edit-studentId"
-                      value={formData.studentId}
-                      onChange={(e) =>
-                        handleInputChange("studentId", e.target.value)
-                      }
-                      placeholder="รหัสนักศึกษา"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Contact Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-sex">เพศ *</Label>
-                    <Select
-                      value={String(formData.sex)}
-                      onValueChange={(value) => handleInputChange("sex", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกเพศ" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">ชาย</SelectItem>
-                        <SelectItem value="2">หญิง</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-phone">เบอร์โทรศัพท์</Label>
-                    <Input
-                      id="edit-phone"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        handleInputChange("phone", e.target.value)
-                      }
-                      placeholder="เบอร์โทรศัพท์"
-                    />
-                  </div>
-                </div>
-
-                {/* Academic Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-department">แผนกวิชา *</Label>
-                    <Select
-                      value={String(formData.department)}
-                      onValueChange={(value) =>
-                        handleInputChange("department", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกแผนกวิชา" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isDeptLoading ? (
-                          <SelectItem value="loading" disabled>
-                            กำลังโหลด...
-                          </SelectItem>
-                        ) : (
-                          departments.map((dept: any) => (
-                            <SelectItem key={dept.id} value={String(dept.id)}>
-                              {dept.depname}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="major">สาขาวิชา *</Label>
-                    <Select
-                      value={formData.major_id}
-                      onValueChange={(value) =>
-                        handleInputChange("major_id", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกสาขาวิชา" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ismajorsLoading ? (
-                          <SelectItem value="loading" disabled>
-                            กำลังโหลด...
-                          </SelectItem>
-                        ) : filteredMajors.length > 0 ? (
-                          filteredMajors.map((major: any) => (
-                            <SelectItem key={major.id} value={String(major.id)}>
-                              {major.major_name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="none" disabled>
-                            ไม่มีสาขาในแผนกนี้
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-education">ระดับการศึกษา *</Label>
-                    <Select
-                      value={String(formData.educationLevel)}
-                      onValueChange={(value) =>
-                        handleInputChange("educationLevel", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกระดับการศึกษา" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isEdctLoading ? (
-                          <SelectItem value="loading" disabled>
-                            กำลังโหลด...
-                          </SelectItem>
-                        ) : (
-                          educations.map((edu: any) => (
-                            <SelectItem key={edu.id} value={String(edu.id)}>
-                              {edu.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-gradeLevel">ชั้นปี *</Label>
-                    <Select
-                      value={formData.gradeLevel}
-                      onValueChange={(value) =>
-                        handleInputChange("gradeLevel", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกชั้นปี" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                        <SelectItem value="4">4</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-room">ห้อง *</Label>
-                    <Input
-                      id="edit-room"
-                      value={formData.room}
-                      onChange={(e) =>
-                        handleInputChange("room", e.target.value)
-                      }
-                      placeholder="ห้อง"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-term">เทอม *</Label>
-                    <Select
-                      value={formData.term}
-                      onValueChange={(value) =>
-                        handleInputChange("term", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกเทอม" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-academicYear">ปีการศึกษา *</Label>
-                    <Input
-                      id="edit-academicYear"
-                      value={formData.academicYear}
-                      onChange={(e) =>
-                        handleInputChange("academicYear", e.target.value)
-                      }
-                      placeholder="2567"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <DialogFooter className="gap-2">
-                  <Button
-                    type="button"
-                    onClick={handleEditDialogClose}
-                    disabled={loading}
-                  >
-                    ยกเลิก
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "กำลังแก้ไขข้อมูล..." : "บันทึกการแก้ไข"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+    <div className="space-y-6">
+      {/* ──── Header ──── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] rounded-2xl flex items-center justify-center shadow-lg">
+            <Icon icon="tabler:school" className="text-white" width={28} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">จัดการข้อมูลนักศึกษา</h1>
+            <p className="text-sm text-gray-500">เพิ่ม แก้ไข ลบ และค้นหาข้อมูลนักศึกษา</p>
+          </div>
         </div>
-        <div className="border rounded-md border-ld overflow-hidden">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 rounded-full text-sm font-medium text-gray-600">
+            <Icon icon="tabler:users" width={18} /> {(students ?? []).length} คน
+          </span>
+          {showForm ? (
+            <button onClick={() => { setShowForm(false); setEditId(null); setFormData(getEmptyForm()); setErrors({}); setImagePreview(null); setImportData([]); setImportErrors([]); }}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-xl font-medium transition-colors shadow">
+              <Icon icon="tabler:x" width={18} /> ปิดฟอร์ม
+            </button>
+          ) : (
+            <button onClick={() => { setShowForm(true); setEditId(null); setFormData(getEmptyForm()); }}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] hover:from-[#1B5E20] hover:to-[#388E3C] text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl">
+              <Icon icon="tabler:plus" width={18} /> เพิ่มนักศึกษา
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ──── Department filter ──── */}
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => setFilterDept(null)}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!filterDept ? "bg-[#2E7D32] text-white shadow" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"}`}>
+          ทั้งหมด ({(students ?? []).length})
+        </button>
+        {departments.map((d: any) => (
+          <button key={d.id} onClick={() => setFilterDept(filterDept === d.id ? null : d.id)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filterDept === d.id ? "bg-[#2E7D32] text-white shadow" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"}`}>
+            {d.depname} ({deptCounts[d.id] || 0})
+          </button>
+        ))}
+      </div>
+
+      {/* ──── Form ──── */}
+      {showForm && (
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8 animate-in slide-in-from-top-2 duration-300">
+          {/* Mode tabs */}
+          <div className="flex items-center gap-4 mb-6">
+            <button onClick={() => setFormMode("single")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${formMode === "single" ? "bg-[#2E7D32] text-white shadow" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+              <Icon icon="tabler:user-plus" width={18} />
+              {editId ? "แก้ไขข้อมูล" : "เพิ่มรายคน"}
+            </button>
+            {!editId && (
+              <button onClick={() => setFormMode("import")}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${formMode === "import" ? "bg-[#2E7D32] text-white shadow" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+                <Icon icon="tabler:file-import" width={18} /> นำเข้าจาก Excel
+              </button>
+            )}
+          </div>
+
+          {formMode === "single" ? (
+            /* ──── Single add/edit form ──── */
+            <>
+              <div className="flex items-center gap-3 mb-6">
+                <Icon icon={editId ? "tabler:edit" : "tabler:user-plus"} width={24} className="text-[#2E7D32]" />
+                <h2 className="text-xl font-bold text-gray-800">{editId ? "แก้ไขข้อมูลนักศึกษา" : "เพิ่มข้อมูลนักศึกษาใหม่"}</h2>
+              </div>
+
+              {isLoadingEdit ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-10 h-10 border-4 border-green-100 border-t-[#2E7D32] rounded-full animate-spin" />
+                  <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
+                </div>
+              ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                      {/* studentId */}
+                      <FormField label="รหัสนักศึกษา" required error={errors.studentId}>
+                        <input type="text" name="studentId" value={formData.studentId} onChange={handleChange}
+                          placeholder="เช่น 65001" className={inputClass(errors.studentId)} />
+                      </FormField>
+                      {/* prefix */}
+                      <FormField label="คำนำหน้า" required error={errors.prefix}>
+                        <select name="prefix" value={formData.prefix} onChange={handleChange} className={inputClass(errors.prefix)}>
+                          <option value="" hidden>เลือกคำนำหน้า</option>
+                          <option value="นาย">นาย</option>
+                          <option value="นาง">นาง</option>
+                          <option value="นางสาว">นางสาว</option>
+                          <option value="อื่นๆ">อื่นๆ (ระบุ)</option>
+                        </select>
+                      </FormField>
+                      {/* custom prefix */}
+                      {formData.prefix === "อื่นๆ" && (
+                        <FormField label="ระบุคำนำหน้า" required error={errors.prefixCustom}>
+                          <input type="text" name="prefixCustom" value={formData.prefixCustom} onChange={handleChange}
+                            placeholder="กรอกคำนำหน้า" className={inputClass(errors.prefixCustom)} />
+                        </FormField>
+                      )}
+                      {/* firstname */}
+                      <FormField label="ชื่อ" required error={errors.firstname}>
+                        <input type="text" name="firstname" value={formData.firstname} onChange={handleChange}
+                          placeholder="กรอกชื่อนักศึกษา" className={inputClass(errors.firstname)} />
+                      </FormField>
+                      {/* lastname */}
+                      <FormField label="นามสกุล" required error={errors.lastname}>
+                        <input type="text" name="lastname" value={formData.lastname} onChange={handleChange}
+                          placeholder="กรอกนามสกุลนักศึกษา" className={inputClass(errors.lastname)} />
+                      </FormField>
+                      {/* birthday */}
+                      <FormField label="วันเกิด" required error={errors.birthday}>
+                        <ThaiDatePicker
+                          value={formData.birthday}
+                          onChange={(v) => setFormData((prev) => ({ ...prev, birthday: v }))}
+                          placeholder="เลือกวัน/เดือน/ปี"
+                          required
+                          name="birthday"
+                          className={inputClass(errors.birthday)}
+                        />
+                      </FormField>
+                      {/* phone */}
+                      <FormField label="เบอร์โทรศัพท์" required error={errors.phone}>
+                        <input type="text" name="phone" value={formData.phone} onChange={handleChange} maxLength={10}
+                          placeholder="เช่น 0987654321" className={inputClass(errors.phone)} />
+                      </FormField>
+                      {/* department */}
+                      <FormField label="แผนกวิชา" required error={errors.departmentId}>
+                        <select name="departmentId" value={formData.departmentId ?? ""} onChange={handleChange} className={inputClass(errors.departmentId)}>
+                          <option value="" hidden>เลือกแผนกวิชา</option>
+                          {departments.map((d: any) => <option key={d.id} value={d.id}>{d.depname}</option>)}
+                        </select>
+                      </FormField>
+                      {/* major */}
+                      <FormField label="สาขาวิชา" error={errors.majorId}>
+                        <select name="majorId" value={formData.majorId ?? ""} onChange={handleChange} className={inputClass(errors.majorId)}>
+                          <option value="" hidden>เลือกสาขาวิชา</option>
+                          {filteredMajors.map((m: any) => <option key={m.id} value={m.id}>{m.major_name}</option>)}
+                        </select>
+                      </FormField>
+                      {/* educationLevel */}
+                      <FormField label="ระดับชั้น" required error={errors.educationLevel}>
+                        <select name="educationLevel" value={formData.educationLevel ?? ""} onChange={handleChange} className={inputClass(errors.educationLevel)}>
+                          <option value="" hidden>เลือกระดับชั้น</option>
+                          {educations.map((e: any) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                        </select>
+                      </FormField>
+                      {/* curriculum */}
+                      <FormField label="หลักสูตร">
+                        <select name="curriculum" value={formData.curriculum} onChange={handleChange} className={inputClass()}>
+                          <option value="">เลือกหลักสูตร</option>
+                          <option value="ปกติ">ปกติ</option>
+                          <option value="ทวิภาคี">ทวิภาคี</option>
+                        </select>
+                      </FormField>
+                      {/* gradeLevel */}
+                      <FormField label="ชั้นปี">
+                        <select name="gradeLevel" value={formData.gradeLevel} onChange={handleChange} className={inputClass()}>
+                          <option value="">เลือกชั้นปี</option>
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                          <option value="4">4</option>
+                        </select>
+                      </FormField>
+                      {/* room */}
+                      <FormField label="ห้อง">
+                        <input type="text" name="room" value={formData.room} onChange={handleChange}
+                          placeholder="เช่น 1" className={inputClass()} />
+                      </FormField>
+                      {/* term */}
+                      <FormField label="เทอม" required error={errors.term}>
+                        <select name="term" value={formData.term} onChange={handleChange} className={inputClass(errors.term)}>
+                          <option value="" hidden>เลือกเทอม</option>
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                        </select>
+                      </FormField>
+                      {/* academicYear — dropdown with 10-year range */}
+                      <FormField label="ปีการศึกษา" required error={errors.academicYear}>
+                        <select name="academicYear" value={formData.academicYear} onChange={handleChange} className={inputClass(errors.academicYear)}>
+                          <option value="" hidden>เลือกปีการศึกษา</option>
+                          {ACADEMIC_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                      </FormField>
+                    </div>
+
+                    {/* Image upload */}
+                    <div className="mt-6">
+                      <FormField label="รูปโปรไฟล์">
+                        <div onDragOver={(e) => e.preventDefault()} onDrop={handleFileDrop}
+                          className="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center hover:border-[#2E7D32] transition-colors cursor-pointer">
+                          {imagePreview ? (
+                            <div className="flex items-center gap-4">
+                              <img src={imagePreview} alt="preview" className="w-20 h-20 rounded-xl object-cover" />
+                              <div className="text-left">
+                                <p className="text-sm font-medium text-gray-700">{formData.user_img?.name || "รูปปัจจุบัน"}</p>
+                                <button type="button" onClick={() => { setImagePreview(null); setFormData(p => ({ ...p, user_img: null })); }}
+                                  className="text-xs text-red-500 hover:underline mt-1">ลบรูป</button>
+                              </div>
+                            </div>
+                        ) : (
+                            <label className="cursor-pointer">
+                              <Icon icon="tabler:cloud-upload" width={40} className="text-gray-400 mx-auto mb-2" />
+                              <p className="text-sm text-gray-500">ลากไฟล์มาวางหรือ <span className="text-[#2E7D32] font-medium">เลือกไฟล์</span></p>
+                              <p className="text-xs text-gray-400 mt-1">รองรับ JPG, PNG</p>
+                              <input type="file" accept="image/jpeg,image/png" onChange={handleFileChange} className="hidden" />
+                            </label>
+                          )}
+                        </div>
+                      </FormField>
+                    </div>
+
+                    {/* Submit */}
+                    <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
+                      <button onClick={() => { setShowForm(false); setEditId(null); setFormData(getEmptyForm()); setErrors({}); setImagePreview(null); }}
+                        className="px-6 py-3 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">
+                        ยกเลิก
+                      </button>
+                      <button onClick={handleSubmit} disabled={isSubmitting}
+                        className="px-8 py-3 bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] hover:from-[#1B5E20] hover:to-[#388E3C] text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl disabled:opacity-50">
+                        {isSubmitting ? (
+                          <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> กำลังบันทึก...</span>
+                        ) : editId ? "บันทึกการแก้ไข" : "เพิ่มนักศึกษา"}
+                      </button>
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            /* ──── Import form ──── */
+            <>
+              <div className="flex items-center gap-3 mb-6">
+                <Icon icon="tabler:file-import" width={24} className="text-[#2E7D32]" />
+                <h2 className="text-xl font-bold text-gray-800">นำเข้าข้อมูลจาก Excel</h2>
+              </div>
+
+                {/* Step 1: Download template */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-5 mb-6 border border-green-200">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-[#2E7D32] rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Icon icon="tabler:download" className="text-white" width={20} />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-800 mb-1">ขั้นตอนที่ 1: ดาวน์โหลด Template</h3>
+                      <p className="text-sm text-gray-600 mb-3">ดาวน์โหลด template Excel แล้วกรอกข้อมูลนักศึกษาตามรูปแบบที่กำหนด</p>
+                      <button onClick={downloadTemplate}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-[#2E7D32] text-[#2E7D32] rounded-xl text-sm font-medium hover:bg-green-50 transition-colors">
+                        <Icon icon="tabler:file-spreadsheet" width={18} /> ดาวน์โหลด Template
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 2: Upload file */}
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <span className="w-6 h-6 bg-[#2E7D32] rounded-full text-white text-xs flex items-center justify-center">2</span>
+                    อัปโหลดไฟล์ Excel
+                  </h3>
+                  <div onDragOver={(e) => e.preventDefault()} onDrop={handleImportDropFile}
+                    className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-[#2E7D32] transition-colors">
+                    <Icon icon="tabler:file-upload" width={48} className="text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500 mb-2">ลากไฟล์ .xlsx มาวางที่นี่ หรือ</p>
+                    <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2E7D32] text-white rounded-xl text-sm font-medium cursor-pointer hover:bg-[#1B5E20] transition-colors">
+                      <Icon icon="tabler:upload" width={16} /> เลือกไฟล์
+                      <input type="file" accept=".xlsx,.xls" onChange={(e) => e.target.files?.[0] && handleImportFile(e.target.files[0])} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Preview */}
+                {importData.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 bg-[#2E7D32] rounded-full text-white text-xs flex items-center justify-center">3</span>
+                      ตรวจสอบข้อมูล ({importData.length} รายการ)
+                    </h3>
+
+                    {importErrors.length > 0 && (
+                      <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                        <p className="text-red-700 font-medium mb-2 flex items-center gap-2">
+                          <Icon icon="tabler:alert-circle" width={18} /> พบข้อผิดพลาด {importErrors.length} รายการ
+                        </p>
+                        <ul className="text-sm text-red-600 list-disc list-inside space-y-1">
+                          {importErrors.slice(0, 10).map((err, i) => <li key={i}>{err}</li>)}
+                          {importErrors.length > 10 && <li>...และอีก {importErrors.length - 10} รายการ</li>}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="overflow-x-auto rounded-xl border border-gray-200">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-600">#</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-600">รหัส</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-600">ชื่อ-นามสกุล</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-600">เบอร์โทร</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {importData.slice(0, 50).map((row, i) => (
+                            <tr key={i} className="hover:bg-gray-50">
+                              <td className="px-4 py-2.5 text-gray-500">{i + 1}</td>
+                              <td className="px-4 py-2.5">{row.studentId}</td>
+                              <td className="px-4 py-2.5">{row.prefix}{row.firstname} {row.lastname}</td>
+                              <td className="px-4 py-2.5">{row.phone}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {importData.length > 50 && (
+                        <div className="px-4 py-3 bg-gray-50 text-center text-sm text-gray-500">
+                          แสดง 50 รายการแรกจากทั้งหมด {importData.length} รายการ
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6">
+                      <button onClick={() => { setImportData([]); setImportErrors([]); }}
+                        className="px-6 py-3 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">
+                        ยกเลิก
+                      </button>
+                      <button onClick={handleImportSubmit} disabled={isImporting || importErrors.length > 0}
+                        className="px-8 py-3 bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] hover:from-[#1B5E20] hover:to-[#388E3C] text-white rounded-xl font-medium transition-all shadow-lg disabled:opacity-50">
+                        {isImporting ? (
+                          <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> กำลังนำเข้า...</span>
+                        ) : `นำเข้า ${importData.length} รายการ`}
+                      </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ──── Search ──── */}
+      <div className="relative">
+        <Icon icon="tabler:search" width={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+          placeholder="ค้นหาด้วยชื่อ หรือ รหัสนักศึกษา..."
+          className="w-full pl-12 pr-4 py-3.5 rounded-2xl border-2 border-gray-200 focus:border-[#2E7D32] focus:ring-2 focus:ring-green-100 text-base outline-none transition-all bg-white" />
+      </div>
+
+      {/* ──── Table ──── */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+            <Icon icon="tabler:users-group" width={48} className="mb-3 opacity-50" />
+            <p className="text-lg font-medium">ไม่พบข้อมูลนักศึกษา</p>
+            <p className="text-sm mt-1">ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p>
+          </div>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full">
+              <table className="w-full">
               <thead>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="text-base text-ld font-semibold py-3 text-left border border-ld px-2 xxl:px-4"
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </th>
-                    ))}
+                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">#</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">รหัส</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ชื่อ-นามสกุล</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">แผนก / สาขา</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden lg:table-cell">ระดับชั้น</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden lg:table-cell">หลักสูตร</th>
+                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">จัดการ</th>
                   </tr>
-                ))}
               </thead>
-              <tbody className="divide-y divide-border dark:divide-darkborder">
-                {table.getRowModel().rows.map((row) => (
-                  <tr key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className="whitespace-nowrap border py-3 px-2 xxl:px-4"
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                <tbody className="divide-y divide-gray-50">
+                  {filtered.map((s: any, i: number) => {
+                    const fullName = `${s.user?.prefix ?? ""} ${s.user?.firstname ?? ""} ${s.user?.lastname ?? ""}`.trim();
+                    return (
+                      <tr key={s.id} className="hover:bg-[#F5F5F5] transition-colors group">
+                        <td className="px-6 py-3">
+                          <span className="text-sm text-gray-400 font-medium">{i + 1}</span>
+                        </td>
+                        <td className="px-6 py-3">
+                          <span className="font-mono text-sm bg-gray-100 px-2.5 py-1 rounded-lg">{s.studentId}</span>
                       </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="sm:flex gap-2 p-3 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button color="primary" onClick={() => rerender()}>
-                รีโหลดข้อมูล
-              </Button>
-              <h1 className="text-gray-700">
-                {table.getPrePaginationRowModel().rows.length} แถว
-              </h1>
+                        <td className="px-6 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                              <Image src={`/uploads/${s.user?.user_img || "avatar.jpg"}`} width={40} height={40} alt=""
+                                className="w-full h-full object-cover" unoptimized />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800 text-sm">{fullName || "-"}</p>
+                              <p className="text-xs text-gray-400">{s.user?.phone || ""}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3 hidden md:table-cell">
+                          <p className="text-sm text-gray-700">{s.department?.depname || "-"}</p>
+                          <p className="text-xs text-gray-400">{s.major?.major_name || ""}</p>
+                        </td>
+                        <td className="px-6 py-3 hidden lg:table-cell">
+                          <p className="text-sm text-gray-700">{s.education?.name || "-"}</p>
+                          <p className="text-xs text-gray-400">เทอม {s.term}/{s.academicYear}</p>
+                        </td>
+                        <td className="px-6 py-3 hidden lg:table-cell">
+                          {s.curriculum ? (
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${s.curriculum === "ทวิภาคี" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
+                              {s.curriculum}
+                            </span>
+                          ) : <span className="text-gray-400 text-sm">-</span>}
+                        </td>
+                        <td className="px-6 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleResetPassword(Number(s.user?.id))}
+                              className="p-2 hover:bg-yellow-50 rounded-lg transition-colors" title="รีเซ็ตรหัสผ่าน">
+                              <Icon icon="tabler:key" width={18} className="text-yellow-500" />
+                            </button>
+                            <button onClick={() => handleEdit(Number(s.user?.id))}
+                              className="p-2 hover:bg-blue-50 rounded-lg transition-colors" title="แก้ไข">
+                              <Icon icon="tabler:edit" width={18} className="text-blue-500" />
+                            </button>
+                            <button onClick={() => handleDelete(String(s.user?.id))}
+                              className="p-2 hover:bg-red-50 rounded-lg transition-colors" title="ลบ">
+                              <Icon icon="tabler:trash" width={18} className="text-red-500" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <div className="sm:flex items-center gap-2 sm:mt-0 mt-3">
-              <div className="flex">
-                <h2 className="text-gray-700 pe-1">หน้า</h2>
-                <h2 className="font-semibold text-gray-900">
-                  {table.getState().pagination.pageIndex + 1} จาก{" "}
-                  {table.getPageCount()}
-                </h2>
-              </div>
-              <div className="flex items-center gap-2">
-                | ไปที่หน้า:
-                <input
-                  type="number"
-                  min="1"
-                  max={table.getPageCount()}
-                  defaultValue={table.getState().pagination.pageIndex + 1}
-                  onChange={(e) => {
-                    const page = e.target.value
-                      ? Number(e.target.value) - 1
-                      : 0;
-                    table.setPageIndex(page);
-                  }}
-                  className="w-16 form-control-input"
-                />
-              </div>
-              <div className="select-md sm:mt-0 mt-3">
-                <select
-                  value={table.getState().pagination.pageSize}
-                  onChange={(e) => {
-                    table.setPageSize(Number(e.target.value));
-                  }}
-                  className="border w-20"
-                >
-                  {[10, 15, 20, 25].map((pageSize) => (
-                    <option key={pageSize} value={pageSize}>
-                      {pageSize}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-2 sm:mt-0 mt-3">
-                <Button
-                  onClick={() => table.setPageIndex(0)}
-                  disabled={!table.getCanPreviousPage()}
-                  className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                >
-                  <IconChevronsLeft className="text-ld" size={20} />
-                </Button>
-                <Button
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                  className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                >
-                  <IconChevronLeft className="text-ld" size={20} />
-                </Button>
-                <Button
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                  className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                >
-                  <IconChevronRight className="text-ld" size={20} />
-                </Button>
-                <Button
-                  onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                  disabled={!table.getCanNextPage()}
-                  className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                >
-                  <IconChevronsRight className="text-ld" size={20} />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </TitleIconCard>
-    </>
+        )}
+      </div>
+    </div>
   );
-};
-
-export default StudentTable;
+}

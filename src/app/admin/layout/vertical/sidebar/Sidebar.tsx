@@ -19,37 +19,47 @@ const fetcher = async(url: string) => await fetch(url).then(res => res.json());
 const SidebarLayout = () => {
   const { isCollapse } = useContext(CustomizerContext);
   const { data: session, status } = useSession();
-  
-  // สร้าง key สำหรับ SWR โดย check ว่า session.user.id มีค่าหรือไม่
+
   const swrKey = session?.user?.id ? `/api/users/${session.user.id}` : null;
-  
   const { data, isLoading, error } = useSWR(swrKey, fetcher);
 
-  // แสดง loading หาก session ยังไม่โหลดเสร็จ
   const isSessionLoading = status === "loading";
 
   return (
     <>
-      <div className="xl:block hidden ">
-        <div className="flex ">
+      <div className="xl:block hidden">
+        <div className="flex">
           <Sidebar
-            className={`${isLoading || isSessionLoading ? 'animate-pulse pointer-events-none opacity-60' : ''} fixed menu-sidebar bg-white dark:bg-dark z-[6] border-r rtl:border-l border-border dark:border-darkborder`}
-            aria-label="Sidebar with multi-level dropdown example"
+            className={`${isLoading || isSessionLoading ? 'animate-pulse pointer-events-none opacity-60' : ''} fixed menu-sidebar z-[6]`}
+            aria-label="Sidebar navigation"
+            style={{
+              background: 'linear-gradient(180deg, #1B5E20 0%, #2E7D32 40%, #388E3C 100%)',
+              borderRight: 'none',
+              boxShadow: '4px 0 20px rgba(27, 94, 32, 0.15)',
+            }}
           >
+            {/* Logo area */}
             <div className={`${isCollapse==="full-sidebar"?"px-6":"px-5"} flex items-center brand-logo overflow-hidden`}>
-              <FullLogo />
+              <div className="py-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                    <Icon icon="tabler:report-analytics" height={24} className="text-white" />
+                  </div>
+                  <span className="hide-menu text-white font-bold text-lg tracking-wide">E-REPORT</span>
+                </div>
+              </div>
             </div>
 
             <SimpleBar className="h-[calc(100vh_-_170px)]">
-              <Sidebar.Items className={`${isCollapse==="full-sidebar"?"px-6":"px-4"}`}>
+              <Sidebar.Items className={`${isCollapse === "full-sidebar" ? "px-4" : "px-3"} mt-2`}>
                 <Sidebar.ItemGroup className="sidebar-nav">
                   {SidebarContent.map((item, index) => (
                     <React.Fragment key={index}>
-                     <h5 className="text-link font-bold text-xs dark:text-darklink caption">
-                        <span className="hide-menu leading-21">{item.heading?.toUpperCase()}</span>
+                      <h5 className="text-white/60 font-bold text-xs caption">
+                        <span className="hide-menu leading-21 uppercase tracking-wider">{item.heading}</span>
                         <Icon
                         icon="tabler:dots"
-                        className="text-ld block mx-auto leading-6 dark:text-opacity-60 hide-icon"
+                          className="text-white/40 block mx-auto leading-6 hide-icon"
                         height={18}
                       />
                       </h5>
@@ -72,35 +82,35 @@ const SidebarLayout = () => {
             </SimpleBar>
              
             {/* Sidebar Profile */}
-            <div className={` my-4 ${isCollapse==="full-sidebar"?"mx-6":"mx-2"}`}>
-              <div className={` py-4 ${isCollapse==="full-sidebar"?"px-4":"px-2"} bg-lightsecondary rounded-md overflow-hidden`}>
+            <div className={`my-4 ${isCollapse === "full-sidebar" ? "mx-4" : "mx-2"}`}>
+              <div className={`py-3 ${isCollapse === "full-sidebar" ? "px-4" : "px-2"} bg-white/15 backdrop-blur-sm rounded-xl overflow-hidden`}>
                 {isLoading || isSessionLoading ? (
-                  <Spinner aria-label="Default status example" />
+                  <Spinner aria-label="Loading" color="success" />
                 ) : (
                   data && session?.user && (
                     <div className="flex justify-between items-center">
-                      <div className="flex gap-4 items-center">
+                        <div className="flex gap-3 items-center">
                         <Image 
                           src={`/uploads/${data.user_img ?? 'avatar.jpg'}`} 
-                          alt="profile-image" 
+                            alt="profile" 
                           width={40} 
                           height={40} 
-                          className="rounded-full" 
+                            className="rounded-full ring-2 ring-white/30" 
                           unoptimized={true}
                         />
                         <div>
-                          <h3 className="text-base font-semibold">{data.firstname}</h3>
-                          <p className="text-xs font-normal text-muted dark:text-darklink">
+                            <h3 className="text-sm font-semibold text-white">{data.firstname}</h3>
+                            <p className="text-xs text-white/60">
                             {userRole(Number(session?.user.role))}
                           </p>
                         </div>
                       </div>
-                      <Tooltip content="Logout">
-                        <div className="cursor-pointer">
+                        <Tooltip content="ออกจากระบบ">
+                          <div className="cursor-pointer p-2 rounded-lg hover:bg-white/10 transition-colors">
                           <Icon 
                             icon="tabler:power" 
                             onClick={() => signOut({redirectTo: "/signin"})}  
-                            className="text-primary text-2xl" 
+                              className="text-white/80 hover:text-white text-xl" 
                           />
                         </div>
                       </Tooltip>

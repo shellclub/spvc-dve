@@ -63,12 +63,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           id: Number(id),
         },
         data: {
+          prefix: data.prefix || null,
           firstname: data.firstname,
           lastname: data.lastname,
           citizenId: data.citizenId,
-          sex: Number(data.sex),
           phone: data.phone,
-          birthday: new Date(data.birthday),
           user_img: userImgPath, 
           role: Number(data.role),
           teacher: {

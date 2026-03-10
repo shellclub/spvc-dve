@@ -34,6 +34,7 @@ import { Alert, AlertTitle } from "@/app/components/shadcn-ui/Default-Ui/alert"
 import { AlertCircleIcon, CheckCircle2 } from "lucide-react"
 import { showToast } from "@/app/components/sweetalert/sweetalert"
 import { Label } from "@/app/components/shadcn-ui/Default-Ui/label"
+import { ThaiDatePicker } from "@/app/components/ThaiDatePicker"
 import {
   Dialog,
   DialogContent,
@@ -539,11 +540,11 @@ const SuperviseTable = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="supervisionDate">วันที่นิเทศ *</Label>
-                          <Input
+                          <ThaiDatePicker
                             id="supervisionDate"
-                            type="date"
                             value={supervisionData.supervisionDate}
-                            onChange={(e) => handleSupervisionChange("supervisionDate", e.target.value)}
+                            onChange={(v) => handleSupervisionChange("supervisionDate", v)}
+                            placeholder="เลือกวัน/เดือน/ปี"
                             required
                           />
                         </div>

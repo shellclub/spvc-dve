@@ -7,7 +7,69 @@
     right: 0;
     height: 100%;
     width: 270px !important;
-}
+    background: linear-gradient(180deg, #1B5E20 0%, #2E7D32 40%, #388E3C 100%) !important;
+        border-right: none !important;
+        box-shadow: 4px 0 20px rgba(27, 94, 32, 0.15) !important;
+    }
+    
+    /* Override Flowbite sidebar inner containers */
+    .menu-sidebar>div,
+    .menu-sidebar [data-testid="flowbite-sidebar"],
+    .menu-sidebar .bg-white,
+    .menu-sidebar [class*="bg-white"] {
+        background: transparent !important;
+        border: none !important;
+    }
+    
+    /* Sidebar text colors */
+    .menu-sidebar .sidebar-nav a,
+    .menu-sidebar .sidebar-nav button {
+        color: rgba(255, 255, 255, 0.8) !important;
+        border-radius: 10px !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .menu-sidebar .sidebar-nav a:hover,
+    .menu-sidebar .sidebar-nav button:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+    }
+    
+    /* Active menu item */
+    .menu-sidebar .sidebar-nav a.bg-primary,
+    .menu-sidebar .sidebar-nav a[class*="!bg-white"] {
+        background-color: white !important;
+        color: #1B5E20 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    /* Active dropdown collapse */
+    .menu-sidebar .active-dropdown {
+        background-color: white !important;
+        color: #1B5E20 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    /* Sidebar dropdown items - ปกติ (ไม่ active) */
+    .menu-sidebar .sidebar-dropdown li a {
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+    
+    .menu-sidebar .sidebar-dropdown li a:hover {
+        color: white !important;
+    }
+    
+    /* Sidebar dropdown items - เมื่อ active (bg ขาว) ตัวอักษรต้องเป็นสีเขียวเข้ม */
+    .menu-sidebar .active-dropdown~.sidebar-dropdown li a,
+    .menu-sidebar .sidebar-dropdown.active-dropdown li a {
+        color: #2E7D32 !important;
+    }
+    
+    .menu-sidebar .active-dropdown~.sidebar-dropdown li a:hover,
+    .menu-sidebar .sidebar-dropdown.active-dropdown li a:hover {
+        color: #1B5E20 !important;
+        background-color: rgba(27, 94, 32, 0.08) !important;
+    }
 
 .logo img {
     margin: 0 auto;
@@ -33,7 +95,7 @@
     display: block;
 }
 .sidebar-dropdown.active-dropdown li a {
-    color: var(--color-primary) !important;
+    color: #2E7D32 !important;
 }
 
 

@@ -11,10 +11,7 @@ import {
   ColumnFiltersState,
 } from "@tanstack/react-table";
 
-import { Button, Spinner } from "flowbite-react";
-import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight } from "@tabler/icons-react";
 import { Icon } from "@iconify/react";
-import TitleIconCard from "@/app/components/shared/TitleIconCard";
 import { useRouter } from "next/navigation";
 import { formatThaiDate } from "@/lib/utils";
 import Image from "next/image";
@@ -26,42 +23,37 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import '@/fonts/THSarabunNew-normal.js';
 dayjs.extend(customParseFormat)
+
 export interface PaginationTableType {
-  id?:  string;
+  id?: string;
   title: string;
   description: string;
   reportDate: Date;
   image: string;
 }
 
-
-
- 
-
 const columnHelper = createColumnHelper<PaginationTableType>();
 const fetcher = (url: string) => fetch(url).then(res => res.json());
+
 const ExportTable = () => {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-
   const router = useRouter();
-  const rerender = React.useReducer(() => ({}), {})[1];
+  const { data: session, status } = useSession();
 
-  const { data: session, status} = useSession();
   useEffect(() => {
-    if(status === "unauthenticated") {
+    if (status === "unauthenticated") {
       router.push("/signin");
-    }  
-  },[status, router])
-  const { data, error, isLoading, mutate } = useSWR(`/api/report/getBystudent/${session?.user.id}`,fetcher);
-  const { data:user, error:userError, isLoading: userLoading } = useSWR(`/api/students/${session?.user.id}`,fetcher);
+    }
+  }, [status, router]);
 
-  if(error) {
-    console.log(error);
-    
-  }
+  const swrKey = session?.user?.id ? `/api/report/getBystudent/${session.user.id}` : null;
+  const userKey = session?.user?.id ? `/api/students/${session.user.id}` : null;
 
-    const exportToPDF = async () => {
-    
+  const { data, isLoading } = useSWR(swrKey, fetcher);
+  const { data: user } = useSWR(userKey, fetcher);
+
+  // ─── PDF Export (เดิม) ───
+  const exportToPDF = async () => {
     const input = document.getElementById('reportContent');
     if (!input) return;
 
@@ -70,181 +62,192 @@ const ExportTable = () => {
 
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
 
-    
     pdf.setFont('THSarabunNew');
-    
-    // โลโก้ - จัดให้อยู่ตรงกลาง
+
     const logoWidth = 50;
     const logoHeight = 50;
     const logoX = (pageWidth - logoWidth) / 2;
     pdf.addImage("/images/logos/logo_pdf.png", 'PNG', logoX, 30, logoWidth, logoHeight);
-    
-    // ชื่อสถาบัน
+
     pdf.setFontSize(40);
     pdf.text('วิทยาลัยอาชีวะศึกษาสุพรรณบุรี', pageWidth / 2, 100, { align: 'center' });
-    
-    // หัวข้อรายงาน
+
     pdf.setFontSize(30);
     pdf.text('รายงานผลการฝึกงาน', pageWidth / 2, 120, { align: 'center' });
-    
-    // รายละเอียดภาคเรียน
+
     pdf.setFontSize(30);
-    const currentYear = new Date().getFullYear() + 543; // แปลงเป็นปีพุทธศักราช
+    const currentYear = new Date().getFullYear() + 543;
     pdf.text(`ภาคเรียนที่ 1 ปีการศึกษา ${currentYear}`, pageWidth / 2, 140, { align: 'center' });
-    
-    // ข้อมูลนักศึกษา - จัดให้อยู่ตรงกลาง
+
     pdf.setFontSize(30);
     const studentInfo = [
       `${user?.student?.studentId || ''}`,
-      `${user?.sex === 1 ? "นาย" : user?.sex === 2 ? "นางสาว": ""} ${user?.firstname || ''} ${user?.lastname || ''}`,
+      `${user?.sex === 1 ? "นาย" : user?.sex === 2 ? "นางสาว" : ""} ${user?.firstname || ''} ${user?.lastname || ''}`,
       `ระดับชั้น ${user?.student?.gradeLevel || ''} ปวส.2 (ทท. 2/1 )`,
       `สาขาวิชา ${user?.student?.major.major_name || ""}`
     ];
-    
+
     let yPosition = 170;
     studentInfo.forEach(info => {
       pdf.text(info, pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 20;
     });
-    
-    // หัวข้อด้านล่าง
+
     pdf.setFontSize(40);
     pdf.text('คำนำงานคณะกรรมการการอาชีวศึกษา', pageWidth / 2, 250, { align: 'center' });
     pdf.text('กระทรวงศึกษาธิการ', pageWidth / 2, 270, { align: 'center' });
 
-
-    // หน้าใหม่สำหรับตาราง
     pdf.addPage();
 
-    const headerText = `รายงานการฝึกงาน \n ${user?.student?.studentId}  ${user?.sex === 1 ? "นาย" : user?.sex === 2 ? "นางสาว": ""} ${user?.firstname} ${user?.lastname} ระดับชั้น ${user?.student?.gradeLevel} กลุ่ม ${user?.student?.room} สาขาวิชา ${user?.student?.major.major_name}`;
+    const headerText = `รายงานการฝึกงาน \n ${user?.student?.studentId}  ${user?.sex === 1 ? "นาย" : user?.sex === 2 ? "นางสาว" : ""} ${user?.firstname} ${user?.lastname} ระดับชั้น ${user?.student?.gradeLevel} กลุ่ม ${user?.student?.room} สาขาวิชา ${user?.student?.major.major_name}`;
     pdf.setFont('THSarabunNew');
     pdf.setFontSize(18);
     pdf.text(headerText, pageWidth / 2, 15, { align: 'center' });
 
     const topOffset = 25;
-
     const imgProps = pdf.getImageProperties(imgData);
     const pdfWidth = pageWidth;
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
     pdf.addImage(imgData, 'PNG', 0, topOffset, pdfWidth, pdfHeight);
+
     const blob = pdf.output('blob');
     const blobURL = URL.createObjectURL(blob);
-    window.open(blobURL)
-};
- 
+    window.open(blobURL);
+  };
+
   const columns = [
     columnHelper.display({
       id: "index",
       header: () => <span>#</span>,
-      cell: (info) => (
-        <div className="text-base">
-          <h6 className="text-base">{info.row.index + 1}</h6>
-        </div>
-      ),
+      cell: (info) => <div className="text-base text-center">{info.row.index + 1}</div>,
     }),
     columnHelper.accessor("reportDate", {
       cell: (info) => (
-        <div className="truncate line-clamp-2 max-w-56">
-            <h6 className="text-base">{`${formatThaiDate(String(info.getValue()))}`}</h6>
-        </div>
-        
+        <div className="text-base">{formatThaiDate(String(info.getValue()))}</div>
       ),
       header: () => <span>วัน/เดือน/ปี</span>,
     }),
     columnHelper.accessor("image", {
       cell: (info) => (
-        <div className="flex gap-3 items-center mx-auto justify-center">
-            <Image
-            src={`/report/${info.getValue()}`}
-            width={100}
-            height={100}
-            alt="icon"
-            unoptimized={true}
-          />
-          
+        <div className="flex justify-center">
+          {info.getValue() ? (
+            <Image src={`/report/${info.getValue()}`} width={80} height={80} alt="report" unoptimized className="rounded-lg" />
+          ) : (
+            <span className="text-gray-300 text-sm">-</span>
+          )}
         </div>
       ),
       header: () => <span>รูปภาพ</span>,
     }),
     columnHelper.accessor("title", {
-      cell: (info) => (
-        
-        <div className="text-base">
-        <h6 className="text-base">{`${info.getValue()}`}</h6>
-      </div>
-        
-      ),
+      cell: (info) => <div className="text-base font-medium">{info.getValue()}</div>,
       header: () => <span>ข้อมูลการฝึกงาน</span>,
     }),
-    columnHelper.accessor("description",{
+    columnHelper.accessor("description", {
       cell: (info) => (
-        <div className="truncate line-clamp-2 max-w-full">
-            <h6 className="text-base">{`${info.getValue()}`}</h6>
-          
-        </div>
-        
+        <div className="text-sm text-gray-600 max-w-xs truncate">{info.getValue()}</div>
       ),
       header: () => <span>รายละเอียด</span>,
-    }),   
+    }),
   ];
 
   const table = useReactTable({
     data: data ?? [],
     columns,
     filterFns: {},
-    state: {
-      columnFilters,
-    },
+    state: { columnFilters },
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    debugTable: true,
-    debugHeaders: true,
-    debugColumns: false,
+    initialState: { pagination: { pageSize: 50 } },
   });
 
-  
+  if (status === "loading" || isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-10 h-10 border-4 border-green-100 border-t-[#2E7D32] rounded-full animate-spin" />
+        <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
+      </div>
+    );
+  }
 
   return (
-    <>
-      {isLoading ?  <div className="flex justify-center items-center h-64">
-              <Spinner size="xl" />
-              <span className="ml-3">กำลังโหลดข้อมูล...</span>
-            </div> :
-    <TitleIconCard title="ข้อมูลนักศึกษา">
-      <div className="flex justify-end items-center my-6">
-    <Button onClick={exportToPDF}>
-        <Icon icon="tabler:printer" height={20} />
-      </Button>
-      
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* ──── Header ──── */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] rounded-2xl flex items-center justify-center shadow-lg">
+            <Icon icon="tabler:printer" className="text-white" width={28} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">ส่งออกรายงาน</h1>
+            <p className="text-sm text-gray-500">ดูรายงานและพิมพ์เป็น PDF</p>
+          </div>
+        </div>
+        <button
+          onClick={exportToPDF}
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all text-sm"
+        >
+          <Icon icon="tabler:file-type-pdf" width={18} />
+          ส่งออก PDF
+        </button>
       </div>
-      <div className="border rounded-md border-ld overflow-hidden">
+
+      {/* ──── Report cards (visual view) ──── */}
+      {Array.isArray(data) && data.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {data
+            .slice()
+            .sort((a: any, b: any) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime())
+            .map((report: any, idx: number) => (
+              <div key={report.id} className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden hover:shadow-lg transition-all">
+                {report.image && (
+                  <div className="relative h-40 bg-gray-50">
+                    <Image src={`/report/${report.image}`} alt={report.title} fill className="object-cover" unoptimized />
+                  </div>
+                )}
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-white bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] px-2.5 py-0.5 rounded-full">
+                      วันที่ {idx + 1}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {dayjs(report.reportDate).format("DD/MM/YYYY")}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-gray-800 text-sm truncate">{report.title}</h3>
+                  {report.description && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{report.description}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* ──── Hidden table for PDF export ──── */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto p-6" id="reportContent">
           <table className="min-w-full">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="text-base text-center text-ld font-semibold py-3 border border-ld border-black px-2 xxl:px-4"
-                    >
+                    <th key={header.id} className="text-base text-center font-semibold py-3 border border-gray-300 px-3 bg-gray-50">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
                 </tr>
               ))}
             </thead>
-            <tbody className="divide-y divide-border dark:divide-darkborder">
+            <tbody>
               {table.getRowModel().rows.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="whitespace-nowrap border border-ld border-black py-3 px-2 xxl:px-4">
+                    <td key={cell.id} className="border border-gray-200 py-3 px-3">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -253,95 +256,26 @@ const ExportTable = () => {
             </tbody>
           </table>
         </div>
-        <div className="sm:flex gap-2 p-3 items-center justify-between">
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between p-4 border-t border-gray-100">
+          <span className="text-sm text-gray-500">
+            ทั้งหมด {table.getPrePaginationRowModel().rows.length} รายการ
+          </span>
           <div className="flex items-center gap-2">
-            <Button color="primary" onClick={() => rerender()}>
-              รีโหลดข้อมูล
-            </Button>
-            <h1 className="text-gray-700">
-              {table.getPrePaginationRowModel().rows.length} แถว
-            </h1>
-          </div>
-          <div className="sm:flex items-center gap-2 sm:mt-0 mt-3">
-            <div className="flex">
-              <h2 className="text-gray-700 pe-1">หน้า</h2>
-              <h2 className="font-semibold text-gray-900">
-                {table.getState().pagination.pageIndex + 1} ถึง {table.getPageCount()}
-              </h2>
-            </div>
-            <div className="flex items-center gap-2">
-              | ไปที่หน้า:
-              <input
-                type="number"
-                min="1"
-                max={table.getPageCount()}
-                defaultValue={table.getState().pagination.pageIndex + 1}
-                onChange={(e) => {
-                  const page = e.target.value ? Number(e.target.value) - 1 : 0;
-                  table.setPageIndex(page);
-                }}
-                className="w-16 form-control-input"
-              />
-            </div>
-            <div className="select-md sm:mt-0 mt-3">
-              <select
-                value={table.getState().pagination.pageSize}
-                onChange={(e) => {
-                  table.setPageSize(Number(e.target.value));
-                }}
-                className="border w-20"
-              >
-                {[10, 15, 20, 25].map((pageSize) => (
-                  <option key={pageSize} value={pageSize}>
-                    {pageSize}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-2 sm:mt-0 mt-3">
-              <Button
-                size="small"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-                className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-              >
-                <IconChevronsLeft className="text-ld" size={20} />
-              </Button>
-              <Button
-                size="small"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-                className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-              >
-                <IconChevronLeft className="text-ld" size={20} />
-              </Button>
-              <Button
-                size="small"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-                className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-              >
-                <IconChevronRight className="text-ld" size={20} />
-              </Button>
-              <Button
-                size="small"
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage()}
-                className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-              >
-                <IconChevronsRight className="text-ld" size={20} />
-              </Button>
-            </div>
+            <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="p-2 hover:bg-gray-100 rounded-xl disabled:opacity-30 transition-colors">
+              <Icon icon="tabler:chevron-left" width={18} className="text-gray-600" />
+            </button>
+            <span className="text-sm font-medium text-gray-700">
+              {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+            </span>
+            <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="p-2 hover:bg-gray-100 rounded-xl disabled:opacity-30 transition-colors">
+              <Icon icon="tabler:chevron-right" width={18} className="text-gray-600" />
+            </button>
           </div>
         </div>
       </div>
-    </TitleIconCard>
-}
-
-    
-</>
-
-
+    </div>
   );
 };
 

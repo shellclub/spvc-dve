@@ -13,6 +13,7 @@ import {
 } from "@/app/components/shadcn-ui/Default-Ui/alert";
 import { AlertCircleIcon, Building2, Calendar, MapPin, Phone, Mail, User } from "lucide-react";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
+import { ThaiDatePicker } from "@/app/components/ThaiDatePicker";
 
 interface StudentData {
   id: string;
@@ -416,11 +417,11 @@ const InternshipManagement = () => {
                       <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                         วันที่เริ่มฝึกงาน
                       </label>
-                      <input
-                        type="date"
+                      <ThaiDatePicker
                         value={formData.startDate}
-                        onChange={(e) => handleInputChange("startDate", e.target.value)}
-                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                        onChange={(v) => handleInputChange("startDate", v)}
+                        placeholder="เลือกวัน/เดือน/ปี"
+                        className="bg-gray-50 border border-gray-300 rounded-lg p-2.5"
                       />
                     </div>
 
@@ -428,11 +429,11 @@ const InternshipManagement = () => {
                       <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                         วันที่สิ้นสุดฝึกงาน
                       </label>
-                      <input
-                        type="date"
+                      <ThaiDatePicker
                         value={formData.endDate}
-                        onChange={(e) => handleInputChange("endDate", e.target.value)}
-                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                        onChange={(v) => handleInputChange("endDate", v)}
+                        placeholder="เลือกวัน/เดือน/ปี"
+                        className="bg-gray-50 border border-gray-300 rounded-lg p-2.5"
                       />
                     </div>
                   </div>

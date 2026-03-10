@@ -1,4 +1,3 @@
-import { findAllUser } from "@/services/users";
 import StudentTable from "../components/table/studentTable";
 import Breadcrumbcustom from "../components/breadcamp/Breadcamp";
 const BCrumb = [
@@ -7,11 +6,11 @@ const BCrumb = [
       title: "Home",
     },
     {
-        to: "/admin/teachers",
+        to: "/admin/students",
         title: "ข้อมูลนักศึกษา",
     },
   ];
-export default async function Users() {
+export default async function Students() {
     return (
         <>
             <Breadcrumbcustom items={BCrumb} />

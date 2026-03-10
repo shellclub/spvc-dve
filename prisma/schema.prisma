@@ -62,10 +62,12 @@ model Teacher {
   userId         Int   @unique
   user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
   supervisions Supervision[]
+  classrooms TeacherClassroom[]
 }
 
 model User {
   id             Int              @id @default(autoincrement())
+  prefix         String?
   firstname      String
   lastname       String
   citizenId      String     @db.VarChar(13)     @unique
@@ -102,7 +104,9 @@ model Student {
   departmentId   Int?
   report         InternshipReport[]
   gradeLevel     String?
+  curriculum     String?
   studentCompanies studentCompanies[]
+  teacherClassrooms TeacherClassroom[]
   @@map("students")
 }
 model Inturnship{
@@ -189,4 +193,16 @@ model Supervision {
   updatedAt       DateTime @updatedAt
 
   @@map("supervisions")
+}
+
+model TeacherClassroom {
+  id          Int      @id @default(autoincrement())
+  teacherId   Int
+  teacher     Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  studentId   Int
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assignedAt  DateTime @default(now())
+
+  @@unique([teacherId, studentId])
+  @@map("teacher_classrooms")
 }

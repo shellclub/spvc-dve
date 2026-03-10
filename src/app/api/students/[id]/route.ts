@@ -1,27 +1,7 @@
 import { prisma } from "@/lib/db";
 import { parseForm } from "@/lib/uploadFile";
-import { removeStudent, updateStudent } from "@/services/students";
-import { updateUser } from "@/services/users";
+import { removeStudent } from "@/services/students";
 import { NextRequest, NextResponse } from "next/server";
-type StudentRequestBody = {
-    user: {
-      firstname: string;
-      lastname: string;
-      citizenId: string;
-      sex: number;
-      phone: string;
-    };
-    student: {
-        id: string;
-        studentId: string;
-        educationLevel: number;
-        major_id: string;
-        academicYear: string;
-        birthday: string;
-        department: number
-    };
-  };
-
 
 export async function GET(request: NextRequest, {params}: {params: Promise<{ id: string}>}) {
     const { id } = await params;
@@ -67,28 +47,28 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       let userImgPath = student.user_img;
   
       if (file && file.size > 0) {
-        userImgPath = await parseForm(file); // สมมุติว่าเป็นฟังก์ชันอัปโหลดรูป
+        userImgPath = await parseForm(file);
       }
   
       const userData = {
         firstname: data.firstname,
         lastname: data.lastname,
-        citizenId: data.citizenId,
-        sex: Number(data.sex),
+        prefix: data.prefix || null,
         phone: data.phone,
-        birthday: new Date(data.birthday),
+        birthday: data.birthday ? new Date(data.birthday) : undefined,
         user_img: userImgPath,
       };
   
       const studentData = {
         studentId: data.studentId,
-        educationLevel: Number(data.educationLevel),
-        major_id: Number(data.major_id),
-        academicYear: data.academicYear,
-        departmentId: Number(data.department),
-        room: data.room,
-        term: data.term,
-        gradeLevel: data.gradeLevel,
+        educationLevel: data.educationLevel ? Number(data.educationLevel) : undefined,
+        major_id: data.major_id ? Number(data.major_id) : undefined,
+        academicYear: data.academicYear || undefined,
+        curriculum: data.curriculum || undefined,
+        departmentId: data.department ? Number(data.department) : undefined,
+        room: data.room || undefined,
+        term: data.term || undefined,
+        gradeLevel: data.gradeLevel || undefined,
       };
 
       const updated = await prisma.user.update({
@@ -112,7 +92,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ message: "แก้ไขข้อมูลสำเร็จ", type: "success" }, { status: 200 });
   
     } catch (error) {
-      // console.log("Update error:", error);
       return NextResponse.json({ message: "เกิดข้อผิดพลาดในระบบ", type: "error" }, { status: 500 });
     }
   }

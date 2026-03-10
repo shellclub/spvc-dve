@@ -31,12 +31,12 @@
 }
 
 [data-color-theme="BLUE_THEME"]{
-    --color-primary: #5D87FF;
-    --color-primary-emphasis:#4f73d9;   
-    --color-secondary: #49BEFF;
-    --color-secondary-emphasis:#3ea2d9;
-    --color-lightprimary:#5D87FF20;
-    --color-lightsecondary:#49BEFF20;
+    --color-primary: #2E7D32;
+    --color-primary-emphasis:#1B5E20;   
+    --color-secondary: #66BB6A;
+    --color-secondary-emphasis:#4CAF50;
+    --color-lightprimary:#E8F5E9;
+    --color-lightsecondary:#C8E6C9;
 }
 [data-color-theme="AQUA_THEME"]{
     --color-primary: #0074BA;

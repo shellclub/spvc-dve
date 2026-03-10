@@ -7,7 +7,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { name, address, firstname, lastname, phone } = body;
+    const { name, address, firstname, lastname, phone, position } = body;
     const { id } = await params;
 
     // ดึงข้อมูล company เดิม
@@ -30,6 +30,7 @@ export async function PUT(
         firstname,
         lastname,
         phone: phone || "",
+        prefix: position || null,
       }
     });
 
@@ -38,7 +39,7 @@ export async function PUT(
       where: { id: Number(id) },
       data: {
         name,
-        address,
+        address: address || "",
       },
       include: {
         user: true,
@@ -80,11 +81,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = await params;
+    const { id } = await params;
 
     // ดึงข้อมูล company เพื่อเอา userId
-    const company = await prisma.user.findUnique({
-      where: { id: Number(id) }
+    const company = await prisma.companies.findUnique({
+      where: { id: Number(id) },
+      include: { user: true }
     });
 
     if (!company) {
@@ -94,9 +96,9 @@ export async function DELETE(
       );
     }
 
-    // ลบ company (จะลบ user ตามไปด้วยเพราะมี onDelete: Cascade)
+    // ลบ user (จะลบ company ตามไปด้วยเพราะมี onDelete: Cascade)
     await prisma.user.delete({
-      where: { id: Number(id) }
+      where: { id: company.userId }
     });
 
     return NextResponse.json({

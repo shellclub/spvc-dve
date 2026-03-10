@@ -23,6 +23,7 @@
     "@material-ui/pickers": "^3.3.11",
     "@mui/material": "^7.2.0",
     "@mui/x-date-pickers": "^8.7.0",
+    "@next/swc-darwin-arm64": "^16.1.6",
     "@prisma/client": "^6.6.0",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-aspect-ratio": "^1.1.1",
@@ -61,7 +62,7 @@
     "apexcharts": "3.49.1",
     "axios": "^1.7.9",
     "axios-mock-adapter": "1.22.0",
-    "bcryptjs": "^3.0.2",
+    "bcryptjs": "^3.0.3",
     "chance": "1.1.11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -99,6 +100,7 @@
     "react-slick": "^0.30.2",
     "react-syntax-highlighter": "^16.1.0",
     "react-table": "^7.8.0",
+    "sharp": "^0.33.5",
     "simplebar-react": "3.2.5",
     "slick-carousel": "^1.8.1",
     "styled-components": "^6.1.17",
@@ -111,7 +113,6 @@
     "uuid": "^11.0.3",
     "vaul": "^1.1.2",
     "xlsx": "https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz",
-    "sharp": "^0.33.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {

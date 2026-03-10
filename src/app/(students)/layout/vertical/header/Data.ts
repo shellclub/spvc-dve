@@ -17,7 +17,18 @@ const profileDD: ProfileType[] = [
     subtitle: "จัดการข้อมูลส่วนตัว",
     url: "/profile",
   },
-
+  {
+    img: acccountIcon,
+    title: "ข้อมูลสถานประกอบการ",
+    subtitle: "ดูรายละเอียดการฝึกงาน",
+    url: "/company",
+  },
+  {
+    img: acccountIcon,
+    title: "เปลี่ยนรหัสผ่าน",
+    subtitle: "ตั้งรหัสผ่านใหม่",
+    url: "/profile", // Use /profile since the modal is there
+  },
 ];
 
 export {

@@ -6,35 +6,55 @@ import NavItems from "./NavItems";
 import NavCollapse from "./NavCollapse";
 import { CustomizerContext } from "@/app/context/CustomizerContext";
 import SimpleBar from "simplebar-react";
-import FullLogo from "../../shared/logo/FullLogo";
 import { Icon } from "@iconify/react";
-import profileimg from "/public/images/profile/user-1.jpg"
 import Image from "next/image";
+import { signOut, useSession } from "next-auth/react";
+import useSWR from "swr";
+import { userRole } from "@/lib/utils";
+
+const fetcher = async (url: string) => await fetch(url).then(res => res.json());
+
 const MobileSidebar = () => {
+  const { data: session, status } = useSession();
+  const swrKey = session?.user?.id ? `/api/users/${session.user.id}` : null;
+  const { data, isLoading } = useSWR(swrKey, fetcher);
+
   return (
     <>
      <div className="flex">
           <Sidebar
-            className="fixed menu-sidebar pt-0 bg-white dark:bg-dark z-[10]"
-            aria-label="Sidebar with multi-level dropdown example"
+          className="fixed menu-sidebar pt-0 z-[10]"
+          aria-label="Mobile sidebar"
+          style={{
+            background: 'linear-gradient(180deg, #1B5E20 0%, #2E7D32 40%, #388E3C 100%)',
+            borderRight: 'none',
+          }}
           >
+          {/* Logo */}
             <div className="px-6 flex items-center brand-logo overflow-hidden">
-              <FullLogo />
+            <div className="py-2">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Icon icon="tabler:report-analytics" height={24} className="text-white" />
+                </div>
+                <span className="text-white font-bold text-lg tracking-wide">E-REPORT</span>
+              </div>
             </div>
+          </div>
+
             <SimpleBar className="h-[calc(100vh_-_170px)]">
-              <Sidebar.Items className={`px-6`}>
+            <Sidebar.Items className="px-4">
                 <Sidebar.ItemGroup className="sidebar-nav">
                   {SidebarContent.map((item, index) => (
                     <React.Fragment key={index}>
-                     <h5 className="text-link font-bold text-xs dark:text-darklink caption">
-                        <span className="hide-menu leading-21">{item.heading?.toUpperCase()}</span>
+                      <h5 className="text-white/60 font-bold text-xs caption">
+                        <span className="hide-menu leading-21 uppercase tracking-wider">{item.heading}</span>
                         <Icon
-                        icon="tabler:dots"
-                        className="text-ld block mx-auto leading-6 dark:text-opacity-60 hide-icon"
-                        height={18}
-                      />
+                          icon="tabler:dots"
+                          className="text-white/40 block mx-auto leading-6 hide-icon"
+                          height={18}
+                        />
                       </h5>
-
 
                       {item.children?.map((child, index) => (
                         <React.Fragment key={child.id && index}>
@@ -52,26 +72,43 @@ const MobileSidebar = () => {
                 </Sidebar.ItemGroup>
               </Sidebar.Items>
             </SimpleBar>
-             {/* Sidebar Profile */}
-             <div className={` my-4 mx-6`}>
-                 <div className={` py-4 px-4 bg-lightsecondary rounded-md overflow-hidden`}>
-                    <div className="flex justify-between items-center">
-                      <div className="flex gap-4 items-center">
-                        <Image src={profileimg} alt="profile-image" width={40} height={40} className="rounded-full" />
-                        <div>
-                          <h3 className="text-base font-semibold" >Mathew</h3>
-                           <p className="text-xs font-normal text-muted dark:text-darklink" >Designer</p>
-                        </div>
-                      </div>
-                  <Tooltip content="Logout">
-                    <div className="cursor-pointer">
-                      <Icon icon="tabler:power"  className="text-primary text-2xl" />
+
+          {/* Profile */}
+          <div className="my-4 mx-4">
+            <div className="py-3 px-4 bg-white/15 backdrop-blur-sm rounded-xl overflow-hidden">
+              {data && session?.user ? (
+                <div className="flex justify-between items-center">
+                  <div className="flex gap-3 items-center">
+                    <Image
+                      src={`/uploads/${data?.user_img ?? 'avatar.jpg'}`}
+                      alt="profile"
+                      width={40}
+                      height={40}
+                      className="rounded-full ring-2 ring-white/30"
+                      unoptimized={true}
+                    />
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">{data?.firstname}</h3>
+                      <p className="text-xs text-white/60">
+                        {userRole(Number(session?.user.role))}
+                      </p>
+                    </div>
+                  </div>
+                  <Tooltip content="ออกจากระบบ">
+                    <div className="cursor-pointer p-2 rounded-lg hover:bg-white/10 transition-colors">
+                      <Icon
+                        icon="tabler:power"
+                        onClick={() => signOut({ redirectTo: "/signin" })}
+                        className="text-white/80 hover:text-white text-xl"
+                      />
                     </div>
                   </Tooltip>
-
-                    </div>
-                 </div>
-             </div>
+                </div>
+              ) : (
+                <div className="text-white/50 text-sm text-center">กำลังโหลด...</div>
+              )}
+            </div>
+          </div>
           </Sidebar>
         </div>
     </>

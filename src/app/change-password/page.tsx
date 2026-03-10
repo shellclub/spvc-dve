@@ -118,18 +118,18 @@ export default function FirstLoginChangePasswordPage() {
             const data = await res.json();
 
             if (res.ok) {
-                showToast(data.message, data.type);
-                // อัพเดท session
-                await update({
-                    ...session,
-                    user: {
-                        ...session?.user,
-                        is_first_login: false,
-                        skip_password_change: null,
-                    }
+                // แสดง SweetAlert แจ้งเปลี่ยนรหัสผ่านสำเร็จ แล้ว redirect ไปหน้า login
+                await Swal.fire({
+                    title: 'เปลี่ยนรหัสผ่านสำเร็จ!',
+                    text: 'กรุณาเข้าสู่ระบบอีกครั้งด้วยรหัสผ่านใหม่',
+                    icon: 'success',
+                    confirmButtonText: 'ไปหน้าเข้าสู่ระบบ',
+                    confirmButtonColor: '#2563EB',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
                 });
-
-
+                // Sign out แล้ว redirect ไปหน้า login
+                await signOut({ redirectTo: '/signin' });
             } else {
                 showToast(data.message, data.type);
                 // router.push("/protected")

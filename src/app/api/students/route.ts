@@ -19,12 +19,6 @@ export async function GET() {
 
     return NextResponse.json(students, { status: 200 });
   } catch (error) {
-    // console.error("Error fetching students:", error);
-    // return NextResponse.json(
-    //   { message: "เกิดข้อผิดพลาดในการดึงข้อมูล", type: "error" },
-    //   { status: 500 }
-    // );
-
     return NextResponse.json(error);
   }
 }
@@ -40,36 +34,17 @@ export async function POST(req: NextRequest) {
 
     const file = formData.get("user_img") as File;
 
-    if (!file) {
-      return NextResponse.json(
-        { message: "กรุณาอัพโหลดรูปภาพ", type: "error" },
-        { status: 400 }
-      );
-    }
-
-    // Check for existing user
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { citizenId: data.citizenId },
-          { phone: data.phone },
-        ]
+    // Check for existing phone
+    if (data.phone) {
+      const existingUser = await prisma.user.findFirst({
+        where: { phone: data.phone }
+      });
+      if (existingUser) {
+        return NextResponse.json(
+          { message: "พบข้อมูลเบอร์โทรศัพท์ดังกล่าวในระบบแล้ว", type: "error" },
+          { status: 400 }
+        );
       }
-    });
-    
-    if (existingUser) {
-      let message = "พบข้อมูลผู้ใช้ดังกล่าวในระบบแล้ว";
-    
-      if (existingUser.citizenId === data.citizenId) {
-        message = "พบข้อมูลผู้ใช้ดังกล่าวในระบบแล้ว (เลขบัตรประชาชนซ้ำ)";
-      } else if (existingUser.phone === data.phone) {
-        message = "พบข้อมูลเบอร์โทรศัพท์ดังกล่าวในระบบแล้ว";
-      }
-    
-      return NextResponse.json(
-        { message, type: "error" },
-        { status: 400 }
-      );
     }
 
     // Check for existing student ID
@@ -86,31 +61,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Upload file
-    const userImgPath = await parseForm(file);
-    const passwordString = dayjs(data.birthday).add(543, 'year').format('DD/MM/YYYY')
-    console.log("password:",passwordString);
-    
+    // Upload file (optional)
+    let userImgPath = "avatar.jpg";
+    if (file && file.size > 0) {
+      userImgPath = await parseForm(file);
+    }
+
+    // Generate password from birthday
+    const passwordString = data.birthday
+      ? dayjs(data.birthday).add(543, 'year').format('DD/MM/YYYY')
+      : data.studentId; // fallback to studentId if no birthday
+
+    // Generate a unique citizenId placeholder (since field is required by DB)
+    const citizenId = `STD${data.studentId}${Date.now()}`.substring(0, 13);
+
     const user = await prisma.user.create({
       data: {
         firstname: data.firstname,
         lastname: data.lastname,
-        citizenId: data.citizenId,
-        sex: Number(data.sex),
+        citizenId: citizenId,
+        prefix: data.prefix || null,
         phone: data.phone,
-        birthday: new Date(data.birthday),
+        birthday: data.birthday ? new Date(data.birthday) : new Date(),
         user_img: userImgPath,
         
         student: {
           create: {
             studentId: data.studentId,
-            educationLevel: Number(data.educationLevel),
-            major_id: Number(data.major_id),
-            departmentId: Number(data.department), // Make sure form sends this
-            academicYear: data.academicYear,
-            room: data.room,
-            term: data.term,
-            gradeLevel: data.gradeLevel,
+            educationLevel: data.educationLevel ? Number(data.educationLevel) : undefined,
+            major_id: data.major_id ? Number(data.major_id) : undefined,
+            departmentId: data.department ? Number(data.department) : undefined,
+            academicYear: data.academicYear || undefined,
+            curriculum: data.curriculum || undefined,
+            room: data.room || undefined,
+            term: data.term || undefined,
+            gradeLevel: data.gradeLevel || undefined,
           },
         },
         login:{
@@ -131,8 +116,6 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-    // Create user and student
-   
 
     return NextResponse.json(
       {
@@ -142,11 +125,9 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    // // console.log("Error creating student:", JSON.parse(String(error)));
-    // return NextResponse.json({message: error}, {status: 500});
     return NextResponse.json(
       {
-        message: "เกิดข้อผิดพลาดในการเพิ่มข้อมูล"+error,
+        message: "เกิดข้อผิดพลาดในการเพิ่มข้อมูล" + error,
         type: "error",
         error: error instanceof Error ? error.message : "Unknown error",
       },

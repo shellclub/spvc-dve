@@ -28,6 +28,8 @@ import {
   AlertTitle,
 } from "@/app/components/shadcn-ui/Default-Ui/alert";
 import { AlertCircleIcon } from "lucide-react";
+import Swal from 'sweetalert2';
+import { showToast } from "@/app/components/sweetalert/sweetalert";
 
 export interface PaginationTableType {
   id?: string;
@@ -138,6 +140,34 @@ const StudentTable = () => {
     const lastName = row.original.lastname?.toLowerCase() || '';
     const studentId = row.original.student.studentId.toLowerCase();
     return firstName.includes(searchTerm) || lastName.includes(searchTerm) || studentId.includes(searchTerm);
+  };
+
+  const handleResetPassword = (userId: string) => {
+    Swal.fire({
+      title: 'ยืนยันการรีเซ็ตรหัสผ่าน?',
+      text: "รหัสผ่านจะถูกตั้งเป็นวันเดือนปีเกิด (DDMMYYYY) หรือ รหัสบัตรประชาชน และบังคับเปลี่ยนเมื่อเข้าระบบครั้งแรก",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'ตกลง',
+      cancelButtonText: 'ยกเลิก'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await fetch(`/api/users/${userId}/reset-password`, { method: "PUT" });
+          const data = await res.json();
+          if (res.ok) {
+            showToast(data.message, 'success');
+          } else {
+            showToast(data.message, 'error');
+          }
+        } catch (e) {
+          console.error(e);
+          showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", "error");
+        }
+      }
+    });
   };
 
   // Filter students based on selected filters
@@ -264,6 +294,11 @@ const StudentTable = () => {
           )}
         >
           {[
+            {
+              icon: "tabler:key",
+              listtitle: "รีเซ็ตรหัสผ่าน",
+              onclick: () => handleResetPassword(info.row.original.id as string)
+            },
             {
               icon: "tabler:eye",
               listtitle: "รายละเอียด",

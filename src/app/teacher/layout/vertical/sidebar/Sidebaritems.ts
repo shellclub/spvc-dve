@@ -35,10 +35,10 @@ const SidebarContent: MenuItem[] = [
     heading: "เมนู",
     children: [
       {
-        name: "หน้าแรก",
-        icon: 'tabler:home',
+        name: "หน้าแรก (นักศึกษาในความดูแล)",
+        icon: 'tabler:school',
         id: uniqueId(),
-        url: "/departments",
+        url: "/teacher",
       },
       // {
       //   name: "eCommerce",

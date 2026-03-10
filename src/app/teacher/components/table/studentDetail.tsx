@@ -243,7 +243,17 @@ const StudentDetailTable = ({ id }: StudentProps) => {
 
   return (
     <TitleIconCard title="ข้อมูลนักศึกษา">
-
+      <div className="flex justify-start mb-4">
+        <Button
+          color="gray"
+          size="sm"
+          onClick={() => router.push("/teacher")}
+          className="flex items-center gap-2"
+        >
+          <Icon icon="tabler:arrow-left" width={18} />
+          กลับไปรายชื่อนักศึกษาในความดูแล
+        </Button>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-6 p-4 rounded-lg">
         <div>
           <p className="text-sm text-gray-500">รหัสนักศึกษา</p>
@@ -280,7 +290,7 @@ const StudentDetailTable = ({ id }: StudentProps) => {
         {!data?.student.report || data.student.report.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8">
             <Icon icon="tabler:report-off" className="text-gray-400 text-4xl mb-2" />
-            <span className="text-gray-500">ไม่พบรายงานการฝึกงาน</span>
+            <span className="text-gray-500">ไม่พบรายงานการปฏิบัติงานแต่ละวัน</span>
           </div>
         ) : (
           <>

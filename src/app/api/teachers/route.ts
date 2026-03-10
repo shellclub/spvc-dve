@@ -46,12 +46,11 @@ export async function POST(request: NextRequest) {
                     
             const teacher = await prisma.user.create({
                 data: {
+                    prefix: data.prefix || null,
                   firstname: data.firstname,
                   lastname: data.lastname,
-                  citizenId: data.citizenId,
-                  sex: Number(data.sex),
-                  phone: data.phone,
-                  birthday: new Date(data.birthday),
+                    citizenId: data.citizenId,
+                    phone: data.phone,
                   user_img: userImgPath,
                   role: Number(data.role),
                     teacher: {

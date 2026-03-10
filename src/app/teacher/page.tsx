@@ -1,9 +1,9 @@
-import StudentTable from "./components/table/studentTable";
+import AdvisorStudentTable from "./components/table/AdvisorStudentTable";
 
 export default function Page() {
-    return (
-        <>
-            <StudentTable/>
-        </>
-    );
+  return (
+    <>
+      <AdvisorStudentTable />
+    </>
+  );
 }

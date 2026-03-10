@@ -24,7 +24,7 @@ const NavCollapse: React.FC<NavCollapseProps> = ({ item }: any) => {
         label={t(`${item.name}`)} 
         open={activeDD ? true : false}
         icon={() => <Icon icon={item.icon} height={20} stroke="1" className="my-0.5" />}
-        className={`${activeDD ? '!text-white bg-primary active-dropdown' : ''} collapse-menu`}
+        className={`${activeDD ? '!text-[#1B5E20] !bg-white !shadow-md active-dropdown' : '!text-white/80 hover:!bg-white/10'} collapse-menu !rounded-xl`}
         renderChevronIcon={(theme, open) => {
           const IconComponent = open
             ? HiOutlineChevronDown
@@ -39,14 +39,14 @@ const NavCollapse: React.FC<NavCollapseProps> = ({ item }: any) => {
       >
         {/* Render child items */}
         {item.children && (
-          <Sidebar.ItemGroup className="sidebar-dropdown">
+          <Sidebar.ItemGroup className={`sidebar-dropdown ${activeDD ? 'active-dropdown' : ''}`}>
             {item.children.map((child: any) => (
               <React.Fragment key={child.id}>
                 {/* Render NavItems for child items */}
                 {child.children ? (
                   <NavCollapse item={child}  /> // Recursive call for nested collapse
                 ) : (
-                  <NavItems item={child} isMenuItem={true} />
+                    <NavItems item={child} isMenuItem={true} isParentActive={!!activeDD} />
                 )}
               </React.Fragment>
             ))}

@@ -14,8 +14,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/signin", request.url));
   }
 
-  // 🔹 ถ้าเป็น user ครั้งแรกและไม่ใช่ role 7 → ให้เปลี่ยนรหัสผ่านก่อน
-  if (user && user.role !== 7 && user.is_first_login) {
+  // 🔹 ถ้าเป็น user ครั้งแรก ให้เปลี่ยนรหัสผ่านก่อน (ลบข้อยกเว้น role 7 ออกเพื่อให้นักเรียนต้องเปลี่ยนด้วย)
+  if (user && user.is_first_login) {
     const now = new Date();
     const skipUntil = user.skip_password_change ? new Date(String(user.skip_password_change)) : null;
 
@@ -115,5 +115,9 @@ export const config = {
     "/protected",
     "/change-password",
     "/signin",
+    "/profile/:path*",
+    "/company",
+    "/document/:path*",
+    "/timeline/:path*",
   ],
 };

@@ -16,7 +16,7 @@ export default function Layout({
       <div className="page-wrapper flex w-full">
         {/* Header/sidebar */}
         {activeLayout == "vertical" ? <Sidebar /> : null}
-        <div className="body-wrapper w-full bg-white dark:bg-dark">
+        <div className="body-wrapper w-full bg-[#F1F8E9] dark:bg-dark">
           {/* Top Header  */}
           {activeLayout == "horizontal" ? (
             <Header layoutType="horizontal" />

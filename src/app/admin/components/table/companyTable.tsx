@@ -1,738 +1,468 @@
 "use client";
-import React, { useState } from "react";
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-  createColumnHelper,
-  ColumnFiltersState,
-} from "@tanstack/react-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/app/components/shadcn-ui/Default-Ui/dialog";
-import { Dropdown, Spinner } from "flowbite-react";
-import {
-  IconChevronLeft,
-  IconChevronRight,
-  IconChevronsLeft,
-  IconChevronsRight,
-  IconDots,
-  IconPlus,
-  IconEdit,
-  IconBuilding,
-} from "@tabler/icons-react";
+import React, { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
-import TitleIconCard from "@/app/components/shared/TitleIconCard";
 import Swal from "sweetalert2";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
-import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import { Input } from "@/app/components/shadcn-ui/Default-Ui/input";
-import { Label } from "@/app/components/shadcn-ui/Default-Ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/shadcn-ui/Default-Ui/select";
-import { Button } from "@/app/components/shadcn-ui/Default-Ui/button";
-import { validateThaiID } from "@/lib/thaiIdVaildate";
-
-export interface CompanyType {
-  id: number;
-  name: string;
-  address: string;
-  userId: number;
-  user: {
-    id: number;
-    firstname: string;
-    lastname: string;
-    phone: string;
-    citizenId: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
-const columnHelper = createColumnHelper<CompanyType>();
 
-const CompaniesTable = () => {
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const router = useRouter();
-  const [openAdd, setOpenAdd] = useState(false);
-  const [openEdit, setOpenEdit] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<CompanyType | null>(null);
-  
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    firstname: "",
-    lastname: "",
-    phone: "",
-    citizenId: "",
-  });
-
-  // Fetch companies data
-  const { data, isLoading, error, mutate } = useSWR("/api/company", fetcher);
-
-  // Fetch students data for dropdown
-  const { data: studentsData, isLoading: isStudentsLoading } = useSWR(
-    "/api/students",
-    fetcher
+// ──── Sub-components ────
+function FormField({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm font-semibold text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {children}
+      {error && <span className="text-xs text-red-500 mt-0.5">{error}</span>}
+    </div>
   );
+}
 
-  const students = studentsData || [];
+// ──── Autocomplete Component ────
+function Autocomplete({
+  value,
+  onChange,
+  onSelect,
+  suggestions,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  onSelect: (item: any) => void;
+  suggestions: any[];
+  placeholder: string;
+  className: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-  const handleInputChange = (name: string, value: string) => {
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        placeholder={placeholder}
+        className={className}
+      />
+      {open && suggestions.length > 0 && (
+        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-56 overflow-y-auto">
+          {suggestions.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => { onSelect(s); setOpen(false); }}
+              className="w-full text-left px-4 py-3 hover:bg-green-50 transition-colors border-b border-gray-50 last:border-0"
+            >
+              <p className="font-semibold text-sm text-gray-800">{s.name}</p>
+              {s.address && <p className="text-xs text-gray-400 truncate">{s.address}</p>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──── Types ────
+interface FormData {
+  name: string;
+  address: string;
+  firstname: string;
+  lastname: string;
+  phone: string;
+  position: string;
+}
+interface Errors { [key: string]: string; }
+
+function validateField(name: string, value: any): string {
+  switch (name) {
+    case "name": return !value?.trim() ? "กรุณากรอกชื่อสถานประกอบการ" : "";
+    case "firstname": return !value?.trim() ? "กรุณากรอกชื่อ" : "";
+    case "lastname": return !value?.trim() ? "กรุณากรอกนามสกุล" : "";
+    case "phone":
+      if (value && !/^0\d{8,9}$/.test(value)) return "เบอร์โทรไม่ถูกต้อง";
+      return "";
+    default: return "";
+  }
+}
+
+const emptyForm: FormData = {
+  name: "", address: "", firstname: "", lastname: "", phone: "", position: "",
+};
+
+// ═══════════════════════════════════════════
+//  MAIN COMPONENT
+// ═══════════════════════════════════════════
+const CompaniesTable = () => {
+  // ─ Data ─
+  const { data: companies, isLoading, mutate } = useSWR("/api/company", fetcher);
+
+  // ─ State ─
+  const [search, setSearch] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
+  const [formData, setFormData] = useState<FormData>({ ...emptyForm });
+  const [errors, setErrors] = useState<Errors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ─ CSS helper ─
+  const inputClass = (err?: string) =>
+    `w-full px-4 py-3 rounded-xl border-2 text-base transition-all duration-200 outline-none bg-white
+     ${err ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-gray-200 focus:border-[#2E7D32] focus:ring-2 focus:ring-green-100"}`;
+
+  // ─ Company name autocomplete ─
+  const companySuggestions = useMemo(() => {
+    if (!companies || !formData.name.trim() || editId) return [];
+    const q = formData.name.toLowerCase();
+    return companies.filter((c: any) => c.name.toLowerCase().includes(q)).slice(0, 8);
+  }, [companies, formData.name, editId]);
+
+  // ─ Filtered companies ─
+  const filtered = useMemo(() => {
+    if (!companies) return [];
+    if (!search.trim()) return companies;
+    const q = search.toLowerCase();
+    return companies.filter((c: any) => {
+      const companyName = (c.name || "").toLowerCase();
+      const contactName = `${c.user?.firstname ?? ""} ${c.user?.lastname ?? ""}`.toLowerCase();
+      const address = (c.address || "").toLowerCase();
+      const phone = (c.user?.phone || "").toLowerCase();
+      return companyName.includes(q) || contactName.includes(q) || address.includes(q) || phone.includes(q);
+    });
+  }, [companies, search]);
+
+  // ─ Handlers ─
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      const err = validateField(name, value);
+      setErrors((prev) => ({ ...prev, [name]: err }));
+    }
+  };
+
+  const handleCompanyNameChange = (val: string) => {
+    setFormData((prev) => ({ ...prev, name: val }));
+    setSelectedCompanyId(null);
+    if (errors.name) {
+      const err = validateField("name", val);
+      setErrors((prev) => ({ ...prev, name: err }));
+    }
+  };
+
+  const handleCompanySelect = (company: any) => {
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
-    }));
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      address: "",
-      firstname: "",
-      lastname: "",
-      phone: "",
-      citizenId: "",
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    if (!validateThaiID(formData.citizenId)) {
-      showToast("เลขบัตรประจำตัวประชาชนไม่ถูกต้อง", "warning");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/company", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "เกิดข้อผิดพลาดในการเพิ่มข้อมูล");
-      }
-
-      showToast("เพิ่มข้อมูลสถานประกอบการเรียบร้อยแล้ว", "success");
-      setOpenAdd(false);
-      resetForm();
-      mutate();
-    } catch (error) {
-      showToast(
-        error instanceof Error
-          ? error.message
-          : "เกิดข้อผิดพลาดในการเพิ่มข้อมูล",
-        "error"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    if (!editingCompany?.id) {
-      showToast("ไม่พบข้อมูลสถานประกอบการที่ต้องการแก้ไข", "error");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/company/${editingCompany.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
-      }
-
-      showToast("แก้ไขข้อมูลสถานประกอบการเรียบร้อยแล้ว", "success");
-      setOpenEdit(false);
-      resetForm();
-      setEditingCompany(null);
-      mutate();
-    } catch (error) {
-      showToast(
-        error instanceof Error
-          ? error.message
-          : "เกิดข้อผิดพลาดในการแก้ไขข้อมูล",
-        "error"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEdit = (company: CompanyType) => {
-    setEditingCompany(company);
-    setFormData({
       name: company.name,
-      address: company.address,
-      firstname: company.user.firstname,
-      lastname: company.user.lastname,
-      phone: company.user.phone || "",
-      citizenId: company.user.citizenId,
-    });
-    setOpenEdit(true);
+      address: company.address || "",
+    }));
+    setSelectedCompanyId(company.id);
   };
 
-  const handleDelete = async (id: number) => {
+  const validateAll = (): boolean => {
+    const fields = ["name", "firstname", "lastname"];
+    const newErrors: Errors = {};
+    let valid = true;
+    for (const f of fields) {
+      const err = validateField(f, (formData as any)[f]);
+      if (err) { newErrors[f] = err; valid = false; }
+    }
+    const phoneErr = validateField("phone", formData.phone);
+    if (phoneErr) { newErrors.phone = phoneErr; valid = false; }
+    setErrors(newErrors);
+    return valid;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateAll()) return;
+
+    setIsSubmitting(true);
+    try {
+      const url = editId ? `/api/company/${editId}` : "/api/company";
+      const method = editId ? "PUT" : "POST";
+      const payload: any = {
+        ...formData,
+        selectedCompanyId: selectedCompanyId,
+      };
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "เกิดข้อผิดพลาด");
+      showToast(result.message || (editId ? "แก้ไขข้อมูลสำเร็จ" : "เพิ่มข้อมูลสถานประกอบการเรียบร้อย"), "success");
+      setShowForm(false);
+      setEditId(null);
+      setSelectedCompanyId(null);
+      setFormData({ ...emptyForm });
+      setErrors({});
+      mutate();
+    } catch (err: any) {
+      showToast(err.message || "เกิดข้อผิดพลาด", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (company: any) => {
+    setShowForm(true);
+    setEditId(company.id);
+    setSelectedCompanyId(null);
+    setFormData({
+      name: company.name || "",
+      address: company.address || "",
+      firstname: company.user?.firstname || "",
+      lastname: company.user?.lastname || "",
+      phone: company.user?.phone || "",
+      position: company.user?.prefix || "",
+    });
+    setErrors({});
+  };
+
+  const handleDelete = (companyId: number, userId: number) => {
     Swal.fire({
-      title: "แจ้งเตือน!",
-      text: "คุณต้องการลบข้อมูลสถานประกอบการนี้หรือไม่?",
+      title: "ยืนยันการลบ",
+      text: "ข้อมูลสถานประกอบการจะถูกลบออกจากระบบ",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "ต้องการ",
-      cancelButtonText: "ไม่ต้องการ",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#aaa",
+      confirmButtonText: "ลบข้อมูล",
+      cancelButtonText: "ยกเลิก",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const res = await fetch(`/api/company/${id}`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        
+        const res = await fetch(`/api/company/${companyId}`, { method: "DELETE" });
         const data = await res.json();
-        
-        if (!res.ok) {
-          showToast(data.message, "error");
-        } else {
-          showToast(data.message, "success");
-          mutate();
-          router.refresh();
-        }
+        showToast(data.message, res.ok ? "success" : "error");
+        if (res.ok) mutate();
       }
     });
   };
 
-  const handleDialogClose = () => {
-    setOpenAdd(false);
-    if (!loading) {
-      resetForm();
-    }
+  const closeForm = () => {
+    setShowForm(false);
+    setEditId(null);
+    setSelectedCompanyId(null);
+    setFormData({ ...emptyForm });
+    setErrors({});
   };
 
-  const handleEditDialogClose = () => {
-    setOpenEdit(false);
-    if (!loading) {
-      resetForm();
-      setEditingCompany(null);
-    }
-  };
-
-  const rerender = () => {
-    setColumnFilters([]);
-    mutate();
-  };
-
-  const columns = [
-    columnHelper.display({
-      id: "index",
-      header: () => <span>#</span>,
-      cell: (info) => <div className="text-base">{info.row.index + 1}</div>,
-    }),
-    columnHelper.accessor("name", {
-      cell: (info) => (
-        <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base font-semibold">{info.getValue()}</h6>
-        </div>
-      ),
-      header: () => <span>ชื่อสถานประกอบการ</span>,
-    }),
-    columnHelper.accessor("address", {
-      cell: (info) => (
-        <div className="truncate line-clamp-2 max-w-72">
-          <p className="text-sm">{info.getValue()}</p>
-        </div>
-      ),
-      header: () => <span>ที่อยู่</span>,
-    }),
-    columnHelper.accessor("user", {
-      cell: (info) => (
-        <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${info.getValue().firstname} ${info.getValue().lastname}`}</h6>
-          <p className="text-sm text-darklink dark:text-bodytext">
-            {info.getValue().phone || "-"}
-          </p>
-        </div>
-      ),
-      header: () => <span>ผู้ติดต่อ</span>,
-    }),
-    columnHelper.display({
-      id: "actions",
-      cell: (info) => (
-        <Dropdown
-          label=""
-          dismissOnClick={false}
-          renderTrigger={() => (
-            <span className="h-9 w-9 flex justify-center items-center rounded-full hover:bg-lightprimary hover:text-primary cursor-pointer">
-              <IconDots size={22} />
-            </span>
-          )}
-        >
-          {[
-            {
-              icon: "tabler:edit",
-              listtitle: "แก้ไขข้อมูล",
-              onclick: () => handleEdit(info.row.original),
-            },
-            {
-              icon: "tabler:trash",
-              listtitle: "ลบข้อมูล",
-              onclick: () => handleDelete(info.row.original.user.id),
-            },
-          ].map((item, index) => (
-            <Dropdown.Item
-              key={index}
-              onClick={item.onclick}
-              className="flex gap-3"
-            >
-              <Icon icon={item.icon} height={18} />
-              <span>{item.listtitle}</span>
-            </Dropdown.Item>
-          ))}
-        </Dropdown>
-      ),
-      header: () => <span></span>,
-    }),
-  ];
-
-  const table = useReactTable({
-    data: data || [],
-    columns,
-    filterFns: {},
-    state: {
-      columnFilters,
-    },
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    debugTable: true,
-    debugHeaders: true,
-    debugColumns: false,
-  });
-
+  // ─ Loading ─
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
-        <Spinner
-          size="xl"
-          color="primary"
-          aria-label="Loading..."
-          className="text-blue-600 dark:text-blue-500"
-        />
-        <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
-          กำลังโหลดข้อมูลสถานประกอบการ โปรดรอสักครู่...
-        </p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] 2xl:min-h-[600px] gap-4 p-8">
-        <p className="text-lg font-medium text-red-600 dark:text-red-500">
-          เกิดข้อผิดพลาดในการโหลดข้อมูล: {error.message}
-        </p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-10 h-10 border-4 border-green-100 border-t-[#2E7D32] rounded-full animate-spin" />
+        <span className="ml-3 text-gray-500">กำลังโหลดข้อมูล...</span>
       </div>
     );
   }
 
   return (
-    <>
-      <TitleIconCard title="ข้อมูลสถานประกอบการ">
-        <div className="flex justify-end items-center my-6">
-          {/* Add Company Dialog */}
-          <Dialog open={openAdd} onOpenChange={setOpenAdd}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                <IconPlus size={16} className="mr-2" />
-                เพิ่มสถานประกอบการ
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <IconBuilding size={20} />
-                  เพิ่มข้อมูลสถานประกอบการใหม่
-                </DialogTitle>
-                <DialogDescription>
-                  กรอกข้อมูลสถานประกอบการใหม่ให้ครบถ้วน
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Company Information */}
-                <div className="space-y-2">
-                  <Label htmlFor="name">ชื่อสถานประกอบการ *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder="ชื่อสถานประกอบการ"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">ที่อยู่ *</Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) =>
-                      handleInputChange("address", e.target.value)
-                    }
-                    placeholder="ที่อยู่สถานประกอบการ"
-                    required
-                  />
-                </div>
-
-            
-                {/* Contact Person Information */}
-                <div className="border-t pt-4">
-                  <h3 className="text-sm font-semibold mb-3">ข้อมูลผู้ติดต่อ</h3>
-                  
-                  <div className="space-y-2 mb-3">
-                    <Label htmlFor="citizenId">เลขบัตรประจำตัวประชาชน *</Label>
-                    <Input
-                      id="citizenId"
-                      value={formData.citizenId}
-                      onChange={(e) =>
-                        handleInputChange("citizenId", e.target.value)
-                      }
-                      placeholder="เลขบัตรประจำตัวประชาชน"
-                      inputMode="numeric"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstname">ชื่อ *</Label>
-                      <Input
-                        id="firstname"
-                        value={formData.firstname}
-                        onChange={(e) =>
-                          handleInputChange("firstname", e.target.value)
-                        }
-                        placeholder="ชื่อ"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastname">นามสกุล *</Label>
-                      <Input
-                        id="lastname"
-                        value={formData.lastname}
-                        onChange={(e) =>
-                          handleInputChange("lastname", e.target.value)
-                        }
-                        placeholder="นามสกุล"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 mt-3">
-                    <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        handleInputChange("phone", e.target.value)
-                      }
-                      placeholder="เบอร์โทรศัพท์"
-                    />
-                  </div>
-                </div>
-
-                <DialogFooter className="gap-2">
-                  <Button
-                    type="button"
-                    onClick={handleDialogClose}
-                    disabled={loading}
-                  >
-                    ยกเลิก
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "กำลังเพิ่มข้อมูล..." : "เพิ่มข้อมูล"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          {/* Edit Company Dialog */}
-          <Dialog
-            open={openEdit}
-            onOpenChange={(open) => {
-              if (!open) {
-                handleEditDialogClose();
-              }
-            }}
-          >
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <IconEdit size={20} />
-                  แก้ไขข้อมูลสถานประกอบการ
-                </DialogTitle>
-                <DialogDescription>
-                  แก้ไขข้อมูลสถานประกอบการ {editingCompany?.name}
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleEditSubmit} className="space-y-4">
-                {/* Company Information */}
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name">ชื่อสถานประกอบการ *</Label>
-                  <Input
-                    id="edit-name"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder="ชื่อสถานประกอบการ"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-address">ที่อยู่ *</Label>
-                  <Input
-                    id="edit-address"
-                    value={formData.address}
-                    onChange={(e) =>
-                      handleInputChange("address", e.target.value)
-                    }
-                    placeholder="ที่อยู่สถานประกอบการ"
-                    required
-                  />
-                </div>
-
-                {/* Contact Person Information */}
-                <div className="border-t pt-4">
-                  <h3 className="text-sm font-semibold mb-3">ข้อมูลผู้ติดต่อ</h3>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-firstname">ชื่อ *</Label>
-                      <Input
-                        id="edit-firstname"
-                        value={formData.firstname}
-                        onChange={(e) =>
-                          handleInputChange("firstname", e.target.value)
-                        }
-                        placeholder="ชื่อ"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-lastname">นามสกุล *</Label>
-                      <Input
-                        id="edit-lastname"
-                        value={formData.lastname}
-                        onChange={(e) =>
-                          handleInputChange("lastname", e.target.value)
-                        }
-                        placeholder="นามสกุล"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 mt-3">
-                    <Label htmlFor="edit-phone">เบอร์โทรศัพท์</Label>
-                    <Input
-                      id="edit-phone"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        handleInputChange("phone", e.target.value)
-                      }
-                      placeholder="เบอร์โทรศัพท์"
-                    />
-                  </div>
-                </div>
-
-                <DialogFooter className="gap-2">
-                  <Button
-                    type="button"
-                    onClick={handleEditDialogClose}
-                    disabled={loading}
-                  >
-                    ยกเลิก
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "กำลังแก้ไขข้อมูล..." : "บันทึกการแก้ไข"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+    <div className="space-y-6">
+      {/* ──── Header ──── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-gradient-to-br from-[#2E7D32] to-[#4CAF50] rounded-2xl flex items-center justify-center shadow-lg">
+            <Icon icon="tabler:building" className="text-white" width={28} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">จัดการข้อมูลสถานประกอบการ</h1>
+            <p className="text-sm text-gray-500">เพิ่ม แก้ไข ลบ และค้นหาข้อมูลสถานประกอบการ</p>
+          </div>
         </div>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 rounded-full text-sm font-medium text-gray-600">
+            <Icon icon="tabler:building" width={18} /> {(companies ?? []).length} แห่ง
+          </span>
+          {showForm ? (
+            <button onClick={closeForm}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-xl font-medium transition-colors shadow">
+              <Icon icon="tabler:x" width={18} /> ปิดฟอร์ม
+            </button>
+          ) : (
+            <button onClick={() => { setShowForm(true); setEditId(null); setFormData({ ...emptyForm }); }}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] hover:from-[#1B5E20] hover:to-[#388E3C] text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl">
+              <Icon icon="tabler:plus" width={18} /> เพิ่มสถานประกอบการ
+            </button>
+          )}
+        </div>
+      </div>
 
-        {/* Table */}
-        <div className="border rounded-md border-ld overflow-hidden">
+      {/* ──── Form ──── */}
+      {showForm && (
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8 animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3 mb-6">
+            <Icon icon={editId ? "tabler:edit" : "tabler:building-plus"} width={24} className="text-[#2E7D32]" />
+            <h2 className="text-xl font-bold text-gray-800">{editId ? "แก้ไขข้อมูลสถานประกอบการ" : "เพิ่มสถานประกอบการใหม่"}</h2>
+          </div>
+
+          {/* Company info section */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-5 bg-[#2E7D32] rounded-full"></div>
+              <h3 className="text-base font-semibold text-gray-700">ข้อมูลสถานประกอบการ</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+              <FormField label="ชื่อสถานประกอบการ" required error={errors.name}>
+                <Autocomplete
+                  value={formData.name}
+                  onChange={handleCompanyNameChange}
+                  onSelect={handleCompanySelect}
+                  suggestions={companySuggestions}
+                  placeholder="พิมพ์เพื่อค้นหา หรือเพิ่มชื่อใหม่"
+                  className={inputClass(errors.name)}
+                />
+                {selectedCompanyId && (
+                  <span className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                    <Icon icon="tabler:check" width={14} /> เลือกจากสถานประกอบการที่มีอยู่
+                  </span>
+                )}
+              </FormField>
+              <FormField label="ที่อยู่">
+                <input type="text" name="address" value={formData.address} onChange={handleChange}
+                  placeholder="ที่อยู่สถานประกอบการ" className={inputClass()} />
+              </FormField>
+            </div>
+          </div>
+
+          {/* Contact person section */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-5 bg-[#2E7D32] rounded-full"></div>
+              <h3 className="text-base font-semibold text-gray-700">ข้อมูลผู้ติดต่อ</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+              <FormField label="ชื่อ" required error={errors.firstname}>
+                <input type="text" name="firstname" value={formData.firstname} onChange={handleChange}
+                  placeholder="ชื่อผู้ติดต่อ" className={inputClass(errors.firstname)} />
+              </FormField>
+              <FormField label="นามสกุล" required error={errors.lastname}>
+                <input type="text" name="lastname" value={formData.lastname} onChange={handleChange}
+                  placeholder="นามสกุลผู้ติดต่อ" className={inputClass(errors.lastname)} />
+              </FormField>
+              <FormField label="เบอร์โทรศัพท์" error={errors.phone}>
+                <input type="text" name="phone" value={formData.phone} onChange={handleChange}
+                  maxLength={10} placeholder="เช่น 0891234567" className={inputClass(errors.phone)} />
+              </FormField>
+              <FormField label="ตำแหน่ง">
+                <input type="text" name="position" value={formData.position} onChange={handleChange}
+                  placeholder="เช่น ผู้จัดการ, หัวหน้างาน" className={inputClass()} />
+              </FormField>
+            </div>
+          </div>
+
+          {/* Submit */}
+          <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+            <button onClick={closeForm}
+              className="px-6 py-3 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">
+              ยกเลิก
+            </button>
+            <button onClick={handleSubmit} disabled={isSubmitting}
+              className="px-8 py-3 bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] hover:from-[#1B5E20] hover:to-[#388E3C] text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl disabled:opacity-50">
+              {isSubmitting ? (
+                <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> กำลังบันทึก...</span>
+              ) : editId ? "บันทึกการแก้ไข" : "เพิ่มสถานประกอบการ"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ──── Search ──── */}
+      <div className="relative">
+        <Icon icon="tabler:search" width={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+          placeholder="ค้นหาด้วยชื่อสถานประกอบการ, ที่อยู่ หรือผู้ติดต่อ..."
+          className="w-full pl-12 pr-4 py-3.5 rounded-2xl border-2 border-gray-200 focus:border-[#2E7D32] focus:ring-2 focus:ring-green-100 text-base outline-none transition-all bg-white" />
+      </div>
+
+      {/* ──── Table ──── */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+            <Icon icon="tabler:building-off" width={48} className="mb-3 opacity-50" />
+            <p className="text-lg font-medium">ไม่พบข้อมูลสถานประกอบการ</p>
+            <p className="text-sm mt-1">ลองเปลี่ยนคำค้นหา หรือเพิ่มสถานประกอบการใหม่</p>
+          </div>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full">
+              <table className="w-full">
               <thead>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="text-base text-ld font-semibold py-3 text-left border border-ld px-2 xxl:px-4"
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </th>
-                    ))}
+                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-12">#</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ชื่อสถานประกอบการ</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">ที่อยู่</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ผู้ติดต่อ</th>
+                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider w-24">จัดการ</th>
                   </tr>
-                ))}
               </thead>
-              <tbody className="divide-y divide-border dark:divide-darkborder">
-                {table.getRowModel().rows.map((row) => (
-                  <tr key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className="whitespace-nowrap border py-3 px-2 xxl:px-4"
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                <tbody className="divide-y divide-gray-50">
+                  {filtered.map((c: any, i: number) => (
+                    <tr key={c.id} className="hover:bg-[#F5F5F5] transition-colors group">
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-400 font-medium">{i + 1}</span>
                       </td>
-                    ))}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center flex-shrink-0">
+                            <Icon icon="tabler:building" width={20} className="text-[#2E7D32]" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-800 text-sm truncate max-w-[200px]">{c.name || "-"}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 hidden md:table-cell">
+                        <p className="text-sm text-gray-600 truncate max-w-[250px]">{c.address || "-"}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <p className="font-medium text-gray-800 text-sm">
+                            {c.user ? `${c.user.firstname} ${c.user.lastname}` : "-"}
+                          </p>
+                          {c.user?.prefix && (
+                            <p className="text-xs text-green-600">{c.user.prefix}</p>
+                          )}
+                          {c.user?.phone && (
+                            <p className="text-xs text-gray-400">{c.user.phone}</p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEdit(c)}
+                          className="p-2 hover:bg-blue-50 rounded-lg transition-colors" title="แก้ไข">
+                          <Icon icon="tabler:edit" width={18} className="text-blue-500" />
+                        </button>
+                        <button onClick={() => handleDelete(c.id, c.user?.id)}
+                          className="p-2 hover:bg-red-50 rounded-lg transition-colors" title="ลบ">
+                          <Icon icon="tabler:trash" width={18} className="text-red-500" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="sm:flex gap-2 p-3 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button color="primary" onClick={() => rerender()}>
-                รีโหลดข้อมูล
-              </Button>
-              <h1 className="text-gray-700">
-                {table.getPrePaginationRowModel().rows.length} แถว
-              </h1>
-            </div>
-            <div className="sm:flex items-center gap-2 sm:mt-0 mt-3">
-              <div className="flex">
-                <h2 className="text-gray-700 pe-1">หน้า</h2>
-                <h2 className="font-semibold text-gray-900">
-                  {table.getState().pagination.pageIndex + 1} จาก{" "}
-                  {table.getPageCount()}
-                </h2>
-              </div>
-              <div className="flex items-center gap-2">
-                | ไปที่หน้า:
-                <input
-                  type="number"
-                  min="1"
-                  max={table.getPageCount()}
-                  defaultValue={table.getState().pagination.pageIndex + 1}
-                  onChange={(e) => {
-                    const page = e.target.value
-                      ? Number(e.target.value) - 1
-                      : 0;
-                    table.setPageIndex(page);
-                  }}
-                  className="w-16 form-control-input"
-                />
-              </div>
-              <div className="select-md sm:mt-0 mt-3">
-                <select
-                  value={table.getState().pagination.pageSize}
-                  onChange={(e) => {
-                    table.setPageSize(Number(e.target.value));
-                  }}
-                  className="border w-20"
-                >
-                  {[10, 15, 20, 25].map((pageSize) => (
-                    <option key={pageSize} value={pageSize}>
-                      {pageSize}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-2 sm:mt-0 mt-3">
-                <Button
-                  onClick={() => table.setPageIndex(0)}
-                  disabled={!table.getCanPreviousPage()}
-                  className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                >
-                  <IconChevronsLeft className="text-ld" size={20} />
-                </Button>
-                <Button
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                  className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                >
-                  <IconChevronLeft className="text-ld" size={20} />
-                </Button>
-                <Button
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                  className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                >
-                  <IconChevronRight className="text-ld" size={20} />
-                </Button>
-                <Button
-                  onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                  disabled={!table.getCanNextPage()}
-                  className="bg-lightgray dark:bg-dark hover:bg-lightprimary dark:hover:bg-lightprimary disabled:opacity-50"
-                >
-                  <IconChevronsRight className="text-ld" size={20} />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </TitleIconCard>
-    </>
+        )}
+      </div>
+    </div>
   );
 };
 
-export default CompaniesTable
+export default CompaniesTable;

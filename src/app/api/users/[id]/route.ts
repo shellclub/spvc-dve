@@ -18,6 +18,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                     inturnship: true,
                 }
             },
+            teacher: {
+                include: {
+                    department: true,
+                    major: true,
+                    education: true,
+                }
+            },
             company: true
         }
     });

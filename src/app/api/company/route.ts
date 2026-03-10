@@ -2,7 +2,6 @@
 // src/app/api/company/route.tsx
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { log } from "console";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -12,15 +11,7 @@ export async function GET(request: NextRequest) {
           id: 'desc'
         },
         include: {
-          user: {
-            select: {
-              id: true,
-              firstname: true,
-              lastname: true,
-              phone: true,
-              citizenId: true,
-            }
-          }
+          user: true
         }
       });
   
@@ -43,40 +34,58 @@ export async function GET(request: NextRequest) {
         firstname,
         lastname,
         phone,
-        citizenId,
-        studentIds, // <-- 1. รับ studentIds
-        startDate, // <-- 2. รับ startDate
-        endDate, // <-- 3. รับ endDate
+        position,
+        selectedCompanyId,
+        studentIds,
+        startDate,
+        endDate,
       } = body;
-  // console.log(body);
-  
-      // --- 1. Validation ---
-      if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+
+      // Generate a unique citizenId placeholder
+      const citizenId = `CMP${Date.now()}`.substring(0, 13);
+
+      // --- Validation ---
+      if (!firstname || !lastname) {
         return NextResponse.json(
-          { message: "กรุณาเลือกนักศึกษาอย่างน้อย 1 คน", type: "error" },
+          { message: "กรุณากรอกชื่อและนามสกุลผู้ติดต่อ", type: "error" },
           { status: 400 }
         );
       }
-  
-      if (!startDate || !endDate) {
+
+      // Check for phone duplicate if phone is provided
+      if (phone) {
+        const existingPhone = await prisma.user.findFirst({
+          where: { phone: String(phone) },
+        });
+        if (existingPhone) {
+          return NextResponse.json(
+            { message: "เบอร์โทรศัพท์นี้มีในระบบแล้ว", type: "error" },
+            { status: 400 }
+          );
+        }
+      }
+
+      // If an existing company was selected, we just need to add internships
+      if (selectedCompanyId) {
+        // Check if studentIds are provided for internship
+        if (studentIds && Array.isArray(studentIds) && studentIds.length > 0 && startDate && endDate) {
+          const internshipData = studentIds.map((studentId: string) => ({
+            studentId: Number(studentId),
+            companyId: Number(selectedCompanyId),
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+          }));
+          await prisma.studentCompanies.createMany({
+            data: internshipData,
+          });
+        }
         return NextResponse.json(
-          { message: "กรุณาระบุวันที่เริ่มและสิ้นสุดการฝึกงาน", type: "error" },
-          { status: 400 }
+          { message: "เพิ่มข้อมูลสำเร็จ", type: "success" },
+          { status: 201 }
         );
       }
   
-      // --- 2. Check existing data (ก่อนเริ่ม Transaction) ---
-      const exitsUser = await prisma.user.findUnique({
-        where: { citizenId: String(citizenId) },
-      });
-  
-      if (exitsUser) {
-        return NextResponse.json(
-          { message: "มีข้อมูลผู้ใช้งานดังกล่าวแล้ว", type: "error" },
-          { status: 400 }
-        );
-      }
-  
+      // Check existing company name
       const existingCompany = await prisma.companies.findUnique({
         where: { name: String(name) },
       });
@@ -88,16 +97,16 @@ export async function GET(request: NextRequest) {
         );
       }
   
-      // --- 3. ใช้ Transaction เพื่อสร้าง User, Company, และ Internships ---
+      // --- Create with Transaction ---
       const result = await prisma.$transaction(async (tx) => {
-        // a. สร้าง User (ผู้ติดต่อ) และ Company (สถานประกอบการ)
         const newUser = await tx.user.create({
           data: {
             firstname,
             lastname,
             phone: phone || "",
             citizenId,
-            role: 6, // role สำหรับสถานประกอบการ
+            prefix: position || null,
+            role: 6,
             login: {
               create: {
                 username: citizenId,
@@ -107,42 +116,41 @@ export async function GET(request: NextRequest) {
             company: {
               create: {
                 name,
-                address,
+                address: address || "",
               },
             },
           },
           include: {
-            company: true, // <-- สำคัญมาก: เพื่อให้เราได้ ID ของ Company ที่เพิ่งสร้าง
+            company: true,
           },
         });
   
         if (!newUser.company) {
-          // Safeguard: ควรจะมี company เสมอถ้า create สำเร็จ
           throw new Error("ไม่สามารถสร้างข้อมูลสถานประกอบการได้");
         }
   
         const newCompanyId = newUser.company.id;
   
-        // b. เตรียมข้อมูล Internship ที่จะสร้าง
-        const internshipData = studentIds.map((studentId: string) => ({
-          studentId: Number(studentId),
-          companyId: Number(newCompanyId),
-          startDate: new Date(startDate), // แปลง String เป็น Date
-          endDate: new Date(endDate),
-          // เพิ่ม field อื่นๆ ที่จำเป็นสำหรับ Model Internship ของคุณ (ถ้ามี)
-        }));
+        // If studentIds provided, create internships
+        if (studentIds && Array.isArray(studentIds) && studentIds.length > 0 && startDate && endDate) {
+          const internshipData = studentIds.map((studentId: string) => ({
+            studentId: Number(studentId),
+            companyId: Number(newCompanyId),
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+          }));
+
+          await tx.studentCompanies.createMany({
+            data: internshipData,
+          });
+        }
   
-        // c. สร้างข้อมูล Internship ทั้งหมดในครั้งเดียว
-        await tx.studentCompanies.createMany({
-          data: internshipData,
-        });
-  
-        return newUser; // คืนค่ำ newUser ที่มีข้อมูล company
+        return newUser;
       });
   
       return NextResponse.json(
         {
-          message: "เพิ่มข้อมูลสถานประกอบการและนักศึกษาสำเร็จ",
+          message: "เพิ่มข้อมูลสถานประกอบการสำเร็จ",
           type: "success",
           data: result,
         },

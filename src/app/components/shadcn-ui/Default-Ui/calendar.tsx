@@ -3,9 +3,13 @@
 import * as React from "react"
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { type DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
+import { th } from "date-fns/locale"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/app/components/shadcn-ui/Default-Ui/button"
+
+/** สัปดาห์เริ่มวันอาทิตย์ (อา) ตาม locale ไทย */
+const THAI_WEEKDAY_LABELS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"]
 
 function Calendar({
   className,
@@ -15,6 +19,8 @@ function Calendar({
   buttonVariant = "ghost",
   formatters,
   components,
+  locale = th,
+  labels,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
@@ -23,6 +29,7 @@ function Calendar({
 
   return (
     <DayPicker
+      locale={locale}
       showOutsideDays={showOutsideDays}
       className={cn(
         "bg-white group/calendar p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent dark:bg-neutral-950",
@@ -32,9 +39,17 @@ function Calendar({
       )}
       captionLayout={captionLayout}
       formatters={{
-        formatMonthDropdown: (date) => date.toLocaleString("th", { month: "short" }),
-        formatYearDropdown: (date) => date.toLocaleDateString("th", { year: "2-digit" }),
+        formatCaption: (date) => date.toLocaleDateString("th-TH", { month: "long", year: "numeric" }),
+        formatWeekdayName: (date) => THAI_WEEKDAY_LABELS[date.getDay()],
+        formatMonthDropdown: (date) => date.toLocaleString("th-TH", { month: "long" }),
+        formatYearDropdown: (date) => date.toLocaleDateString("th-TH", { year: "numeric" }),
         ...formatters,
+      }}
+      labels={{
+        labelNext: () => "เดือนถัดไป",
+        labelPrevious: () => "เดือนก่อน",
+        labelWeekday: (day) => THAI_WEEKDAY_LABELS[day.getDay()],
+        ...labels,
       }}
       classNames={{
         root: cn("w-fit", defaultClassNames.root),
