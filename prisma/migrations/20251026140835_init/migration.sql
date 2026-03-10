@@ -1,2 +1,2 @@
 -- DropIndex
-DROP INDEX `Login_password_key` ON `login`;
+DROP INDEX `Login_password_key` ON `Login`;

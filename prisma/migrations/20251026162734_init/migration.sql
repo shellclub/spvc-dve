@@ -5,10 +5,10 @@
 
 */
 -- DropForeignKey
-ALTER TABLE `login` DROP FOREIGN KEY `Login_userId_fkey`;
+ALTER TABLE `Login` DROP FOREIGN KEY `Login_userId_fkey`;
 
 -- DropTable
-DROP TABLE `login`;
+DROP TABLE `Login`;
 
 -- CreateTable
 CREATE TABLE `logins` (

@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE `login` MODIFY `password_status` INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE `Login` MODIFY `password_status` INTEGER NOT NULL DEFAULT 0;
