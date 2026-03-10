@@ -57,7 +57,7 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 RUN chown -R nextjs:nodejs /app/prisma /app/node_modules
 
 USER root
-RUN corepack enable && npm i -g prisma
+RUN corepack enable && npm i -g prisma@6
 
 USER nextjs
 
