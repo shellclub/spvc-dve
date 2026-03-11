@@ -60,7 +60,26 @@ import {
   AlertTitle,
 } from "@/app/components/shadcn-ui/Default-Ui/alert";
 import { useRouter } from "next/navigation";
-import { PaginationTableType } from "./studentTable";
+type PaginationTableType = {
+  id: string;
+  studentId: string;
+  gradeLevel: string;
+  room: string;
+  term: string;
+  academicYear: string;
+  user: {
+    firstname: string;
+    lastname: string;
+    citizenId: string;
+    sex: string;
+    phone: string;
+    user_img: string;
+    birthday: string;
+  };
+  department: { id: string };
+  major: { id: string };
+  education: { id: string };
+};
 import { validateThaiID } from "@/lib/thaiIdVaildate";
 
 export type Student = {
