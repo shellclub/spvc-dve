@@ -58,6 +58,10 @@ export async function POST(req: NextRequest) {
             student: {
               create: {
                 studentId,
+                academicYear: "",
+                term: "",
+                room: "",
+                educationLevel: 1,
               },
             },
             login: {
