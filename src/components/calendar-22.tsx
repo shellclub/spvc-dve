@@ -35,7 +35,7 @@ export default function Calendar22() {
         </PopoverTrigger>
         <PopoverContent className="w-auto overflow-hidden p-0" align="start">
           <Calendar
-            locale={th}
+            locale={th as any}
             mode="single"
             selected={date}
             captionLayout="dropdown"
