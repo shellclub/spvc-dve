@@ -47,7 +47,7 @@ const BasicCombobox = () => {
         <div className="">
           <Combobox
             value={selected}
-            onChange={(value: Person) => setSelected(value)}
+            onChange={(value: Person | null) => value && setSelected(value)}
             onClose={() => setQuery("")}
           >
             <div className="relative">
