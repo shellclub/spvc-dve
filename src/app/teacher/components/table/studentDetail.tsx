@@ -89,6 +89,7 @@ const fetcher = (url: string) => fetch(url).then(res => {
 });
 
 const StudentDetailTable = ({ id }: StudentProps) => {
+  const router = useRouter();
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [studentInfo, setStudentInfo] = useState({
     studentId: 'กำลังโหลด...',

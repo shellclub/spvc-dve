@@ -19,7 +19,7 @@ function Calendar({
   buttonVariant = "ghost",
   formatters,
   components,
-  locale = th,
+  locale = th as any,
   labels,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
