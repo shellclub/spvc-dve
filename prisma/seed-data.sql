@@ -1,12 +1,16 @@
 -- Seed ข้อมูลทดสอบ: 1 Admin + 5 นักศึกษา + 3 ครู
--- ตาม Google Doc: https://docs.google.com/document/d/1F_GVvgrYerO9T36vaFRPcWGanHAvytQI2JqgrPbXPYs
--- Run: docker exec -i spvc-dve-mysql-1 mysql -u spvc -pspvc_2026 spvc_dve < prisma/seed-data.sql
---
--- Actual DB columns:
---   users: id, firstname, lastname, citizenId, phone, role, sex, createdAt, birthday, user_img
---   logins: id, username, password, userId, is_first_login, skip_password_change
---   students: id, studentId, userId, educationLevel, academicYear, status, term, room, gradeLevel, departmentId, major_id
---   Teacher: id, departmentId, majorId, room, userId, educationId, grade, term, years
+-- Run: cat prisma/seed-data.sql | ssh ... "docker exec -i mysql-container mysql --default-character-set=utf8mb4 -u spvc -pspvc_2026 spvc_dve"
+
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
+-- ============================================
+-- 0. Cleanup old garbled data (safe: re-insert below)
+-- ============================================
+DELETE FROM students WHERE studentId IN ('68201010001','68201010002','68201010003','68201010004','68201010005');
+DELETE FROM Teacher WHERE userId IN (SELECT id FROM users WHERE citizenId IN ('3100501234567','3100501234568','3100501234569'));
+DELETE FROM logins WHERE username IN ('68201010001','68201010002','68201010003','68201010004','68201010005','somsak.j','wipawadee.s','prasit.c','Admin');
+DELETE FROM users WHERE citizenId IN ('1100700100001','1100700100002','1100700100003','1100700100004','1100700100005','3100501234567','3100501234568','3100501234569','1103702589654');
 
 -- ============================================
 -- 1. Education Levels
