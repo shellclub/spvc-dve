@@ -117,6 +117,17 @@ const AuthLogin = () => {
           "เข้าสู่ระบบ"
         )}
       </button>
+
+      {/* Manual Link */}
+      <div className="text-center mt-4">
+        <a
+          href="/manual"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#2E7D32] transition-colors"
+        >
+          <Icon icon="tabler:book" height={16} />
+          คู่มือการใช้งานระบบ
+        </a>
+      </div>
     </form>
   );
 };
