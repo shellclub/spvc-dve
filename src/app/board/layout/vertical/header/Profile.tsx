@@ -34,7 +34,7 @@ const Profile = () => {
         renderTrigger={() => (
           <span className=" hover:text-primary hover:bg-lightprimary rounded-full flex justify-center items-center cursor-pointer group-hover/menu:bg-lightprimary group-hover/menu:text-primary">
             <Image
-              src={`/uploads/${data.user_img}`}
+              src={`/uploads/${data?.user_img ?? 'avatar.jpg'}`}
               alt="logo"
               height="35"
               width="35"
@@ -47,21 +47,21 @@ const Profile = () => {
           <h3 className="text-lg font-semibold text-ld">ข้อมูลส่วนตัว</h3>
           <div className="flex items-center gap-6 pb-5 border-b dark:border-darkborder mt-5 mb-3">
             <Image
-              src={`/uploads/${data.user_img}`}
+              src={`/uploads/${data?.user_img ?? 'avatar.jpg'}`}
               alt="logo"
               height="80"
               width="80"
               className="rounded-full"
             />
             <div>
-              <h5 className="card-title text-sm  mb-0.5 font-medium">{`${data.firstname} ${data.lastname}`}</h5>
+              <h5 className="card-title text-sm  mb-0.5 font-medium">{`${data?.firstname ?? ''} ${data?.lastname ?? ''}`}</h5>
               <span className="card-subtitle text-muted font-normal">{userRole(Number(session?.user.role))}</span>
               <p className="card-subtitle font-normal text-muted mb-0 mt-1 flex items-center">
                 <Icon
                   icon="tabler:phone"
                   className="text-base me-1 relative top-0.5"
                 />
-                {data.phone}
+                {data?.phone ?? ''}
               </p>
             </div>
           </div>

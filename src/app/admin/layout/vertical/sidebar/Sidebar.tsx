@@ -91,7 +91,7 @@ const SidebarLayout = () => {
                     <div className="flex justify-between items-center">
                         <div className="flex gap-3 items-center">
                         <Image 
-                          src={`/uploads/${data.user_img ?? 'avatar.jpg'}`} 
+                          src={`/uploads/${data?.user_img ?? 'avatar.jpg'}`} 
                             alt="profile" 
                           width={40} 
                           height={40} 
@@ -99,7 +99,7 @@ const SidebarLayout = () => {
                           unoptimized={true}
                         />
                         <div>
-                            <h3 className="text-sm font-semibold text-white">{data.firstname}</h3>
+                            <h3 className="text-sm font-semibold text-white">{data?.firstname ?? ''}</h3>
                             <p className="text-xs text-white/60">
                             {userRole(Number(session?.user.role))}
                           </p>
