@@ -1,6 +1,7 @@
 "use client";
 import React, { useMemo } from "react";
 import { Icon } from "@iconify/react";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -81,18 +82,25 @@ function DonutChart({ value, total, color, label }: { value: number; total: numb
 }
 
 // ───────────── Stat Card ─────────────
-function StatCard({ icon, label, value, color, sub }: { icon: string; label: string; value: number | string; color: string; sub?: string }) {
+function StatCard({ icon, label, value, color, sub, href }: { icon: string; label: string; value: number | string; color: string; sub?: string; href?: string }) {
+  const router = useRouter();
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 hover:shadow-xl transition-all duration-300 group">
+    <div
+      className={`bg-white rounded-2xl shadow-lg border border-gray-100 p-5 hover:shadow-xl transition-all duration-300 group ${href ? 'cursor-pointer hover:border-blue-200 hover:-translate-y-0.5' : ''}`}
+      onClick={() => href && router.push(href)}
+      role={href ? "button" : undefined}
+      tabIndex={href ? 0 : undefined}
+    >
       <div className="flex items-center gap-4">
         <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
           <Icon icon={icon} className="text-white" width={28} />
         </div>
-        <div>
+        <div className="flex-1">
           <p className="text-3xl font-extrabold text-gray-800">{value}</p>
           <p className="text-sm text-gray-500 font-medium">{label}</p>
           {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
         </div>
+        {href && <Icon icon="tabler:chevron-right" className="text-gray-300 group-hover:text-blue-400 transition-colors" width={20} />}
       </div>
     </div>
   );
@@ -121,6 +129,7 @@ function ProgressBar({ value, max, color, label }: { value: number; max: number;
 //  MAIN DASHBOARD
 // ═══════════════════════════════════════
 export default function BoardDashboard() {
+  const router = useRouter();
   const { data, error, isLoading } = useSWR("/api/dashboard/stats", fetcher, {
     refreshInterval: 30000,
   });
@@ -216,11 +225,11 @@ export default function BoardDashboard() {
 
       {/* ──── Overview Stats ──── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatCard icon="tabler:school" label="นักศึกษาทั้งหมด" value={overview.totalStudents} color="from-blue-500 to-blue-600" />
-        <StatCard icon="tabler:chalkboard" label="บุคลากร" value={overview.totalTeachers} color="from-purple-500 to-purple-600" sub={`${overview.totalDepartments} แผนก · ${overview.totalMajors} สาขา`} />
-        <StatCard icon="tabler:building" label="สถานประกอบการ" value={overview.totalCompanies} color="from-amber-500 to-orange-500" />
-        <StatCard icon="tabler:file-text" label="รายงานทั้งหมด" value={overview.totalReports} color="from-emerald-500 to-green-600" />
-        <StatCard icon="tabler:eye-check" label="การนิเทศ" value={overview.totalSupervisions} color="from-pink-500 to-rose-500" />
+        <StatCard icon="tabler:school" label="นักศึกษาทั้งหมด" value={overview.totalStudents} color="from-blue-500 to-blue-600" href="/board/teacher" />
+        <StatCard icon="tabler:chalkboard" label="บุคลากร" value={overview.totalTeachers} color="from-purple-500 to-purple-600" sub={`${overview.totalDepartments} แผนก · ${overview.totalMajors} สาขา`} href="/board/teacher" />
+        <StatCard icon="tabler:building" label="สถานประกอบการ" value={overview.totalCompanies} color="from-amber-500 to-orange-500" href="/board/company" />
+        <StatCard icon="tabler:file-text" label="รายงานทั้งหมด" value={overview.totalReports} color="from-emerald-500 to-green-600" href="/board/teacher" />
+        <StatCard icon="tabler:eye-check" label="การนิเทศ" value={overview.totalSupervisions} color="from-pink-500 to-rose-500" href="/board/supervision" />
       </div>
 
       {/* ──── Row 2: Status Donuts + Chart ──── */}
@@ -232,9 +241,15 @@ export default function BoardDashboard() {
             <h2 className="text-lg font-bold text-gray-800">สถานะนักศึกษา</h2>
           </div>
           <div className="flex flex-wrap justify-around gap-4">
-            <DonutChart value={reports.studentsReported} total={overview.totalStudents} color="#22c55e" label="บันทึกรายงานแล้ว" />
-            <DonutChart value={companies.studentsAssigned} total={overview.totalStudents} color="#3b82f6" label="จับคู่สถานประกอบการ" />
-            <DonutChart value={internship.configured} total={overview.totalStudents} color="#a855f7" label="ตั้งค่าวันฝึกงาน" />
+            <div className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => router.push('/board/teacher')} title="ดูรายงานนักศึกษา">
+              <DonutChart value={reports.studentsReported} total={overview.totalStudents} color="#22c55e" label="บันทึกรายงานแล้ว" />
+            </div>
+            <div className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => router.push('/board/company')} title="ดูข้อมูลสถานประกอบการ">
+              <DonutChart value={companies.studentsAssigned} total={overview.totalStudents} color="#3b82f6" label="จับคู่สถานประกอบการ" />
+            </div>
+            <div className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => router.push('/board/teacher')} title="ดูข้อมูลการฝึกงาน">
+              <DonutChart value={internship.configured} total={overview.totalStudents} color="#a855f7" label="ตั้งค่าวันฝึกงาน" />
+            </div>
           </div>
         </div>
 
@@ -259,17 +274,24 @@ export default function BoardDashboard() {
             <Icon icon="tabler:users" width={20} className="text-blue-500" />
             <h2 className="text-lg font-bold text-gray-800">สถานะนักศึกษา</h2>
           </div>
-          <ProgressBar value={reports.studentsReported} max={overview.totalStudents} color="bg-gradient-to-r from-green-400 to-green-500" label="📝 บันทึกรายงานแล้ว" />
-          <ProgressBar value={companies.studentsAssigned} max={overview.totalStudents} color="bg-gradient-to-r from-blue-400 to-blue-500" label="🏢 จับคู่สถานประกอบการแล้ว" />
-          <ProgressBar value={internship.configured} max={overview.totalStudents} color="bg-gradient-to-r from-purple-400 to-purple-500" label="📅 ตั้งค่าวันฝึกงานแล้ว" />
-          
+          <div className="cursor-pointer hover:bg-green-50/50 rounded-lg p-1 -m-1 transition-colors" onClick={() => router.push('/board/teacher')}>
+            <ProgressBar value={reports.studentsReported} max={overview.totalStudents} color="bg-gradient-to-r from-green-400 to-green-500" label="📝 บันทึกรายงานแล้ว" />
+          </div>
+          <div className="cursor-pointer hover:bg-blue-50/50 rounded-lg p-1 -m-1 transition-colors" onClick={() => router.push('/board/company')}>
+            <ProgressBar value={companies.studentsAssigned} max={overview.totalStudents} color="bg-gradient-to-r from-blue-400 to-blue-500" label="🏢 จับคู่สถานประกอบการแล้ว" />
+          </div>
+          <div className="cursor-pointer hover:bg-purple-50/50 rounded-lg p-1 -m-1 transition-colors" onClick={() => router.push('/board/teacher')}>
+            <ProgressBar value={internship.configured} max={overview.totalStudents} color="bg-gradient-to-r from-purple-400 to-purple-500" label="📅 ตั้งค่าวันฝึกงานแล้ว" />
+          </div>
+
           {/* Alert for students not reported */}
           {reports.studentsNotReported > 0 && (
-            <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl p-3">
+            <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl p-3 cursor-pointer hover:bg-red-100/50 transition-colors" onClick={() => router.push('/board/teacher')}>
               <Icon icon="tabler:alert-circle" width={20} className="text-red-500 flex-shrink-0" />
               <span className="text-sm text-red-600">
                 มีนักศึกษา <strong>{reports.studentsNotReported} คน</strong> ที่ยังไม่เคยบันทึกรายงานเลย
               </span>
+              <Icon icon="tabler:chevron-right" width={16} className="text-red-300 ml-auto" />
             </div>
           )}
         </div>
@@ -280,15 +302,20 @@ export default function BoardDashboard() {
             <Icon icon="tabler:chalkboard" width={20} className="text-purple-500" />
             <h2 className="text-lg font-bold text-gray-800">สถานะครูและการนิเทศ</h2>
           </div>
-          <ProgressBar value={teachers.assigned} max={overview.totalTeachers} color="bg-gradient-to-r from-indigo-400 to-indigo-500" label="👨‍🏫 ครูที่มีนักศึกษาในดูแล" />
-          <ProgressBar value={teachers.supervisedCount} max={teachers.supervisionTeachers} color="bg-gradient-to-r from-pink-400 to-pink-500" label="✅ ครูนิเทศที่ไปนิเทศแล้ว" />
+          <div className="cursor-pointer hover:bg-indigo-50/50 rounded-lg p-1 -m-1 transition-colors" onClick={() => router.push('/board/teacher')}>
+            <ProgressBar value={teachers.assigned} max={overview.totalTeachers} color="bg-gradient-to-r from-indigo-400 to-indigo-500" label="👨‍🏫 ครูที่มีนักศึกษาในดูแล" />
+          </div>
+          <div className="cursor-pointer hover:bg-pink-50/50 rounded-lg p-1 -m-1 transition-colors" onClick={() => router.push('/board/supervision')}>
+            <ProgressBar value={teachers.supervisedCount} max={teachers.supervisionTeachers} color="bg-gradient-to-r from-pink-400 to-pink-500" label="✅ ครูนิเทศที่ไปนิเทศแล้ว" />
+          </div>
 
           {teachers.notSupervised > 0 && (
-            <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl p-3">
+            <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl p-3 cursor-pointer hover:bg-amber-100/50 transition-colors" onClick={() => router.push('/board/supervision')}>
               <Icon icon="tabler:alert-triangle" width={20} className="text-amber-500 flex-shrink-0" />
               <span className="text-sm text-amber-700">
                 มีครูนิเทศ <strong>{teachers.notSupervised} คน</strong> ที่ยังไม่ได้ไปนิเทศ
               </span>
+              <Icon icon="tabler:chevron-right" width={16} className="text-amber-300 ml-auto" />
             </div>
           )}
         </div>
@@ -316,8 +343,11 @@ export default function BoardDashboard() {
               </thead>
               <tbody>
                 {departmentStats?.map((dept: any, i: number) => (
-                  <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-3 font-medium text-gray-700">{dept.name}</td>
+                  <tr key={i} className="border-b border-gray-50 hover:bg-blue-50/50 transition-colors cursor-pointer group/row" onClick={() => router.push('/board/teacher')}>
+                    <td className="py-3 px-3 font-medium text-gray-700 group-hover/row:text-blue-700 transition-colors">
+                      {dept.name}
+                      <Icon icon="tabler:external-link" width={12} className="inline-block ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity" />
+                    </td>
                     <td className="text-center py-3 px-2">
                       <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-50 text-blue-700 rounded-lg font-bold text-sm">
                         {dept.students}
@@ -357,19 +387,20 @@ export default function BoardDashboard() {
           </div>
           <div className="space-y-3">
             {companyRanking?.map((c: any, i: number) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-blue-50 transition-colors cursor-pointer group/company" onClick={() => router.push('/board/company')}>
                 <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
                   i === 0 ? "bg-amber-100 text-amber-700" : i === 1 ? "bg-gray-200 text-gray-600" : "bg-orange-50 text-orange-600"
                 }`}>
                   {i + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-700 truncate">{c.name}</p>
+                  <p className="text-sm font-medium text-gray-700 truncate group-hover/company:text-blue-700 transition-colors">{c.name}</p>
                 </div>
                 <div className="flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
                   <Icon icon="tabler:users" width={14} />
                   <span className="text-sm font-bold">{c.students}</span>
                 </div>
+                <Icon icon="tabler:chevron-right" width={16} className="text-gray-300 group-hover/company:text-blue-400 transition-colors" />
               </div>
             ))}
           </div>

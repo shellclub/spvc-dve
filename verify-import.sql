@@ -1,0 +1,13 @@
+SELECT '=== Summary ===' as info;
+SELECT COUNT(*) as total_users FROM users;
+SELECT role, COUNT(*) as cnt FROM users GROUP BY role ORDER BY role;
+SELECT '=== Departments ===' as info;
+SELECT id, depname FROM departments ORDER BY id;
+SELECT '=== Majors ===' as info;
+SELECT id, major_name, departmentId FROM major ORDER BY id;
+SELECT '=== Teachers (sample) ===' as info;
+SELECT u.id, l.username, u.prefix, u.firstname, u.lastname FROM users u JOIN logins l ON l.userId=u.id WHERE u.role=4 ORDER BY u.id LIMIT 10;
+SELECT '=== Students (sample) ===' as info;
+SELECT u.id, l.username, u.prefix, u.firstname, u.lastname, s.room FROM users u JOIN logins l ON l.userId=u.id JOIN students s ON s.userId=u.id WHERE u.role=7 ORDER BY u.id LIMIT 10;
+SELECT '=== Students per Department ===' as info;
+SELECT d.depname, COUNT(*) as cnt FROM students s JOIN departments d ON s.departmentId=d.id GROUP BY d.depname;
