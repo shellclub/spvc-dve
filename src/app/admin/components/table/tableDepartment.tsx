@@ -80,8 +80,20 @@ const TableDepartment = () => {
       if (result.isConfirmed) {
         const res = await fetch(`/api/departments/${id}`, { method: "DELETE", headers: { "Content-Type": "application/json" } });
         const data = await res.json();
-        showToast(data.message, data.type);
-        if (res.ok) { mutateDept(); mutateMajor(); }
+        if (res.ok) {
+          showToast(data.message, data.type);
+          mutateDept();
+          mutateMajor();
+        } else {
+          // แสดง Swal error แบบ popup ชัดเจน พร้อมสาเหตุ
+          Swal.fire({
+            title: "ไม่สามารถลบได้",
+            html: `<p style="font-size:15px; color:#555;">${data.message}</p>`,
+            icon: "error",
+            confirmButtonColor: "#2E7D32",
+            confirmButtonText: "รับทราบ",
+          });
+        }
       }
     });
   };

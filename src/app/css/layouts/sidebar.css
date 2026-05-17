@@ -16,7 +16,8 @@
     .menu-sidebar>div,
     .menu-sidebar [data-testid="flowbite-sidebar"],
     .menu-sidebar .bg-white,
-    .menu-sidebar [class*="bg-white"] {
+    .menu-sidebar [class*="bg-white"],
+    .menu-sidebar [class*="bg-gray"] {
         background: transparent !important;
         border: none !important;
     }
@@ -48,6 +49,30 @@
         background-color: white !important;
         color: #1B5E20 !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* Collapse menu button - ensure visibility when NOT active */
+    .menu-sidebar .collapse-menu:not(.active-dropdown) {
+        background-color: transparent !important;
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    .menu-sidebar .collapse-menu:not(.active-dropdown):hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+    }
+
+    /* Ensure collapse label text inherits color */
+    .menu-sidebar .collapse-menu:not(.active-dropdown) [data-testid="flowbite-sidebar-collapse-label"] {
+        color: inherit !important;
+    }
+
+    .menu-sidebar .collapse-menu:not(.active-dropdown) .iconify {
+        color: inherit !important;
+    }
+
+    .menu-sidebar .collapse-menu:not(.active-dropdown) .drop-icon {
+        color: inherit !important;
     }
     
     /* Sidebar dropdown items - ปกติ (ไม่ active) */

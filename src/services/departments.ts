@@ -32,10 +32,38 @@ export async function updateDepartment(id: string, department: Prisma.Department
     })
 }
 
-export async function removeDepartment(id: string) {
-    return await prisma.department.delete({
-        where: { id: Number(id)}
-    })
+export async function removeDepartment(id: string): Promise<{ success: boolean; message: string }> {
+    const deptId = Number(id);
+
+    // ตรวจสอบว่าแผนกนี้มีอยู่จริง
+    const dept = await prisma.department.findUnique({ where: { id: deptId } });
+    if (!dept) {
+        return { success: false, message: "ไม่พบข้อมูลแผนกวิชานี้ในระบบ" };
+    }
+
+    // ตรวจสอบข้อมูลที่อ้างอิงอยู่
+    const [majorCount, teacherCount, studentCount] = await Promise.all([
+        prisma.major.count({ where: { departmentId: deptId } }),
+        prisma.teacher.count({ where: { departmentId: deptId } }),
+        prisma.student.count({ where: { departmentId: deptId } }),
+    ]);
+
+    // ถ้ามี Major อ้างอิงอยู่ → ไม่สามารถลบได้ (FK RESTRICT)
+    if (majorCount > 0 || teacherCount > 0 || studentCount > 0) {
+        const reasons: string[] = [];
+        if (majorCount > 0) reasons.push(`สาขาวิชา ${majorCount} สาขา`);
+        if (teacherCount > 0) reasons.push(`บุคลากร ${teacherCount} คน`);
+        if (studentCount > 0) reasons.push(`นักศึกษา ${studentCount} คน`);
+
+        return {
+            success: false,
+            message: `ไม่สามารถลบแผนก "${dept.depname}" ได้ เนื่องจากยังมีข้อมูลที่เกี่ยวข้อง: ${reasons.join(", ")} กรุณาลบหรือย้ายข้อมูลเหล่านี้ก่อน`,
+        };
+    }
+
+    // ลบแผนกวิชา
+    await prisma.department.delete({ where: { id: deptId } });
+    return { success: true, message: `ลบแผนก "${dept.depname}" สำเร็จ` };
 }
 
 export async function countDepartment() {

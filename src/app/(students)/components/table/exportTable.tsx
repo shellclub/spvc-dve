@@ -85,7 +85,7 @@ const ExportTable = () => {
       `${user?.student?.studentId || ''}`,
       `${user?.sex === 1 ? "นาย" : user?.sex === 2 ? "นางสาว" : ""} ${user?.firstname || ''} ${user?.lastname || ''}`,
       `ระดับชั้น ${user?.student?.gradeLevel || ''} ปวส.2 (ทท. 2/1 )`,
-      `สาขาวิชา ${user?.student?.major.major_name || ""}`
+      `สาขาวิชา ${user?.student?.major?.major_name || ""}`
     ];
 
     let yPosition = 170;
@@ -100,7 +100,7 @@ const ExportTable = () => {
 
     pdf.addPage();
 
-    const headerText = `รายงานการฝึกงาน \n ${user?.student?.studentId}  ${user?.sex === 1 ? "นาย" : user?.sex === 2 ? "นางสาว" : ""} ${user?.firstname} ${user?.lastname} ระดับชั้น ${user?.student?.gradeLevel} กลุ่ม ${user?.student?.room} สาขาวิชา ${user?.student?.major.major_name}`;
+    const headerText = `รายงานการฝึกงาน \n ${user?.student?.studentId}  ${user?.sex === 1 ? "นาย" : user?.sex === 2 ? "นางสาว" : ""} ${user?.firstname} ${user?.lastname} ระดับชั้น ${user?.student?.gradeLevel} กลุ่ม ${user?.student?.room} สาขาวิชา ${user?.student?.major?.major_name || ""}`;
     pdf.setFont('THSarabunNew');
     pdf.setFontSize(18);
     pdf.text(headerText, pageWidth / 2, 15, { align: 'center' });

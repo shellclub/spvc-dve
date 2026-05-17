@@ -5,10 +5,11 @@ import {
   TextInput,
   Select,
   Button,
-  Datepicker,
 } from "flowbite-react";
 import TitleCard from "@/app/components/shared/TitleBorderCard";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
+import { ThaiDatePicker } from "@/app/components/ThaiDatePicker";
+import dayjs from "dayjs";
 type Education = {
   id: number;
     name: string;
@@ -27,7 +28,7 @@ type Student = {
   firstname: string | null;
   lastname: string | null;
   sex: number | null;
-  birthday: Date | null;
+  birthday: string;
   educationLevel: number | null;
   departmentId: number | null;
   phone: string | null;
@@ -64,7 +65,7 @@ const FormStudent: React.FC<FormStudnetProps> = ({id}) => {
     firstname: "",
     lastname: "",
     sex: null,
-    birthday: null,
+    birthday: "",
     citizenId: "",
     phone: '',
     educationLevel: null,
@@ -115,7 +116,7 @@ const FormStudent: React.FC<FormStudnetProps> = ({id}) => {
             firstname: userData.firstname || null,
             lastname: userData.lastname || null,
             sex: userData.sex || null,
-            birthday: userData.birthday ? new Date(userData.birthday) : null,
+            birthday: userData.birthday ? dayjs(userData.birthday).format("YYYY-MM-DD") : "",
             educationLevel: userData.student.educationLevel || null,
             departmentId: userData.departmentId || null,
             phone: userData.phone || null,
@@ -221,7 +222,7 @@ const FormStudent: React.FC<FormStudnetProps> = ({id}) => {
   form.append("firstname", formData.firstname ?? "");
   form.append("lastname", formData.lastname ?? "");
   form.append("sex", formData.sex?.toString() ?? "");
-  form.append("birthday", formData.birthday?.toISOString() ?? "");
+  form.append("birthday", formData.birthday ? new Date(formData.birthday).toISOString() : "");
   form.append("educationLevel", formData.educationLevel?.toString() ?? "");
   form.append("departmentId", formData.departmentId?.toString() ?? "");
   form.append("phone", formData.phone ?? "");
@@ -246,7 +247,7 @@ const FormStudent: React.FC<FormStudnetProps> = ({id}) => {
         firstname: "",
         lastname: "",
         sex: null,
-        birthday: null,
+        birthday: "",
         citizenId: "",
         phone: '',
         educationLevel: null,
@@ -270,7 +271,7 @@ const FormStudent: React.FC<FormStudnetProps> = ({id}) => {
       firstname: "",
       lastname: "",
       sex: null,
-      birthday: null,
+      birthday: "",
       citizenId: "",
       phone: "",
       educationLevel: null,
@@ -337,12 +338,13 @@ const FormStudent: React.FC<FormStudnetProps> = ({id}) => {
 
                   </FormRow>
                   <FormRow label="วันเกิด" htmlFor="birthday">
-                      <Datepicker
-                      onSelectedDateChanged={(date) => setFormData({ ...formData, birthday: date})}
+                    <ThaiDatePicker
+                      value={formData.birthday}
+                      onChange={(v) => setFormData({ ...formData, birthday: v })}
+                      placeholder="เลือกวัน/เดือน/ปี (พ.ศ.)"
+                      name="birthday"
                     />
-                    <input type="hidden" name="birthday" value={String(formData.birthday)} />
                     <span className="text-red-500">{errors.birthday}</span>
-
                   </FormRow>
                   <FormRow label="รูปโปรไฟล์" htmlFor="user_img">
                   <input

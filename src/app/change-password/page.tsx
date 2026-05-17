@@ -166,7 +166,17 @@ export default function FirstLoginChangePasswordPage() {
                                 skip_password_change: data.skipUntil,
                             }
                         });
-                        window.location.href = '/protected';
+                        // Redirect ตาม role ไปหน้าหลัก
+                        const roleRoutes: Record<number, string> = {
+                            1: "/admin",
+                            2: "/board",
+                            3: "/departments",
+                            4: "/teacher",
+                            5: "/supervision",
+                            7: "/",
+                        };
+                        const targetRoute = roleRoutes[session.user.role] || "/";
+                        window.location.href = targetRoute;
 
                     } else {
                         showToast(data.message, data.type);

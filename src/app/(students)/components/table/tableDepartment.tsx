@@ -53,14 +53,19 @@ const TableDepartment: React.FC<TableDepartmentProps> = ({ data,onEdit }) => {
             "Content-Type": "application/json"
           }
         })
-        if(!res.ok) {
-          const err = await res.json();
-          showToast(err.message, err.type);
-        }
+        const data = await res.json();
         if(res.ok) {
-          const data = await res.json();
           showToast(data.message, data.type);
           router.refresh();
+        } else {
+          // แสดง Swal error แบบ popup ชัดเจน พร้อมสาเหตุ
+          Swal.fire({
+            title: "ไม่สามารถลบได้",
+            html: `<p style="font-size:15px; color:#555;">${data.message}</p>`,
+            icon: "error",
+            confirmButtonColor: "#2E7D32",
+            confirmButtonText: "รับทราบ",
+          });
         }
       }
     });

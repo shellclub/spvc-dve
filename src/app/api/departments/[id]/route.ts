@@ -12,19 +12,22 @@ export async function PUT(request: NextRequest, {params}: {params: Params}) {
     }
     return NextResponse.json({ message: "แก้ไขข้อมูลสำเร็จ", type: "success"}, {status: 200})
   } catch (error) {
-    return console.log(error);
-    
+    console.error("PUT /api/departments/[id] error:", error);
+    return NextResponse.json({ message: "เกิดข้อผิดพลาดในการแก้ไขข้อมูล", type: "error" }, { status: 500 });
   }
 }
 export async function DELETE(request: NextRequest, {params}:{params: Params}) {
     try {
         const { id } = await params;
-        const del = await removeDepartment(id);
-        if(!del) {
-            return NextResponse.json({ message: "เกิดข้อผิดพลาดในการลบข้อมูล", type: "error"}, { status: 500})
+        const result = await removeDepartment(id);
+
+        if (result.success) {
+            return NextResponse.json({ message: result.message, type: "success" }, { status: 200 });
+        } else {
+            return NextResponse.json({ message: result.message, type: "error" }, { status: 400 });
         }
-        return NextResponse.json({ message: "ลบข้อมูลสำเร็จ", type: "success"}, { status: 200})
     } catch (error) {
-        return console.log(error)
+        console.error("DELETE /api/departments/[id] error:", error);
+        return NextResponse.json({ message: "เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง", type: "error" }, { status: 500 });
     }
 }

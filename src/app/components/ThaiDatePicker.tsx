@@ -9,8 +9,10 @@ import {
   PopoverTrigger,
 } from "@/app/components/shadcn-ui/Default-Ui/popover";
 import { Button } from "@/app/components/shadcn-ui/Default-Ui/button";
-import { DATE_DISPLAY_FORMAT, DATE_VALUE_FORMAT } from "@/lib/dateConfig";
+import { DATE_DISPLAY_FORMAT, DATE_VALUE_FORMAT, formatThaiDate } from "@/lib/dateConfig";
 import dayjs from "dayjs";
+import buddhistEra from "dayjs/plugin/buddhistEra";
+dayjs.extend(buddhistEra);
 
 export interface ThaiDatePickerProps {
   value: string;
@@ -26,6 +28,7 @@ export interface ThaiDatePickerProps {
 /**
  * ตัวเลือกวันที่ UI ภาษาไทยทั้งระบบ
  * value/onChange ใช้รูปแบบ YYYY-MM-DD (เก็บใน DB/ส่ง API ได้ตามปกติ)
+ * แสดงผลเป็นปี พ.ศ.
  */
 export function ThaiDatePicker({
   value,
@@ -41,7 +44,7 @@ export function ThaiDatePicker({
 
   const date = value ? dayjs(value, DATE_VALUE_FORMAT).toDate() : undefined;
   const displayText = value
-    ? dayjs(value).format(DATE_DISPLAY_FORMAT)
+    ? formatThaiDate(value)
     : placeholder;
 
   const handleSelect = (d: Date | undefined) => {
