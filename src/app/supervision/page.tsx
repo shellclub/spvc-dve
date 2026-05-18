@@ -1,9 +1,5 @@
-import StudentTable from "./components/table/studentTable";
+import InternshipDashboard from "@/app/components/dashboards/internship/InternshipDashboard";
 
-export default function Page() {
-    return (
-        <>
-            <StudentTable/>
-        </>
-    );
+export default function SupervisionDashboardPage() {
+  return <InternshipDashboard basePath="/supervision" />;
 }

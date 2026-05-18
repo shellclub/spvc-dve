@@ -15,9 +15,10 @@ import {
 } from "@tanstack/react-table";
 import {
   AlertCircleIcon,
-  CheckCircle2Icon,
-  ChevronDown,
-  PopcornIcon,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 
 import { Button } from "@/app/components/shadcn-ui/Default-Ui/button";
@@ -46,8 +47,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/shadcn-ui/Default-Ui/select";
-import Image from "next/image";
 import { IconDots, IconEye, IconTrash } from "@tabler/icons-react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/app/components/shadcn-ui/Default-Ui/avatar";
 import useSWR from "swr";
 import { Skeleton } from "@/app/components/shadcn-ui/Default-Ui/skeleton";
 import Swal from "sweetalert2";
@@ -76,9 +81,9 @@ type PaginationTableType = {
     user_img: string;
     birthday: string;
   };
-  department: { id: string };
-  major: { id: string };
-  education: { id: string };
+  department: { id: string } | null;
+  major: { id: string } | null;
+  education: { id: string } | null;
 };
 import { validateThaiID } from "@/lib/thaiIdVaildate";
 
@@ -86,15 +91,15 @@ export type Student = {
   id: string;
   studentId: string;
   major: {
-    id: string
-    major_name: string
-  };
+    id: string;
+    major_name: string;
+  } | null;
   room: string;
   term: string;
   academicYear: string;
   education: {
     name: string;
-  };
+  } | null;
   gradeLevel: string;
   user: {
     id: string;
@@ -106,7 +111,7 @@ export type Student = {
   };
   department: {
     depname: string;
-  };
+  } | null;
 };
 
 export type Department = {
@@ -171,6 +176,57 @@ const SkeletonRow = () => (
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+const RMS_STUDENT_PIC_BASE =
+  "https://rms.spvc.ac.th/files/importpicstd/01";
+const RMS_PIC_EXTENSIONS = ["jpg", "png"] as const;
+const PAGE_SIZE_OPTIONS = [10, 50, 100, 200, 500] as const;
+
+function StudentRmsAvatar({
+  studentId,
+  firstname,
+  lastname,
+}: {
+  studentId: string;
+  firstname: string;
+  lastname: string;
+}) {
+  const [extIndex, setExtIndex] = React.useState(0);
+  const [useFallback, setUseFallback] = React.useState(false);
+
+  const initials =
+    `${firstname?.charAt(0) ?? ""}${lastname?.charAt(0) ?? ""}`.toUpperCase() ||
+    "?";
+
+  const handleImageError = () => {
+    if (extIndex < RMS_PIC_EXTENSIONS.length - 1) {
+      setExtIndex((i) => i + 1);
+    } else {
+      setUseFallback(true);
+    }
+  };
+
+  const rmsSrc = studentId
+    ? `${RMS_STUDENT_PIC_BASE}/${studentId}.${RMS_PIC_EXTENSIONS[extIndex]}`
+    : null;
+
+  return (
+    <Avatar className="h-10 w-10 shrink-0 rounded-xl">
+      {!useFallback && rmsSrc ? (
+        <AvatarImage
+          key={rmsSrc}
+          src={rmsSrc}
+          alt={`${firstname} ${lastname}`}
+          className="rounded-xl object-cover"
+          onError={handleImageError}
+        />
+      ) : null}
+      <AvatarFallback className="rounded-xl bg-gray-100 text-gray-600 text-xs font-medium dark:bg-gray-800 dark:text-gray-300">
+        {initials}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
 export function StudentsAllTable() {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -184,6 +240,10 @@ export function StudentsAllTable() {
   const [majorFileter, setMajorFileter] = React.useState<string>("all");
   const [gradeFilter, setGradeFilter] = React.useState<string>("all"); // เปลี่ยนชื่อจาก yearFiler เป็น gradeFilter
   const [groupFilter, setGroupFilter] = React.useState<string>("all");
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
   const [date, setDate] = React.useState<Date | null>(null);
   const [openEdit, setOpenEdit] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -339,10 +399,10 @@ export function StudentsAllTable() {
       citizenId: student.user.citizenId || "",
       sex: student.user.sex || "",
       phone: student.user.phone || "",
-      department: String(student.department.id), // ต้องดึง department ID
+      department: student.department?.id ? String(student.department.id) : "",
       studentId: student?.studentId || "",
-      major: String(student.major.id) || "",
-      educationLevel: String(student.education.id), // ต้องดึง education ID
+      major: student.major?.id ? String(student.major.id) : "",
+      educationLevel: student.education?.id ? String(student.education.id) : "",
       gradeLevel: student?.gradeLevel || "",
       room: student?.room || "",
       term: student?.term || "",
@@ -383,13 +443,10 @@ export function StudentsAllTable() {
       header: () => <span>ผู้ใช้</span>,
       cell: ({ row }) => (
         <div className="flex gap-3 items-center">
-          <Image
-            src={`/uploads/${row.original.user.user_img}`}
-            width={50}
-            height={50}
-            alt="icon"
-            className="h-10 w-10 rounded-xl"
-            unoptimized={true}
+          <StudentRmsAvatar
+            studentId={row.original.studentId}
+            firstname={row.original.user.firstname}
+            lastname={row.original.user.lastname}
           />
           <div className="truncate line-clamp-2 max-w-full">
             <h6 className="text-base">{`${row.original.user.firstname} ${row.original.user.lastname}`}</h6>
@@ -409,9 +466,9 @@ export function StudentsAllTable() {
       header: () => <span>แผนกวิชา</span>,
       cell: ({ row }) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{row.original.department.depname}</h6>
+          <h6 className="text-base">{row.original.department?.depname ?? "-"}</h6>
           <p className="text-sm text-darklink dark:text-bodytext">
-            {row.original.major.major_name}
+            {row.original.major?.major_name ?? "-"}
           </p>
         </div>
       ),
@@ -421,7 +478,11 @@ export function StudentsAllTable() {
       header: () => <span>ระดับชั้น</span>,
       cell: ({ row }) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${row.original.education.name}.${row.original.gradeLevel}/${row.original.room}`}</h6>
+          <h6 className="text-base">
+            {row.original.education?.name
+              ? `${row.original.education.name}.${row.original.gradeLevel}/${row.original.room}`
+              : `${row.original.gradeLevel}/${row.original.room}`}
+          </h6>
           <p className="text-sm text-darklink dark:text-bodytext">
             ปีการศึกษา:{" "}
             {`${row.original.term}/${row.original.academicYear}`}
@@ -514,11 +575,10 @@ export function StudentsAllTable() {
   const availableGrades = React.useMemo(() => {
     const gradesSet = new Set<string>();
     allStudents.forEach((student) => {
-      // สร้าง combination ของ education.name และ gradeLevel
-      const gradeCombo = `${student.education.name}.${student.gradeLevel}`;
-      gradesSet.add(gradeCombo);
+      if (!student.education?.name || !student.gradeLevel) return;
+      gradesSet.add(`${student.education.name}.${student.gradeLevel}`);
     });
-    return Array.from(gradesSet).sort(); // เรียงลำดับ
+    return Array.from(gradesSet).sort();
   }, [allStudents]);
 
   // Filter students based on selected filters
@@ -526,12 +586,13 @@ export function StudentsAllTable() {
     return allStudents.filter((student) => {
       const matchesDepartment =
         departmentFilter === "all" ||
-        student.department.depname === departmentFilter;
+        student.department?.depname === departmentFilter;
       const matchesMajor =
-        majorFileter === "all" || student.major.major_name === majorFileter;
+        majorFileter === "all" || student.major?.major_name === majorFileter;
 
-      // เปรียบเทียบกับ combination ของ education.name และ gradeLevel
-      const studentGradeCombo = `${student.education.name}.${student.gradeLevel}`;
+      const studentGradeCombo = student.education?.name
+        ? `${student.education.name}.${student.gradeLevel}`
+        : "";
       const matchesGrade =
         gradeFilter === "all" || studentGradeCombo === gradeFilter;
 
@@ -546,9 +607,10 @@ export function StudentsAllTable() {
   const availableMajors = React.useMemo(() => {
     const majorsSet = new Set<string>();
     allStudents.forEach((student) => {
+      if (!student.major?.major_name) return;
       if (
         departmentFilter === "all" ||
-        student.department.depname === departmentFilter
+        student.department?.depname === departmentFilter
       ) {
         majorsSet.add(student.major.major_name);
       }
@@ -559,18 +621,29 @@ export function StudentsAllTable() {
   const availableGroup = React.useMemo(() => {
     const groupSet = new Set<string>();
     allStudents.forEach((student) => {
-      if (majorFileter === "all" || student.major.major_name === majorFileter) {
-        groupSet.add(student.room);
+      if (majorFileter === "all" || student.major?.major_name === majorFileter) {
+        if (student.room) groupSet.add(student.room);
       }
     });
     return Array.from(groupSet);
   }, [allStudents, majorFileter]);
+
+  React.useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [
+    departmentFilter,
+    majorFileter,
+    gradeFilter,
+    groupFilter,
+    globalFilter,
+  ]);
 
   const table = useReactTable({
     data: filteredStudents,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -583,8 +656,16 @@ export function StudentsAllTable() {
       columnFilters,
       columnVisibility,
       globalFilter,
+      pagination,
     },
   });
+
+  const filteredCount = table.getFilteredRowModel().rows.length;
+  const pageCount = table.getPageCount();
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const rangeStart =
+    filteredCount === 0 ? 0 : pageIndex * pageSize + 1;
+  const rangeEnd = Math.min((pageIndex + 1) * pageSize, filteredCount);
 
   if (error) {
     return (
@@ -804,10 +885,12 @@ export function StudentsAllTable() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between py-4">
+      <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-gray-600 dark:text-gray-400">
-          แสดง {table.getFilteredRowModel().rows.length} จาก{" "}
-          {allStudents.length} รายการ
+          แสดง {rangeStart}-{rangeEnd} จาก {filteredCount} รายการ
+          {filteredCount !== allStudents.length && (
+            <span> (ทั้งหมด {allStudents.length} รายการ)</span>
+          )}
           {departmentFilter !== "all" && (
             <span className="ml-2 text-blue-600 dark:text-blue-400">
               (กรองตามแผนก: {departmentFilter})
@@ -825,6 +908,80 @@ export function StudentsAllTable() {
           )}
         </div>
 
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+            แสดงต่อหน้า
+          </span>
+          <Select
+            value={String(pageSize)}
+            onValueChange={(value) => {
+              table.setPageSize(Number(value));
+              table.setPageIndex(0);
+            }}
+          >
+            <SelectTrigger className="w-[88px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <SelectItem
+                  key={size}
+                  value={String(size)}
+                  className="bg-white dark:bg-gray-900"
+                >
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+            หน้า {pageCount === 0 ? 0 : pageIndex + 1} จาก {pageCount || 1}
+          </span>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+              aria-label="หน้าแรก"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              aria-label="หน้าก่อน"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              aria-label="หน้าถัดไป"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => table.setPageIndex(pageCount - 1)}
+              disabled={!table.getCanNextPage()}
+              aria-label="หน้าสุดท้าย"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

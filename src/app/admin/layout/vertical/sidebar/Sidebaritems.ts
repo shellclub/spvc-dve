@@ -38,7 +38,7 @@ const SidebarContent: MenuItem[] = [
         name: "หน้าแรก",
         icon: 'tabler:aperture',
         id: uniqueId(),
-        url: "/",
+        url: "/admin",
       },
       {
         name: "จัดการ",

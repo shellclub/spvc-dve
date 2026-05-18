@@ -1,6 +1,23 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
+const ROLE_ROUTES: Record<number, string> = {
+  1: "/admin",
+  2: "/board",
+  3: "/departments",
+  4: "/teacher",
+  5: "/supervision",
+  7: "/",
+};
+
+function redirectForRole(request: NextRequest, role: number) {
+  const targetRoute = ROLE_ROUTES[role];
+  if (targetRoute) {
+    return NextResponse.redirect(new URL(targetRoute, request.url));
+  }
+  return null;
+}
+
 export async function middleware(request: NextRequest) {
   const user = await getToken({
     req: request,
@@ -8,6 +25,16 @@ export async function middleware(request: NextRequest) {
   });
 
   const { pathname } = request.nextUrl;
+
+  // 🔹 /dashboard → signin หรือ dashboard ตาม role
+  if (pathname === "/dashboard") {
+    if (!user) {
+      return NextResponse.redirect(new URL("/signin", request.url));
+    }
+    const roleRedirect = redirectForRole(request, user.role as number);
+    if (roleRedirect) return roleRedirect;
+    return NextResponse.redirect(new URL("/protected", request.url));
+  }
 
   // 🔹 ไม่ได้ล็อกอิน → redirect ไป signin
   if (!user && pathname !== "/signin") {
@@ -34,38 +61,14 @@ export async function middleware(request: NextRequest) {
 
   // 🔹 redirect ตาม role เมื่อเข้า /protected
   if (user && pathname === "/protected") {
-    const roleRoutes: Record<number, string> = {
-      1: "/admin",
-      2: "/board",
-      3: "/departments",
-      4: "/teacher",
-      5: "/supervision",
-      // 6: "/company",
-      7: "/",
-    };
-    
-    const targetRoute = roleRoutes[user.role as number];
-    if (targetRoute) {
-      return NextResponse.redirect(new URL(targetRoute, request.url));
-    }
+    const roleRedirect = redirectForRole(request, user.role as number);
+    if (roleRedirect) return roleRedirect;
   }
 
   // 🔹 ถ้าอยู่ในหน้า signin แล้วล็อกอินอยู่ → redirect ไปหน้า role
   if (pathname === "/signin" && user) {
-    const roleRoutes: Record<number, string> = {
-      1: "/admin",
-      2: "/board",
-      3: "/departments",
-      4: "/teacher",
-      5: "/supervision",
-      // 6: "/company",
-      7: "/",
-    };
-    
-    const targetRoute = roleRoutes[user.role as number];
-    if (targetRoute) {
-      return NextResponse.redirect(new URL(targetRoute, request.url));
-    }
+    const roleRedirect = redirectForRole(request, user.role as number);
+    if (roleRedirect) return roleRedirect;
   }
 
   // 🔹 ตรวจสิทธิ์ตาม role (เรียงจากเฉพาะเจาะจงไปทั่วไป)
@@ -106,6 +109,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/",
+    "/dashboard",
     "/admin/:path*",
     "/board/:path*",
     "/departments/:path*",
