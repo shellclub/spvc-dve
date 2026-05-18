@@ -26,6 +26,9 @@ const Profile = () => {
   if (isLoading || isSessionLoading) {
     return <p>Loading....</p>
   }
+  if (!data) {
+    return null;
+  }
   return (
     <div className="relative group/menu ps-15">
       <Dropdown
