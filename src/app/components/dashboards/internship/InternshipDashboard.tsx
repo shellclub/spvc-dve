@@ -128,7 +128,7 @@ export default function InternshipDashboard({
   );
 
   const filteredStudents = useMemo(() => {
-    if (!data?.students) return [];
+    if (!data || !("students" in data) || !Array.isArray(data.students)) return [];
     return data.students.filter((s) => {
       if (studentFilter === "today") return s.hasReportToday;
       if (studentFilter === "week") return s.hasReportThisWeek;
@@ -136,10 +136,10 @@ export default function InternshipDashboard({
       if (studentFilter === "none") return !s.hasReportThisMonth;
       return true;
     });
-  }, [data?.students, studentFilter]);
+  }, [data, studentFilter]);
 
   const chartOptions = useMemo(() => {
-    if (!data) return null;
+    if (!data || !("monthlyReports" in data) || !Array.isArray(data.monthlyReports)) return null;
     if (period === "monthly") {
       return {
         options: {
