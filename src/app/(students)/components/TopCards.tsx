@@ -21,6 +21,10 @@ const TopCards = () => {
       </div>
     );
   }
+
+  if (error || !data || typeof data !== "object" || !("user" in data)) {
+      return null;
+  }
   const TopCardInfo = [
     {
       key: "card1",
