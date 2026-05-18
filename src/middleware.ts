@@ -19,9 +19,15 @@ function redirectForRole(request: NextRequest, role: number) {
 }
 
 export async function middleware(request: NextRequest) {
+  const isSecure = 
+    request.nextUrl.protocol === "https:" || 
+    request.headers.get("x-forwarded-proto") === "https" ||
+    process.env.NODE_ENV === "production";
+
   const user = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
+    secureCookie: isSecure,
   });
 
   const { pathname } = request.nextUrl;
