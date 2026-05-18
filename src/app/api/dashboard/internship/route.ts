@@ -188,7 +188,7 @@ export async function GET() {
       return {
         id: s.id,
         studentId: s.studentId,
-        name: `${s.user.firstname} ${s.user.lastname}`,
+        name: s.user ? `${s.user.firstname} ${s.user.lastname}` : "ไม่มีข้อมูลผู้ใช้",
         department: s.department?.depname ?? "-",
         major: s.major?.major_name ?? "-",
         reportCountYear: dates.length,
@@ -207,7 +207,7 @@ export async function GET() {
     }));
 
     const teacherSummaries = teachers
-      .filter((t) => t.user.role === 4 || t.user.role === 5)
+      .filter((t) => t.user?.role === 4 || t.user?.role === 5)
       .map((t) => {
         const assignedIds = t.classrooms.map((c) => c.studentId);
         const assignedStudents = studentSummaries.filter((s) =>
@@ -229,9 +229,9 @@ export async function GET() {
 
         return {
           id: t.id,
-          name: `${t.user.firstname} ${t.user.lastname}`,
-          role: t.user.role,
-          roleName: userRole(t.user.role),
+          name: t.user ? `${t.user.firstname} ${t.user.lastname}` : "ไม่มีข้อมูลผู้ใช้",
+          role: t.user?.role ?? 4,
+          roleName: userRole(t.user?.role ?? 4),
           department: t.department?.depname ?? "-",
           assignedStudentCount: assignedIds.length,
           studentsReportedThisMonth: reportedThisMonth,

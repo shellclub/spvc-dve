@@ -445,11 +445,11 @@ export function StudentsAllTable() {
         <div className="flex gap-3 items-center">
           <StudentRmsAvatar
             studentId={row.original.studentId}
-            firstname={row.original.user.firstname}
-            lastname={row.original.user.lastname}
+            firstname={row.original.user?.firstname || ""}
+            lastname={row.original.user?.lastname || ""}
           />
           <div className="truncate line-clamp-2 max-w-full">
-            <h6 className="text-base">{`${row.original.user.firstname} ${row.original.user.lastname}`}</h6>
+            <h6 className="text-base">{`${row.original.user?.firstname || ""} ${row.original.user?.lastname || ""}`}</h6>
           </div>
         </div>
       ),
@@ -458,7 +458,7 @@ export function StudentsAllTable() {
       accessorKey: "user.sex",
       header: () => <span>เพศ</span>,
       cell: ({ row }) => (
-        <div className="text-base">{userSex(Number(row.original.user.sex))}</div>
+        <div className="text-base">{userSex(Number(row.original.user?.sex || 0))}</div>
       ),
     },
     {
@@ -532,9 +532,9 @@ export function StudentsAllTable() {
   ];
 
   const nameFilterFn: FilterFn<Student> = (row, columnId, filterValue) => {
-    const searchTerm = filterValue.toLowerCase();
-    const firstName = row.original.user.firstname.toLowerCase();
-    const lastName = row.original.user.lastname.toLowerCase();
+    const searchTerm = String(filterValue).toLowerCase();
+    const firstName = String(row.original.user?.firstname || "").toLowerCase();
+    const lastName = String(row.original.user?.lastname || "").toLowerCase();
     return firstName.includes(searchTerm) || lastName.includes(searchTerm);
   };
 
@@ -567,9 +567,9 @@ export function StudentsAllTable() {
       reader.readAsDataURL(file);
     }
   };
-  const departments: Department[] = deptData ?? [];
-  const allStudents: Student[] = stdData ?? [];
-  const educations: Education[] = edctData?.data ?? [];
+  const departments: Department[] = Array.isArray(deptData) ? deptData : [];
+  const allStudents: Student[] = Array.isArray(stdData) ? stdData : [];
+  const educations: Education[] = Array.isArray(edctData?.data) ? edctData.data : (Array.isArray(edctData) ? edctData : []);
 
   // สร้างรายการระดับชั้นที่ผสมระหว่าง education และ gradeLevel
   const availableGrades = React.useMemo(() => {

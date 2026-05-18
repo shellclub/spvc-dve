@@ -188,11 +188,11 @@ export default function InternshipDashboard({
     );
   }
 
-  if (error || !data) {
+  if (error || !data || !("overview" in data)) {
     return (
       <div className="text-center py-16 text-gray-500">
         <Icon icon="tabler:alert-triangle" width={40} className="mx-auto mb-2 text-amber-500" />
-        ไม่สามารถโหลดข้อมูลได้
+        {(data as any)?.message || "ไม่สามารถโหลดข้อมูลได้"}
       </div>
     );
   }
