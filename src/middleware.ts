@@ -19,15 +19,25 @@ function redirectForRole(request: NextRequest, role: number) {
 }
 
 export async function middleware(request: NextRequest) {
-  const isSecure = 
-    request.nextUrl.protocol === "https:" || 
-    request.headers.get("x-forwarded-proto") === "https" ||
-    process.env.NODE_ENV === "production";
+  const cookieKeys = [
+    "__Secure-authjs.session-token",
+    "authjs.session-token",
+    "__Secure-next-auth.session-token",
+    "next-auth.session-token"
+  ];
+  let foundCookieName = "authjs.session-token"; // Default
+  for (const key of cookieKeys) {
+    if (request.cookies.has(key)) {
+      foundCookieName = key;
+      break;
+    }
+  }
 
   const user = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
-    secureCookie: isSecure,
+    cookieName: foundCookieName,
+    secureCookie: foundCookieName.startsWith("__Secure-"),
   });
 
   const { pathname } = request.nextUrl;
