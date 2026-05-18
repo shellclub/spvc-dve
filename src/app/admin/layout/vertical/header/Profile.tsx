@@ -26,7 +26,7 @@ const Profile = () => {
   if (isLoading || isSessionLoading) {
     return <p>Loading....</p>
   }
-  if (error || !data || !("firstname" in data)) {
+  if (error || !data || typeof data !== "object" || !("firstname" in data)) {
     return null;
   }
   return (

@@ -164,8 +164,10 @@ export default function AdvisorStudentTable() {
     }),
   ];
 
+  const tableData = useMemo(() => (Array.isArray(data) ? data : []), [data]);
+
   const table = useReactTable({
-    data: data ?? [],
+    data: tableData,
     columns,
     filterFns: { nameFilter: nameFilterFn },
     state: {

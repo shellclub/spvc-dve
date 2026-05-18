@@ -128,7 +128,7 @@ export default function InternshipDashboard({
   );
 
   const filteredStudents = useMemo(() => {
-    if (!data || !("students" in data) || !Array.isArray(data.students)) return [];
+    if (!data || typeof data !== "object" || !("students" in data) || !Array.isArray(data.students)) return [];
     return data.students.filter((s) => {
       if (studentFilter === "today") return s.hasReportToday;
       if (studentFilter === "week") return s.hasReportThisWeek;
@@ -139,7 +139,7 @@ export default function InternshipDashboard({
   }, [data, studentFilter]);
 
   const chartOptions = useMemo(() => {
-    if (!data || !("monthlyReports" in data) || !Array.isArray(data.monthlyReports)) return null;
+    if (!data || typeof data !== "object" || !("monthlyReports" in data) || !Array.isArray(data.monthlyReports)) return null;
     if (period === "monthly") {
       return {
         options: {
@@ -188,7 +188,7 @@ export default function InternshipDashboard({
     );
   }
 
-  if (error || !data || !("overview" in data)) {
+  if (error || !data || typeof data !== "object" || !("overview" in data)) {
     return (
       <div className="text-center py-16 text-gray-500">
         <Icon icon="tabler:alert-triangle" width={40} className="mx-auto mb-2 text-amber-500" />

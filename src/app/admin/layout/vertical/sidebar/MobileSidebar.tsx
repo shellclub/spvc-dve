@@ -76,7 +76,7 @@ const MobileSidebar = () => {
           {/* Profile */}
           <div className="my-4 mx-4">
             <div className="py-3 px-4 bg-white/15 backdrop-blur-sm rounded-xl overflow-hidden">
-              {data && session?.user ? (
+              {data && typeof data === "object" && session?.user ? (
                 <div className="flex justify-between items-center">
                   <div className="flex gap-3 items-center">
                     <Image

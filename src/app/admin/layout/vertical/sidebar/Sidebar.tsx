@@ -87,7 +87,7 @@ const SidebarLayout = () => {
                 {isLoading || isSessionLoading ? (
                   <Spinner aria-label="Loading" color="success" />
                 ) : (
-                  data && session?.user && !data.error && "firstname" in data && (
+                  data && typeof data === "object" && session?.user && !data.error && "firstname" in data && (
                     <div className="flex justify-between items-center">
                         <div className="flex gap-3 items-center">
                         <Image 
