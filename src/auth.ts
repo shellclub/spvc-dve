@@ -5,6 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import bcrypt from "bcryptjs";
+import { authConfig } from "./auth.config";
 
 declare module "next-auth" {
   interface Session {
@@ -27,11 +28,8 @@ declare module "next-auth" {
 dayjs.extend(customParseFormat);
 
 export const { handlers, auth } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma) as any,
-  session: {
-    strategy: "jwt",
-    maxAge: 60 * 60 * 24 * 1,
-  },
   providers: [
     Credentials({
       credentials: {
@@ -105,22 +103,6 @@ export const { handlers, auth } = NextAuth({
           : null;
       }
       return session;
-    },
-  },
-  pages: {
-    signIn: "/signin",
-  },
-  secret: process.env.AUTH_SECRET,
-  trustHost: true,
-  cookies: {
-    sessionToken: {
-      name: process.env.NODE_ENV === "production" ? "__Secure-authjs.session-token" : "authjs.session-token",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      },
     },
   },
 });

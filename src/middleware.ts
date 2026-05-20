@@ -1,5 +1,8 @@
-import { NextResponse, NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { NextResponse } from "next/server";
+import NextAuth from "next-auth";
+import { authConfig } from "./auth.config";
+
+const { auth } = NextAuth(authConfig);
 
 const ROLE_ROUTES: Record<number, string> = {
   1: "/admin",
@@ -10,7 +13,7 @@ const ROLE_ROUTES: Record<number, string> = {
   7: "/",
 };
 
-function redirectForRole(request: NextRequest, role: number) {
+function redirectForRole(request: any, role: number) {
   const targetRoute = ROLE_ROUTES[role];
   if (targetRoute) {
     return NextResponse.redirect(new URL(targetRoute, request.url));
@@ -18,28 +21,8 @@ function redirectForRole(request: NextRequest, role: number) {
   return null;
 }
 
-export async function middleware(request: NextRequest) {
-  const cookieKeys = [
-    "__Secure-authjs.session-token",
-    "authjs.session-token",
-    "__Secure-next-auth.session-token",
-    "next-auth.session-token"
-  ];
-  let foundCookieName = "authjs.session-token"; // Default
-  for (const key of cookieKeys) {
-    if (request.cookies.has(key)) {
-      foundCookieName = key;
-      break;
-    }
-  }
-
-  const user = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET,
-    cookieName: foundCookieName,
-    secureCookie: foundCookieName.startsWith("__Secure-"),
-  });
-
+export default auth(async (request) => {
+  const user = request.auth?.user;
   const { pathname } = request.nextUrl;
 
   // 🔹 /dashboard → signin หรือ dashboard ตาม role
@@ -120,7 +103,7 @@ export async function middleware(request: NextRequest) {
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
