@@ -37,7 +37,8 @@ export default auth(async (request) => {
 
   // 🔹 ไม่ได้ล็อกอิน → redirect ไป signin
   if (!user && pathname !== "/signin") {
-    return NextResponse.redirect(new URL("/signin", request.url));
+    console.log("Middleware: No user found. Cookies:", request.cookies.getAll());
+    return NextResponse.redirect(new URL("/signin?error=SessionMiddleware", request.url));
   }
 
   // 🔹 ถ้าเป็น user ครั้งแรก ให้เปลี่ยนรหัสผ่านก่อน (ลบข้อยกเว้น role 7 ออกเพื่อให้นักเรียนต้องเปลี่ยนด้วย)
