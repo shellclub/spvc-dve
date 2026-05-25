@@ -6,12 +6,8 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# ไม่ copy package-lock.json เพื่อให้ npm resolve ใหม่บน Linux (หลีกเลี่ยง @next/swc-darwin-arm64 ใน lockfile)
-COPY package.json yarn.lock* pnpm-lock.yaml* ./
-RUN npm config set fetch-retries 5 \
-    && npm config set fetch-retry-mintimeout 20000 \
-    && npm config set fetch-retry-maxtimeout 120000 \
-    && npm install --legacy-peer-deps
+COPY package.json package-lock.json* ./
+RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
 # Rebuild the source code only when needed
 FROM base AS builder

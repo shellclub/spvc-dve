@@ -19,8 +19,8 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
-          timeout: 30m
-          command_timeout: 30m
+          timeout: 60m
+          command_timeout: 60m
           script: |
             set -e
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH || '/var/www/spvc-dve' }}"
@@ -33,7 +33,7 @@ jobs:
             COMPOSE_CMD="docker compose"
             if ! $COMPOSE_CMD version 2>/dev/null; then COMPOSE_CMD="docker-compose"; fi
             $COMPOSE_CMD down --remove-orphans 2>/dev/null || true
-            $COMPOSE_CMD build --no-cache
+            $COMPOSE_CMD build
             $COMPOSE_CMD up -d
             docker image prune -f
             echo "Waiting for app to start..."
