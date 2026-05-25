@@ -18,13 +18,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: |
-          docker build -t spvc-dve-app:latest .
+        run: docker build -t spvc-dve-app:latest .
 
       - name: Save image to tarball
         run: |
-          docker save spvc-dve-app:latest | gzip > /tmp/spvc-dve-app.tar.gz
-          ls -lh /tmp/spvc-dve-app.tar.gz
+          docker save spvc-dve-app:latest | gzip > spvc-dve-app.tar.gz
+          ls -lh spvc-dve-app.tar.gz
 
       - name: Copy image to server
         uses: appleboy/scp-action@v0.1.7
@@ -33,9 +32,8 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
-          source: /tmp/spvc-dve-app.tar.gz
-          target: /tmp/
-          strip_components: 1
+          source: spvc-dve-app.tar.gz
+          target: /tmp
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
