@@ -26,7 +26,7 @@ const AuthLogin = () => {
         showToast("Username หรือ รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง", 'error');
         router.refresh();
       } else {
-        router.push("/protected");
+        window.location.href = "/protected";
       }
     } catch (err) {
       console.log(err);
