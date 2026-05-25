@@ -1,5 +1,5 @@
-# Build → Push to GHCR → SSH pull + restart
-# Secrets ที่ต้องตั้ง: DEPLOY_HOST, DEPLOY_USER, SSH_PRIVATE_KEY
+# Build → Push to GHCR → SSH fire-and-forget deploy
+# Secrets ที่ต้องตั้ง: DEPLOY_HOST, DEPLOY_USER, SSH_PRIVATE_KEY, GHCR_TOKEN
 
 name: Deploy to Server
 
@@ -14,7 +14,7 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
@@ -39,36 +39,54 @@ jobs:
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}
 
-      - name: Deploy on server
+      - name: Trigger deploy on server (fire-and-forget)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
-          timeout: 60m
-          command_timeout: 60m
+          timeout: 2m
+          command_timeout: 2m
           script: |
-            set -e
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH || '/var/www/spvc-dve' }}"
             IMAGE="${{ env.IMAGE }}:latest"
+            GHCR_TOKEN="${{ secrets.GHCR_TOKEN }}"
+            GHCR_USER="${{ github.actor }}"
+            LOG="/tmp/spvc-deploy.log"
 
-            echo "→ Pull image from GHCR"
-            echo "${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            cat > /tmp/spvc-deploy.sh << 'SCRIPT'
+            #!/bin/bash
+            set -e
+            exec > "$LOG" 2>&1
+            echo "$(date) — Deploy started"
+
+            echo "→ Docker login to GHCR"
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            echo "→ Pulling image: $IMAGE"
             docker pull "$IMAGE"
 
-            echo "→ Update source code"
+            echo "→ Updating source code"
             cd "$DEPLOY_PATH"
             git fetch origin main
             git reset --hard origin/main
 
-            echo "→ Restart services"
+            echo "→ Restarting services"
             COMPOSE_CMD="docker compose"
             if ! $COMPOSE_CMD version 2>/dev/null; then COMPOSE_CMD="docker-compose"; fi
             $COMPOSE_CMD up -d
             docker image prune -f
 
-            echo "→ Waiting for app to start..."
+            echo "→ Waiting for app..."
             sleep 10
-            $COMPOSE_CMD logs --tail=30 app
-            echo "✅ Deploy done."
+            $COMPOSE_CMD logs --tail=20 app
+
+            echo "$(date) — ✅ Deploy finished successfully"
+            SCRIPT
+
+            chmod +x /tmp/spvc-deploy.sh
+            export DEPLOY_PATH IMAGE GHCR_TOKEN GHCR_USER LOG
+            nohup bash -c 'export DEPLOY_PATH="'"$DEPLOY_PATH"'" IMAGE="'"$IMAGE"'" GHCR_TOKEN="'"$GHCR_TOKEN"'" GHCR_USER="'"$GHCR_USER"'" LOG="'"$LOG"'"; source /tmp/spvc-deploy.sh' > /tmp/spvc-deploy.log 2>&1 &
+            echo "✅ Deploy script started in background (PID: $!)"
+            echo "📄 Log: ssh into server and run: tail -f /tmp/spvc-deploy.log"
