@@ -75,34 +75,5 @@ export const { handlers, auth } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user, trigger, session }) {
-      // เพิ่มข้อมูลลง token หลัง login สำเร็จ
-      if (user) {
-        token.id = user.id as string;
-        token.role = user.role;
-        token.is_first_login = user.is_first_login;
-        token.skip_password_change = user.skip_password_change;
-      }
-      if (trigger === "update" && session) {
-        token.skip_password_change = session.user.skip_password_change ?? token.skip_password_change;
-        token.is_first_login = session.user.is_first_login ?? token.is_first_login;
-        token.role = session.user.role ?? token.role;
-        token.id = session.user.id ?? token.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      // เพิ่มข้อมูลลง session จาก JWT
-      if (session.user) {
-        session.user.id = String(token.id);
-        session.user.role = Number(token.role);
-        session.user.is_first_login = Boolean(token.is_first_login);
-        session.user.skip_password_change = token.skip_password_change
-          ? dayjs(token.skip_password_change as string).toDate()
-          : null;
-      }
-      return session;
-    },
-  },
 });
+
