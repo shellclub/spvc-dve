@@ -23,7 +23,7 @@ services:
       start_period: 30s
 
   app:
-    image: spvc-dve-app:latest
+    image: ghcr.io/shellclub/spvc-dve/app:latest
     build: .
     restart: unless-stopped
     depends_on:
