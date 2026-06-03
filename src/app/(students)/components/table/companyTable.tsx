@@ -1,7 +1,7 @@
 'use client';
+import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { Icon } from '@iconify/react/dist/iconify.js';
-import Image from 'next/image';
 import AddCompanyForm from './AddCompanyForm';
 
 interface InternshipDetails {
@@ -25,9 +25,25 @@ const fetcher = async (url: string) => {
 };
 
 export default function CompanyTable() {
-    const { data, isLoading, error, mutate } = useSWR<InternshipDetails>('/api/internship/me', fetcher);
+    const { data, isLoading, error, mutate } = useSWR<InternshipDetails>(
+        '/api/internship/me',
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+            shouldRetryOnError: false,
+        }
+    );
 
-    if (isLoading) {
+    const noInternship = error?.message === 'No internship found';
+    const [showAddForm, setShowAddForm] = useState(false);
+
+    useEffect(() => {
+        if (noInternship) setShowAddForm(true);
+        if (data) setShowAddForm(false);
+    }, [noInternship, data]);
+
+    if (isLoading && !showAddForm && !data) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="w-10 h-10 border-4 border-green-100 border-t-[#2E7D32] rounded-full animate-spin" />
@@ -36,23 +52,24 @@ export default function CompanyTable() {
         );
     }
 
-    if (error) {
-        if (error.message === 'No internship found') {
-            return (
-                <div className="space-y-6 max-w-5xl mx-auto pb-12">
-                    <div className="flex flex-col items-center justify-center pt-8 text-center">
-                        <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                            <Icon icon="tabler:briefcase" className="text-blue-500" width={32} />
-                        </div>
-                        <p className="text-2xl text-gray-800 font-bold mb-2">ยังไม่มีข้อมูลสถานประกอบการ</p>
-                        <p className="text-gray-500 max-w-md">
-                            คุณสามารถเลือกสถานประกอบการที่มีอยู่ในระบบ หรือเพิ่มสถานประกอบการใหม่ได้จากแบบฟอร์มด้านล่าง
-                        </p>
+    if (showAddForm || noInternship) {
+        return (
+            <div className="space-y-6 max-w-5xl mx-auto pb-12">
+                <div className="flex flex-col items-center justify-center pt-8 text-center">
+                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 shadow-sm">
+                        <Icon icon="tabler:briefcase" className="text-blue-500" width={32} />
                     </div>
-                    <AddCompanyForm onComplete={() => mutate()} />
+                    <p className="text-2xl text-gray-800 font-bold mb-2">ยังไม่มีข้อมูลสถานประกอบการ</p>
+                    <p className="text-gray-500 max-w-md">
+                        คุณสามารถเลือกสถานประกอบการที่มีอยู่ในระบบ หรือเพิ่มสถานประกอบการใหม่ได้จากแบบฟอร์มด้านล่าง
+                    </p>
                 </div>
-            );
-        }
+                <AddCompanyForm onComplete={() => mutate()} />
+            </div>
+        );
+    }
+
+    if (error) {
 
         return (
             <div className="flex flex-col items-center justify-center p-12 text-center">

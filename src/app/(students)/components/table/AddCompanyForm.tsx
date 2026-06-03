@@ -1,5 +1,5 @@
 "use client";
-import React, { FormEvent, useState } from "react";
+import React, { FormEvent, useEffect, useState } from "react";
 import { Button, Select, Spinner } from "flowbite-react";
 import { Icon } from "@iconify/react";
 import useSWR from "swr";
@@ -7,6 +7,8 @@ import { Input } from "@/app/components/shadcn-ui/Default-Ui/input";
 import { Label } from "@/app/components/shadcn-ui/Default-Ui/label";
 import { ThaiDatePicker } from "@/app/components/ThaiDatePicker";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
+
+const MODE_STORAGE_KEY = "addCompanyFormMode";
 
 const fetcher = async (url: string) => await fetch(url).then(res => res.json());
 
@@ -17,10 +19,26 @@ interface Company {
 }
 
 export default function AddCompanyForm({ onComplete }: { onComplete: () => void }) {
-    const [mode, setMode] = useState<'select' | 'new'>('select');
+    const [mode, setModeState] = useState<"select" | "new">("select");
     const [loading, setLoading] = useState(false);
 
-    const { data: companyData, isLoading: companyLoading } = useSWR<Company[]>('/api/company', fetcher);
+    useEffect(() => {
+        const saved = sessionStorage.getItem(MODE_STORAGE_KEY);
+        if (saved === "new" || saved === "select") {
+            setModeState(saved);
+        }
+    }, []);
+
+    const setMode = (next: "select" | "new") => {
+        setModeState(next);
+        sessionStorage.setItem(MODE_STORAGE_KEY, next);
+    };
+
+    const { data: companyData, isLoading: companyLoading } = useSWR<Company[]>(
+        "/api/company",
+        fetcher,
+        { revalidateOnFocus: false }
+    );
 
     const [formData, setFormData] = useState({
         selectedCompanyId: "",
@@ -87,6 +105,7 @@ export default function AddCompanyForm({ onComplete }: { onComplete: () => void 
             }
 
             showToast(result.message || "บันทึกข้อมูลสำเร็จ", "success");
+            sessionStorage.removeItem(MODE_STORAGE_KEY);
             onComplete();
         } catch (error) {
             showToast(error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการเชื่อมต่อ", "error");
