@@ -15,6 +15,7 @@ import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
 import { formatThaiDate } from "@/lib/utils";
 import Image from "next/image";
+import { ReportThumbnail } from "@/app/components/ReportThumbnail";
 import dayjs from "dayjs";
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { useSession } from "next-auth/react";
@@ -130,13 +131,11 @@ const ExportTable = () => {
     }),
     columnHelper.accessor("image", {
       cell: (info) => (
-        <div className="flex justify-center">
-          {info.getValue() ? (
-            <Image src={`/report/${info.getValue()}`} width={80} height={80} alt="report" unoptimized className="rounded-lg" />
-          ) : (
-            <span className="text-gray-300 text-sm">-</span>
-          )}
-        </div>
+        <ReportThumbnail
+          image={info.getValue() as string}
+          alt="รูปรายงาน"
+          className="w-20 h-20 rounded-lg mx-auto"
+        />
       ),
       header: () => <span>รูปภาพ</span>,
     }),
@@ -204,11 +203,11 @@ const ExportTable = () => {
             .sort((a: any, b: any) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime())
             .map((report: any, idx: number) => (
               <div key={report.id} className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden hover:shadow-lg transition-all">
-                {report.image && (
-                  <div className="relative h-40 bg-gray-50">
-                    <Image src={`/report/${report.image}`} alt={report.title} fill className="object-cover" unoptimized />
-                  </div>
-                )}
+                <ReportThumbnail
+                  image={report.image}
+                  alt={report.title}
+                  className="h-40 w-full"
+                />
                 <div className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="inline-flex items-center gap-1 text-xs font-bold text-white bg-gradient-to-r from-[#2E7D32] to-[#4CAF50] px-2.5 py-0.5 rounded-full">

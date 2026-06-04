@@ -8,6 +8,7 @@ import Swal from "sweetalert2";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
 import { compressImage } from "@/lib/imageUtils";
 import { ThaiDatePicker } from "@/app/components/ThaiDatePicker";
+import { ReportThumbnail, reportImageUrl } from "@/app/components/ReportThumbnail";
 import Image from "next/image";
 import dayjs from "dayjs";
 
@@ -99,7 +100,7 @@ export default function InternReport() {
     setFormDate(dayjs(report.reportDate).format("YYYY-MM-DD"));
     setFormTitle(report.title);
     setFormDesc(report.description || "");
-    setImagePreview(report.image ? `/report/${report.image}` : null);
+    setImagePreview(report.image ? reportImageUrl(report.image) : null);
     setImageFile(null);
     setShowForm(true);
   };
@@ -327,18 +328,12 @@ export default function InternReport() {
                 className="bg-white rounded-2xl shadow border border-gray-100 hover:shadow-lg transition-all duration-200 group"
               >
                 <div className="flex items-stretch">
-                  {/* Image thumbnail */}
-                  {report.image && (
-                    <div className="relative w-28 sm:w-36 flex-shrink-0 rounded-l-2xl overflow-hidden">
-                      <Image
-                        src={`/report/${report.image}`}
-                        alt={report.title}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    </div>
-                  )}
+                  {/* รูปแนบรายงาน (ไม่มีรูป → แสดง nophoto) */}
+                  <ReportThumbnail
+                    image={report.image}
+                    alt={report.title}
+                    className="w-28 sm:w-36 flex-shrink-0 rounded-l-2xl min-h-[88px]"
+                  />
 
                   {/* Content */}
                   <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between min-w-0">
