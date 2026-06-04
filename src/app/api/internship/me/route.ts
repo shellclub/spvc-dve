@@ -91,6 +91,14 @@ export async function GET() {
 }
 
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
+
+function uniqueCompanyPhone(phone: string | undefined, citizenId: string): string {
+    const trimmed = (phone || "").replace(/\D/g, "").slice(0, 10);
+    if (trimmed.length === 10) return trimmed;
+    // placeholder 10 หลัก ไม่ซ้ำ (ใช้เมื่อไม่กรอกเบอร์)
+    return `9${citizenId.replace(/\D/g, "").slice(-9)}`.padStart(10, "9").slice(0, 10);
+}
 
 export async function POST(request: Request) {
     try {
@@ -171,6 +179,29 @@ export async function POST(request: Request) {
             );
         }
 
+        const phoneDigits = (phone || "").replace(/\D/g, "");
+        if (phoneDigits.length > 0) {
+            if (phoneDigits.length !== 10) {
+                return NextResponse.json(
+                    { message: "เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก", type: "error" },
+                    { status: 400 }
+                );
+            }
+            const phoneTaken = await prisma.user.findUnique({
+                where: { phone: phoneDigits },
+            });
+            if (phoneTaken) {
+                return NextResponse.json(
+                    {
+                        message: "เบอร์โทรศัพท์นี้มีในระบบแล้ว กรุณาใช้เบอร์อื่นหรือเลือกสถานประกอบการจากรายชื่อ",
+                        type: "error",
+                    },
+                    { status: 400 }
+                );
+            }
+        }
+
+        const mentorPhone = uniqueCompanyPhone(phone, citizenId);
         const studentId = user.student.id;
 
         await prisma.$transaction(async (tx) => {
@@ -178,7 +209,7 @@ export async function POST(request: Request) {
                 data: {
                     firstname,
                     lastname,
-                    phone: phone || "",
+                    phone: mentorPhone,
                     citizenId,
                     role: 6,
                     login: {
@@ -214,6 +245,27 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: "เพิ่มข้อมูลสถานประกอบการใหม่สำเร็จ", type: "success" }, { status: 201 });
     } catch (error) {
         console.error("Error adding student company:", error);
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            const target = (error.meta?.target as string[]) || [];
+            if (target.includes("phone")) {
+                return NextResponse.json(
+                    {
+                        message: "เบอร์โทรศัพท์นี้มีในระบบแล้ว กรุณาใช้เบอร์อื่น",
+                        type: "error",
+                    },
+                    { status: 400 }
+                );
+            }
+            if (target.includes("name")) {
+                return NextResponse.json(
+                    {
+                        message: "มีชื่อสถานประกอบการนี้ในระบบแล้ว กรุณาเลือกจากรายชื่อ",
+                        type: "error",
+                    },
+                    { status: 400 }
+                );
+            }
+        }
         return NextResponse.json({ message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล", type: "error" }, { status: 500 });
     }
 }
