@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
-const NO_PHOTO = "/images/nophoto.svg";
+/** inline SVG — ไม่พึ่งไฟล์ใน public (volume mount บน server อาจทับ public/) */
+const NO_PHOTO =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" rx="12" fill="#F3F4F6"/><path d="M36 78V54L48 42L72 66L84 54V78H36Z" stroke="#9CA3AF" stroke-width="3" fill="none"/><circle cx="46" cy="46" r="6" fill="#D1D5DB"/></svg>'
+  );
 
 export function hasReportImage(image?: string | null): boolean {
   if (!image) return false;

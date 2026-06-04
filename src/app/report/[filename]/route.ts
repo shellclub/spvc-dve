@@ -37,6 +37,6 @@ export async function GET(
       },
     });
   } catch {
-    return NextResponse.redirect(new URL("/images/nophoto.svg", _request.url));
+    return new NextResponse(null, { status: 404 });
   }
 }
