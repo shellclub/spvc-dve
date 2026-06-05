@@ -82,13 +82,13 @@ interface PaginationTableType {
     gradeLevel: string
     major: {
       major_name: string
-    }
+    } | null
     education: {
       name: string
-    }
+    } | null
     department: {
       depname: string
-    }
+    } | null
     studentCompanies?: StudentCompanyRecord[]
   }
   firstname?: string
@@ -180,7 +180,7 @@ const SupervisionViewTable = () => {
     if (!stdData) return []
     const gradesSet = new Set<string>()
     stdData.forEach((user) => {
-      if (user.student) {
+      if (user.student?.education?.name) {
         const gradeCombo = `${user.student.education.name}.${user.student.gradeLevel}`
         gradesSet.add(gradeCombo)
       }
@@ -193,7 +193,10 @@ const SupervisionViewTable = () => {
     if (!stdData) return []
     const roomsSet = new Set<string>()
     stdData.forEach((user) => {
-      if (user.student && (majorFilter === "all" || user.student.major.major_name === majorFilter)) {
+      if (
+        user.student &&
+        (majorFilter === "all" || user.student.major?.major_name === majorFilter)
+      ) {
         roomsSet.add(user.student.room)
       }
     })
@@ -208,9 +211,13 @@ const SupervisionViewTable = () => {
 
       const hasInternship = user.student.studentCompanies && user.student.studentCompanies.length > 0
       if (!hasInternship) return false 
-      const matchesDepartment = departmentFilter === "all" || user.student.department.depname === departmentFilter
-      const matchesMajor = majorFilter === "all" || user.student.major.major_name === majorFilter
-      const studentGradeCombo = `${user.student.education.name}.${user.student.gradeLevel}`
+      const matchesDepartment =
+        departmentFilter === "all" || user.student.department?.depname === departmentFilter
+      const matchesMajor =
+        majorFilter === "all" || user.student.major?.major_name === majorFilter
+      const studentGradeCombo = user.student.education?.name
+        ? `${user.student.education.name}.${user.student.gradeLevel}`
+        : ""
       const matchesGrade = gradeFilter === "all" || studentGradeCombo === gradeFilter
       const matchesRoom = roomFilter === "all" || user.student.room === roomFilter
 
@@ -221,9 +228,10 @@ const SupervisionViewTable = () => {
     const availableMajors = React.useMemo(() => {
       const majorsSet = new Set<string>();
       stdData.forEach((user) => {
+        if (!user.student?.major?.major_name) return;
         if (
           departmentFilter === "all" ||
-          user.student.department.depname === departmentFilter
+          user.student.department?.depname === departmentFilter
         ) {
           majorsSet.add(user.student.major.major_name);
         }
@@ -256,12 +264,14 @@ const SupervisionViewTable = () => {
       ),
       header: () => <span>ชื่อ-นามสกุล</span>,
     }),
-    columnHelper.accessor((row) => row.student.department.depname, {
+    columnHelper.accessor((row) => row.student.department?.depname ?? "-", {
       id: "department",
       cell: (info) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${info.getValue()}`}</h6>
-          <p className="text-sm text-darklink dark:text-bodytext">{info.row.original.student.major.major_name}</p>
+          <h6 className="text-base">{info.getValue()}</h6>
+          <p className="text-sm text-darklink dark:text-bodytext">
+            {info.row.original.student.major?.major_name ?? "-"}
+          </p>
         </div>
       ),
       header: () => <span>แผนกวิชา</span>,
