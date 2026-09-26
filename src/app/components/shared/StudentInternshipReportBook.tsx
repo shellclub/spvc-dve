@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -10,28 +10,17 @@ import {
   createColumnHelper,
   ColumnFiltersState,
 } from "@tanstack/react-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/app/components/shadcn-ui/Default-Ui/dialog";
-import { Badge, Button, Dropdown, Select, Spinner } from "flowbite-react";
-import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight, IconDots } from "@tabler/icons-react";
+import { Button, Spinner } from "flowbite-react";
+import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight } from "@tabler/icons-react";
 import { Icon } from "@iconify/react";
 import TitleIconCard from "@/app/components/shared/TitleIconCard";
-import Swal from "sweetalert2";
 import { showToast } from "@/app/components/sweetalert/sweetalert";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import useSWR from "swr";
 import { formatThaiDate } from "@/lib/utils";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import '@/fonts/THSarabunNew-normal.js';
-// Interface ตามโครงสร้างข้อมูลจริงจาก API
+import { ReportThumbnail } from "@/app/components/ReportThumbnail";
+import { exportInternshipReportBook, InternshipBookStudent } from "@/lib/pdf/internshipReportPdf";
+
 interface Report {
   id: number;
   studentId: number;
@@ -63,7 +52,7 @@ interface Student {
   report: Report[];
 }
 
-export interface UserData {
+export interface UserData extends InternshipBookStudent {
   id: number;
   firstname: string;
   lastname: string;
@@ -75,29 +64,32 @@ export interface UserData {
   sex: number;
 }
 
-type StudentProps = {
+type StudentInternshipReportBookProps = {
   id: string;
+  backHref?: string;
+  backLabel?: string;
 };
 
 const columnHelper = createColumnHelper<Report>();
 
-const fetcher = (url: string) => fetch(url).then(res => {
-  if (!res.ok) {
-    throw new Error('Failed to fetch data');
-  }
-  return res.json();
-});
+const fetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) {
+      throw new Error("Failed to fetch data");
+    }
+    return res.json();
+  });
 
-const StudentDetailTable = ({ id }: StudentProps) => {
+const StudentInternshipReportBook = ({ id, backHref, backLabel }: StudentInternshipReportBookProps) => {
   const router = useRouter();
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [studentInfo, setStudentInfo] = useState({
-    studentId: 'กำลังโหลด...',
-    name: 'กำลังโหลด...',
-    department: 'กำลังโหลด...',
-    major: 'กำลังโหลด...',
-    academicYear: 'กำลังโหลด...',
-    internshipDays: 'กำลังโหลด...'
+    studentId: "กำลังโหลด...",
+    name: "กำลังโหลด...",
+    department: "กำลังโหลด...",
+    major: "กำลังโหลด...",
+    academicYear: "กำลังโหลด...",
+    internshipDays: "กำลังโหลด...",
   });
 
   const { data, error, isLoading, mutate } = useSWR<UserData>(
@@ -107,54 +99,29 @@ const StudentDetailTable = ({ id }: StudentProps) => {
       onSuccess: (data) => {
         if (data) {
           setStudentInfo({
-            studentId: data.student?.studentId || 'ไม่มีข้อมูล',
-            name: `${data.firstname || ''} ${data.lastname || ''}`.trim(),
-            department: data.department?.depname || 'ไม่มีข้อมูล',
-            major: data.student?.major || 'ไม่มีข้อมูล',
+            studentId: data.student?.studentId || "ไม่มีข้อมูล",
+            name: `${data.firstname || ""} ${data.lastname || ""}`.trim(),
+            department: data.department?.depname || "ไม่มีข้อมูล",
+            major: data.student?.major || "ไม่มีข้อมูล",
             academicYear: data.student
               ? `${data.student.term}/${data.student.academicYear}`
-              : 'ไม่มีข้อมูล',
-            internshipDays: data.student?.inturnship?.selectedDays?.join(', ') || 'ไม่มีข้อมูล'
+              : "ไม่มีข้อมูล",
+            internshipDays: data.student?.inturnship?.selectedDays?.join(", ") || "ไม่มีข้อมูล",
           });
         }
       },
       onError: (err) => {
         console.error("API Error:", err);
         showToast("ไม่สามารถโหลดข้อมูลได้", "error");
-      }
+      },
     }
   );
 
-
-  const exportToPDF = async () => {
-
-    const input = document.getElementById('reportContent');
-    if (!input) return;
-
-    const canvas = await html2canvas(input, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-
-    const headerText = `รายงานการฝึกงาน \n ${data?.student?.studentId}  ${data?.sex === 1 ? "นาย" : data?.sex === 2 ? "นางสาว" : ""} ${data?.firstname} ${data?.lastname} ระดับชั้น ${data?.student?.gradeLevel} กลุ่ม ${data?.student?.room} สาขาวิชา ${data?.student?.major}`;
-    pdf.setFont('THSarabunNew');
-    pdf.setFontSize(18);
-    pdf.text(headerText, pageWidth / 2, 15, { align: 'center' });
-
-    const topOffset = 25;
-
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pageWidth;
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-    pdf.addImage(imgData, 'PNG', 0, topOffset, pdfWidth, pdfHeight);
-    const blob = pdf.output('blob');
-    const blobURL = URL.createObjectURL(blob);
-    window.open(blobURL)
+  const handlePrint = async () => {
+    if (!data) return;
+    await exportInternshipReportBook(data, "reportContent");
   };
+
   const columns = [
     columnHelper.display({
       id: "index",
@@ -171,21 +138,11 @@ const StudentDetailTable = ({ id }: StudentProps) => {
     }),
     columnHelper.accessor("image", {
       cell: (info) => (
-        <div className="flex justify-center">
-          {info.getValue() ? (
-            <Image
-              src={`/report/${info.getValue()}`}
-              width={100}
-              height={100}
-              alt="รายงานภาพ"
-              className="object-contain h-20"
-              priority={false}
-              unoptimized={true}
-            />
-          ) : (
-            <span className="text-gray-400">ไม่มีภาพ</span>
-          )}
-        </div>
+        <ReportThumbnail
+          image={info.getValue()}
+          alt="รายงานภาพ"
+          className="w-20 h-20 rounded-lg mx-auto"
+        />
       ),
       header: "รูปภาพ",
     }),
@@ -195,13 +152,10 @@ const StudentDetailTable = ({ id }: StudentProps) => {
     }),
     columnHelper.accessor("description", {
       cell: (info) => (
-        <div className="line-clamp-2 max-w-xs">
-          {info.getValue() || "ไม่มีรายละเอียด"}
-        </div>
+        <div className="line-clamp-2 max-w-xs">{info.getValue() || "ไม่มีรายละเอียด"}</div>
       ),
       header: "รายละเอียด",
     }),
-
   ];
 
   const table = useReactTable({
@@ -216,9 +170,6 @@ const StudentDetailTable = ({ id }: StudentProps) => {
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    debugTable: true,
-    debugHeaders: true,
-    debugColumns: false,
   });
 
   if (isLoading) {
@@ -244,17 +195,19 @@ const StudentDetailTable = ({ id }: StudentProps) => {
 
   return (
     <TitleIconCard title="ข้อมูลนักศึกษา">
-      <div className="flex justify-start mb-4">
-        <Button
-          color="gray"
-          size="sm"
-          onClick={() => router.push("/teacher")}
-          className="flex items-center gap-2"
-        >
-          <Icon icon="tabler:arrow-left" width={18} />
-          กลับไปรายชื่อนักศึกษาในความดูแล
-        </Button>
-      </div>
+      {backHref && (
+        <div className="flex justify-start mb-4">
+          <Button
+            color="gray"
+            size="sm"
+            onClick={() => router.push(backHref)}
+            className="flex items-center gap-2"
+          >
+            <Icon icon="tabler:arrow-left" width={18} />
+            {backLabel || "กลับไปรายชื่อนักศึกษา"}
+          </Button>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-6 p-4 rounded-lg">
         <div>
           <p className="text-sm text-gray-500">รหัสนักศึกษา</p>
@@ -282,16 +235,16 @@ const StudentDetailTable = ({ id }: StudentProps) => {
         </div>
       </div>
       <div className="flex justify-end items-center my-6">
-        <Button onClick={exportToPDF}>
-          <Icon icon="tabler:printer" height={20} />
+        <Button onClick={handlePrint}>
+          <Icon icon="tabler:printer" height={20} className="mr-2" />
+          พิมพ์เล่มฝึกงาน
         </Button>
-
       </div>
       <div className="border rounded-md border-ld overflow-hidden">
         {!data?.student.report || data.student.report.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8">
             <Icon icon="tabler:report-off" className="text-gray-400 text-4xl mb-2" />
-            <span className="text-gray-500">ไม่พบรายงานการปฏิบัติงานแต่ละวัน</span>
+            <span className="text-gray-500">ไม่พบรายงานการฝึกงาน</span>
           </div>
         ) : (
           <>
@@ -305,7 +258,9 @@ const StudentDetailTable = ({ id }: StudentProps) => {
                           key={header.id}
                           className="text-base text-ld font-semibold py-3 text-left border border-ld px-2 xxl:px-4"
                         >
-                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
                         </th>
                       ))}
                     </tr>
@@ -414,4 +369,4 @@ const StudentDetailTable = ({ id }: StudentProps) => {
   );
 };
 
-export default StudentDetailTable;
+export default StudentInternshipReportBook;

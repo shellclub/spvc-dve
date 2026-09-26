@@ -4,7 +4,7 @@ export default async function StudentDetail({params}: { params: Promise<{id: str
     const { id } = await params;
     return (
         <>
-            <StudentInternshipReportBook id={id} backHref="/admin/students/all" backLabel="กลับไปรายชื่อนักศึกษาทั้งหมด" />
+            <StudentInternshipReportBook id={id} backHref="/board/students" backLabel="กลับไปรายชื่อนักศึกษา" />
         </>
     );
 }

@@ -9,6 +9,13 @@ export async function GET(
   const { id } = await params;
   const session = await auth();
 
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { message: "กรุณาเข้าสู่ระบบ" },
+      { status: 401 }
+    );
+  }
+
   const student = await prisma.student.findUnique({
     where: { id: Number(id) },
     include: {
@@ -28,7 +35,7 @@ export async function GET(
     );
   }
 
-  // ถ้าเป็นครูที่ปรึกษา (role 4) อนุญาตเฉพาะนักศึกษาที่อยู่ในความดูแลเท่านั้น
+  // role 1/2/3/5 เข้าถึงได้ทุกคน ถ้าเป็นครูที่ปรึกษา (role 4) อนุญาตเฉพาะนักศึกษาที่อยู่ในความดูแลเท่านั้น
   if (session?.user?.id && Number(session.user.role) === 4) {
     const teacher = await prisma.teacher.findUnique({
       where: { userId: Number(session.user.id) },

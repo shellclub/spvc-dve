@@ -58,6 +58,12 @@ const SidebarContent: MenuItem[] = [
         id: uniqueId(),
         url: "/board/supervision",
       },
+      {
+        name: "รายงานฝึกงานนักศึกษา",
+        icon: 'tabler:notebook',
+        id: uniqueId(),
+        url: "/board/students",
+      },
       // {
       //   name: "eCommerce",
       //   icon: 'tabler:shopping-cart',

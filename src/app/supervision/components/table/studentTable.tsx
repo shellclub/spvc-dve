@@ -72,6 +72,30 @@ type TermYear = {
 const columnHelper = createColumnHelper<PaginationTableType>();
 const fetcher = async (url: string) => await fetch(url).then(res => res.json());
 
+// เจ้าหน้าที่ทวิภาคี/ครูนิเทศก์ (role 5) ต้องเห็นนักศึกษาทั้งหมดทุกแผนก จึงใช้ /api/students (ไม่จำกัดแผนก)
+// แล้วแปลง shape ที่คืนมาแบบแบน ให้ตรงกับ PaginationTableType ที่ตารางนี้ใช้อยู่เดิม
+const allStudentsFetcher = async (url: string): Promise<PaginationTableType[]> => {
+  const students = await fetch(url).then(res => res.json());
+  return (students ?? []).map((s: any) => ({
+    id: s.user?.id,
+    citizenId: s.user?.citizenId,
+    user_img: s.user?.user_img,
+    firstname: s.user?.firstname,
+    lastname: s.user?.lastname,
+    department: { depname: s.department?.depname ?? "" },
+    student: {
+      id: s.id,
+      studentId: s.studentId,
+      term: s.term,
+      academicYear: s.academicYear,
+      room: s.room,
+      gradeLevel: s.gradeLevel,
+      major: { id: s.major?.id, major_name: s.major?.major_name ?? "" },
+      education: { name: s.education?.name ?? "" },
+    },
+  }));
+};
+
 // Skeleton Loading Component
 const SkeletonRow = () => (
   <tr className="border-b border-ld">
@@ -124,8 +148,8 @@ const StudentTable = () => {
 
   const { data: academicYears, error: yearError, isLoading: yearLoading } = useSWR<TermYear[]>('/api/academic_year', fetcher);
   const { data, error, isLoading, mutate } = useSWR<PaginationTableType[]>(
-    !selected ? '/api/students/getByDepartment' : `/api/students/getByDepartment?term=${selectedTerm}&year=${selectedYear}`,
-    fetcher
+    '/api/students',
+    allStudentsFetcher
   );
 
   const stdData = data ?? [];
@@ -177,10 +201,13 @@ const StudentTable = () => {
       const studentGradeCombo = `${student.student.education.name}.${student.student.gradeLevel}`;
       const matchesGrade = gradeFilter === "all" || studentGradeCombo === gradeFilter;
       const matchesRoom = roomFilter === "all" || student.student.room === roomFilter;
+      const matchesTermYear =
+        !selected ||
+        (student.student.term === selectedTerm && student.student.academicYear === selectedYear);
 
-      return matchesMajor && matchesGrade && matchesRoom;
+      return matchesMajor && matchesGrade && matchesRoom && matchesTermYear;
     });
-  }, [data, majorFilter, gradeFilter, roomFilter]);
+  }, [data, majorFilter, gradeFilter, roomFilter, selected, selectedTerm, selectedYear]);
 
   // Generate available grades
   const availableGrades = React.useMemo(() => {

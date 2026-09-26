@@ -103,13 +103,13 @@ export type Student = {
     major: {
       id: string
       major_name: string
-    };
+    } | null;
     room: string;
     term: string;
     academicYear: string;
     education: {
       name: string;
-    };
+    } | null;
     gradeLevel: string;
   user: {
     id: string;
@@ -433,7 +433,7 @@ export function StudentsAllTable() {
         <div className="truncate line-clamp-2 max-w-56">
           <h6 className="text-base">{row.original.department.depname}</h6>
           <p className="text-sm text-darklink dark:text-bodytext">
-            {row.original.major.major_name}
+            {row.original.major?.major_name || "ไม่มีข้อมูล"}
           </p>
         </div>
       ),
@@ -443,7 +443,7 @@ export function StudentsAllTable() {
       header: () => <span>ระดับชั้น</span>,
       cell: ({ row }) => (
         <div className="truncate line-clamp-2 max-w-56">
-          <h6 className="text-base">{`${row.original.education.name}.${row.original.gradeLevel}/${row.original.room}`}</h6>
+          <h6 className="text-base">{`${row.original.education?.name || "-"}.${row.original.gradeLevel}/${row.original.room}`}</h6>
           <p className="text-sm text-darklink dark:text-bodytext">
             ปีการศึกษา:{" "}
             {`${row.original.term}/${row.original.academicYear}`}
@@ -451,7 +451,36 @@ export function StudentsAllTable() {
         </div>
       ),
     },
-    
+    {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const student = row.original;
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <IconDots size={22} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="bg-white dark:bg-gray-900"
+            >
+              <DropdownMenuItem
+                onClick={() => handleView(student.id)}
+                className="flex gap-3 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <IconEye size={18} />
+                <span>รายละเอียด</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
   ];
 
   const nameFilterFn: FilterFn<Student> = (row, columnId, filterValue) => {
@@ -499,7 +528,7 @@ export function StudentsAllTable() {
     const gradesSet = new Set<string>();
     allStudents.forEach((student) => {
       // สร้าง combination ของ education.name และ gradeLevel
-      const gradeCombo = `${student.education.name}.${student.gradeLevel}`;
+      const gradeCombo = `${student.education?.name || "-"}.${student.gradeLevel}`;
       gradesSet.add(gradeCombo);
     });
     return Array.from(gradesSet).sort(); // เรียงลำดับ
@@ -512,10 +541,10 @@ export function StudentsAllTable() {
         departmentFilter === "all" ||
         student.department.depname === departmentFilter;
       const matchesMajor =
-        majorFileter === "all" || student.major.major_name === majorFileter;
+        majorFileter === "all" || student.major?.major_name === majorFileter;
 
       // เปรียบเทียบกับ combination ของ education.name และ gradeLevel
-      const studentGradeCombo = `${student.education.name}.${student.gradeLevel}`;
+      const studentGradeCombo = `${student.education?.name || "-"}.${student.gradeLevel}`;
       const matchesGrade =
         gradeFilter === "all" || studentGradeCombo === gradeFilter;
 
@@ -534,7 +563,7 @@ export function StudentsAllTable() {
         departmentFilter === "all" ||
         student.department.depname === departmentFilter
       ) {
-        majorsSet.add(student.major.major_name);
+        if (student.major?.major_name) majorsSet.add(student.major.major_name);
       }
     });
     return Array.from(majorsSet);
@@ -543,7 +572,10 @@ export function StudentsAllTable() {
   const availableGroup = React.useMemo(() => {
     const groupSet = new Set<string>();
     allStudents.forEach((student) => {
-      if (majorFileter === "all" || student.major.major_name === majorFileter) {
+      if (
+        student.room &&
+        (majorFileter === "all" || student.major?.major_name === majorFileter)
+      ) {
         groupSet.add(student.room);
       }
     });
