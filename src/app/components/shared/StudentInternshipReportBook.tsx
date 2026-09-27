@@ -119,7 +119,7 @@ const StudentInternshipReportBook = ({ id, backHref, backLabel }: StudentInterns
 
   const handlePrint = async () => {
     if (!data) return;
-    await exportInternshipReportBook(data, "reportContent");
+    await exportInternshipReportBook(data);
   };
 
   const columns = [

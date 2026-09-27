@@ -25,6 +25,11 @@ export async function GET(
       education: true,
       inturnship: true,
       report: true,
+      studentCompanies: {
+        orderBy: { startDate: "asc" },
+        take: 1,
+        select: { startDate: true },
+      },
     },
   });
 
@@ -60,7 +65,7 @@ export async function GET(
   }
 
   // รูปแบบที่ frontend คาดไว้: มี firstname, lastname, department ที่ระดับบน และ student (พร้อม report)
-  const { user, department, major, education, inturnship, report } = student;
+  const { user, department, major, education, inturnship, report, studentCompanies } = student;
   const payload = {
     ...user,
     department: department ?? undefined,
@@ -74,6 +79,7 @@ export async function GET(
       major: major?.major_name ?? "",
       education: education ? { id: education.id, name: education.name } : undefined,
       inturnship: inturnship ?? undefined,
+      startDate: studentCompanies[0]?.startDate ?? undefined,
       report: report ?? [],
     },
   };
